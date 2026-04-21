@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Card DBG Prototype - Slay the Slime</title>
+  <title>卡牌DBG - 斩杀史莱姆</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -175,33 +175,33 @@
 <body>
   <div id="app">
     <div id="start-screen" class="start-screen">
-      <h1>Card DBG</h1>
-      <p>Slay the Slime - Deck Building Prototype</p>
-      <button class="btn" onclick="startGame()">Start Battle</button>
+      <h1>卡牌DBG</h1>
+      <p>斩杀史莱姆 - 卡牌构筑游戏原型</p>
+      <button class="btn" onclick="startGame()">开始战斗</button>
     </div>
     <div id="message" class="message"></div>
-    <div class="top-bar"><span id="intent-label">Prepare for battle...</span></div>
+    <div class="top-bar"><span id="intent-label">准备战斗...</span></div>
     <div class="battle-area">
       <div class="panel">
-        <h3>Player</h3>
+        <h3>玩家</h3>
         <div class="health-bar"><div class="health-fill" id="player-hp-fill" style="width:100%"></div></div>
         <div id="player-hp-text">80/80</div>
-        <div class="block-tag" id="player-block">Block: 0</div>
+        <div class="block-tag" id="player-block">护盾: 0</div>
         <div class="energy-display" id="energy-display">3/3</div>
       </div>
       <div class="vs-divider">VS</div>
       <div class="panel">
-        <h3>Slime</h3>
+        <h3>史莱姆</h3>
         <div class="health-bar"><div class="health-fill" id="enemy-hp-fill" style="width:100%"></div></div>
         <div id="enemy-hp-text">50/50</div>
         <div class="intent-badge" id="enemy-intent">???</div>
-        <div class="block-tag" id="enemy-block" style="display:none">Block: 0</div>
+        <div class="block-tag" id="enemy-block" style="display:none">护盾: 0</div>
       </div>
     </div>
     <div class="hand-area" id="hand-area"></div>
     <div class="bottom-bar">
-      <div><span class="draw-info" id="deck-info">Draw: 20 | Discard: 0</span></div>
-      <button class="btn" id="end-turn-btn" onclick="endTurn()" disabled>End Turn</button>
+      <div><span class="draw-info" id="deck-info">抽牌堆: 20 | 弃牌堆: 0</span></div>
+      <button class="btn" id="end-turn-btn" onclick="endTurn()" disabled>结束回合</button>
     </div>
   </div>
 
@@ -215,11 +215,11 @@ function createCard(name, cost, type, value, description) {
 }
 
 const STARTING_DECK = [
-  ...Array(5).fill(null).map(() => createCard('Strike', 1, CARD_TYPES.ATTACK, 6, 'Deal 6 dmg')),
-  ...Array(5).fill(null).map(() => createCard('Defend', 1, CARD_TYPES.SKILL, 5, 'Gain 5 block')),
-  createCard('Heavy Strike', 2, CARD_TYPES.ATTACK, 12, 'Deal 12 dmg'),
-  createCard('Bash', 2, CARD_TYPES.ATTACK, 8, 'Deal 8 dmg'),
-  createCard('Shrug It Off', 1, CARD_TYPES.SKILL, 8, 'Gain 8 block. Draw 1'),
+  ...Array(5).fill(null).map(() => createCard('打击', 1, CARD_TYPES.ATTACK, 6, '造成6点伤害')),
+  ...Array(5).fill(null).map(() => createCard('防御', 1, CARD_TYPES.SKILL, 5, '获得5点护盾')),
+  createCard('重击', 2, CARD_TYPES.ATTACK, 12, '造成12点伤害'),
+  createCard('重拳', 2, CARD_TYPES.ATTACK, 8, '造成8点伤害'),
+  createCard('硬撑', 1, CARD_TYPES.SKILL, 8, '获得8点护盾。抽1张牌'),
 ];
 
 const state = {
@@ -287,13 +287,13 @@ function executeEnemyIntent() {
     const dmg = Math.max(0, intentValue - state.player.block);
     state.player.hp = Math.max(0, state.player.hp - dmg);
     state.player.block = 0;
-    showMessage(`Slime attacks for ${intentValue}! (${dmg} thru block)`);
+    showMessage(`史莱姆攻击！造成了${intentValue}点伤害（${dmg}穿透护盾）`);
   } else if (intent === INTENTS.DEFEND) {
     state.enemy.block += intentValue;
-    showMessage(`Slime braces for ${intentValue} block!`);
+    showMessage(`史莱姆蓄力，获得${intentValue}点护盾！`);
   } else if (intent === INTENTS.BUFF) {
     state.enemy.powerBonus += intentValue;
-    showMessage(`Slime powers up! +${intentValue} bonus damage`);
+    showMessage(`史莱姆变强了！攻击强化+${intentValue}`);
   }
   updateUI();
 }
@@ -312,14 +312,14 @@ function startPlayerTurn() {
   state.enemy.block = 0;
   rollEnemyIntent(); drawCards(5); updateUI();
   document.getElementById('end-turn-btn').disabled = false;
-  document.getElementById('intent-label').textContent = `Turn ${state.turn} - Your Turn`;
+  document.getElementById('intent-label').textContent = `第${state.turn}回合 - 你的回合`;
 }
 
 function endTurn() {
   if (state.phase !== 'player_turn') return;
   document.getElementById('end-turn-btn').disabled = true;
   discardHand(); state.phase = 'enemy_turn';
-  document.getElementById('intent-label').textContent = 'Slime is thinking...';
+  document.getElementById('intent-label').textContent = '史莱姆行动中...';
   setTimeout(() => {
     executeEnemyIntent();
     if (state.player.hp <= 0) { endBattle(false); return; }
@@ -330,33 +330,34 @@ function endTurn() {
 function playCard(index) {
   if (state.phase !== 'player_turn') return;
   const card = state.hand[index];
-  if (state.player.energy < card.cost) { showMessage('Not enough energy!'); return; }
+  if (state.player.energy < card.cost) {  showMessage('能量不足！');return; }
   state.player.energy -= card.cost;
   state.hand.splice(index, 1); state.discardPile.push(card);
   if (card.type === CARD_TYPES.ATTACK) {
     const dmg = Math.max(0, card.value - state.enemy.block);
     state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
     state.enemy.block = 0;
-    showMessage(`${card.name} hits for ${card.value} dmg!`);
+    showMessage(`${card.name}造成${card.value}点伤害！`);
   } else if (card.type === CARD_TYPES.SKILL) {
     state.player.block += card.value;
-    if (card.name === 'Shrug It Off' && state.drawPile.length > 0) {
+    if (card.name === '硬撑' && state.drawPile.length > 0) {
       state.hand.push(state.drawPile.pop());
     }
-    showMessage(`+${card.value} block!`);
+    showMessage(`获得${card.value}点护盾！`);
   }
   renderHand(); updateUI(); updateDeckInfo();
   if (state.enemy.hp <= 0) endBattle(true);
 }
 
 function endBattle(victory) {
-  state.phase = victory ? 'victory' : 'defeat';
+  const isVictory = victory;
+  state.phase = isVictory ? 'victory' : 'defeat';
   document.getElementById('end-turn-btn').disabled = true;
-  document.getElementById('intent-label').textContent = victory ? 'Victory!' : 'Defeat!';
-  showMessage(victory ? 'Slime defeated!' : 'You died...', 3000);
+  document.getElementById('intent-label').textContent = isVictory ? '胜利！' : '失败！';
+  showMessage(isVictory ? '你赢了！史莱姆被斩杀！' : '你死了...', 3000);
   setTimeout(() => {
     document.getElementById('start-screen').style.display = 'flex';
-    document.querySelector('.start-screen .btn').textContent = 'Play Again';
+    document.querySelector('.start-screen .btn').textContent = '再玩一次';
   }, 1800);
 }
 
@@ -369,7 +370,7 @@ function renderHand() {
     el.innerHTML = `
       <div class="c-cost">${card.cost}</div>
       <div class="c-name">${card.name}</div>
-      <div class="c-type">${card.type}</div>
+      <div class="c-type">${card.type === 'attack' ? '攻击' : card.type === 'skill' ? '技能' : '能力'}</div>
       <div class="c-effect">${card.description}</div>`;
     el.onclick = () => playCard(i);
     c.appendChild(el);
@@ -380,22 +381,22 @@ function updateUI() {
   const { player, enemy } = state;
   document.getElementById('player-hp-fill').style.width = `${(player.hp/player.maxHp)*100}%`;
   document.getElementById('player-hp-text').textContent = `${player.hp}/${player.maxHp}`;
-  document.getElementById('player-block').textContent = `Block: ${player.block}`;
+  document.getElementById('player-block').textContent = `护盾: ${player.block}`;
   document.getElementById('energy-display').textContent = `${player.energy}/${player.maxEnergy}`;
   document.getElementById('enemy-hp-fill').style.width = `${(enemy.hp/enemy.maxHp)*100}%`;
   document.getElementById('enemy-hp-text').textContent = `${enemy.hp}/${enemy.maxHp}`;
   const eb = document.getElementById('enemy-block');
-  if (enemy.block > 0) { eb.style.display = 'inline-block'; eb.textContent = `Block: ${enemy.block}`; }
+  if (enemy.block > 0) { eb.style.display = 'inline-block'; eb.textContent = `护盾: ${enemy.block}`; }
   else eb.style.display = 'none';
   const intentStr = !enemy.intent ? '???' :
-    enemy.intent === INTENTS.ATTACK ? `ATK ${enemy.intentValue}` :
-    enemy.intent === INTENTS.DEFEND ? `DEF ${enemy.intentValue}` :
-    `BUFF +${enemy.intentValue}`;
+    enemy.intent === INTENTS.ATTACK ? `攻击 ${enemy.intentValue}` :
+    enemy.intent === INTENTS.DEFEND ? `防御 ${enemy.intentValue}` :
+    `强化 +${enemy.intentValue}`;
   document.getElementById('enemy-intent').textContent = intentStr;
 }
 
 function updateDeckInfo() {
-  document.getElementById('deck-info').textContent = `Draw: ${state.drawPile.length} | Discard: ${state.discardPile.length}`;
+  document.getElementById('deck-info').textContent = `抽牌堆: ${state.drawPile.length} | 弃牌堆: ${state.discardPile.length}`;
 }
 
 window.startGame = startGame;
