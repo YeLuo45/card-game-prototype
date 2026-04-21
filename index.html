@@ -412,6 +412,7 @@ function _startLevel() {
     intent: null, intentValue: 0,
   };
   state.turn = 0;
+  state.phase = 'idle';
   initializeDeck();
   startPlayerTurn();
   updateUI();
@@ -435,6 +436,7 @@ function startPlayerTurn() {
 
 function endTurn() {
   if (state.phase !== 'player_turn') return;
+  if (state.phase === 'transition') return;
   document.getElementById('end-turn-btn').disabled = true;
   discardHand();
   state.phase = 'enemy_turn';
@@ -448,6 +450,7 @@ function endTurn() {
 
 function playCard(index) {
   if (state.phase !== 'player_turn') return;
+  if (state.phase === 'transition') return;
   const card = state.hand[index];
   if (state.player.energy < card.cost) { showMessage('能量不足！'); return; }
   state.player.energy -= card.cost;
@@ -464,6 +467,7 @@ function playCard(index) {
   }
   renderHand(); updateUI(); updateDeckInfo();
   if (state.enemy.hp <= 0) {
+    state.phase = 'transition';
     // 过关
     if (state.currentLevel < ENEMIES.length - 1) {
       showMessage(`🎉 ${state.enemy.name}被斩杀！进入下一关！`, 2000);
@@ -474,6 +478,7 @@ function playCard(index) {
     } else {
       endGame(true);
     }
+    return;
   }
 }
 
