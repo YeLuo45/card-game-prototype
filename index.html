@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,228 +7,242 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #1a1a2e;
-      color: #eee;
+      background: #1a1a2e; color: #eee;
       font-family: 'Segoe UI', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      overflow: hidden;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; overflow: hidden;
     }
     #app {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 100%;
-      max-width: 900px;
-      height: 100vh;
-      padding: 16px;
+      display: flex; flex-direction: column; align-items: center;
+      width: 100%; max-width: 900px; height: 100vh; padding: 16px;
     }
-    .top-bar {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 12px;
-      font-size: 18px;
-      color: #aaa;
-      min-height: 48px;
+
+    /* ===== SCREENS ===== */
+    .screen { display: none; width: 100%; height: 100%; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    /* ===== START SCREEN ===== */
+    #screen-start {
+      position: fixed; inset: 0;
+      background: rgba(26,26,46,0.97);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; z-index: 100;
     }
-    .battle-area {
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      padding: 16px 0;
-    }
-    .panel {
-      background: #16213e;
-      border: 2px solid #0f3460;
-      border-radius: 12px;
-      padding: 20px;
-      min-width: 180px;
-      text-align: center;
-    }
-    .panel h3 { color: #e94560; margin-bottom: 8px; font-size: 20px; }
-    .health-bar {
-      background: #333;
-      height: 20px;
-      border-radius: 10px;
-      overflow: hidden;
-      margin: 8px 0;
-    }
-    .health-fill {
-      background: linear-gradient(90deg, #e94560, #ff6b6b);
-      height: 100%;
-      transition: width 0.3s;
-    }
-    .block-tag {
-      display: inline-block;
-      background: #4a90d9;
-      color: #fff;
-      padding: 2px 10px;
-      border-radius: 8px;
-      font-size: 14px;
-      margin-top: 4px;
-    }
-    .vs-divider { font-size: 32px; color: #555; padding: 0 24px; }
-    .intent-badge {
-      background: #e94560;
-      color: #fff;
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 14px;
-      margin-top: 8px;
-      display: inline-block;
-    }
-    .hand-area {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      padding: 20px 0;
-      min-height: 180px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .card {
-      background: linear-gradient(145deg, #0f3460, #1a4a7a);
-      border: 2px solid #e94560;
-      border-radius: 10px;
-      padding: 10px;
-      width: 108px;
-      cursor: pointer;
-      transition: transform 0.15s, box-shadow 0.15s;
-      user-select: none;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .card:hover {
-      transform: translateY(-10px) scale(1.05);
-      box-shadow: 0 12px 28px rgba(233,69,96,0.45);
-    }
-    .card .c-cost {
-      background: #e94560;
-      color: #fff;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 14px;
-      margin: 0 auto 6px;
-    }
-    .card .c-name { font-weight: bold; color: #fff; font-size: 13px; text-align: center; margin-bottom: 4px; }
-    .card .c-type { color: #aaa; font-size: 11px; text-transform: uppercase; text-align: center; margin-bottom: 6px; }
-    .card .c-effect { color: #ddd; font-size: 12px; text-align: center; }
-    .bottom-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      padding: 12px 0;
-    }
-    .energy-display {
-      background: #16213e;
-      border: 2px solid #f39c12;
-      border-radius: 8px;
-      padding: 8px 18px;
-      font-size: 18px;
-      color: #f39c12;
-      font-weight: bold;
-    }
+    #screen-start h1 { font-size: 52px; color: #e94560; margin-bottom: 8px; text-shadow: 0 0 30px rgba(233,69,96,0.5); }
+    #screen-start .sub { color: #888; margin-bottom: 36px; font-size: 18px; }
     .btn {
-      background: #e94560;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 12px 32px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      font-weight: bold;
+      background: #e94560; color: #fff; border: none; border-radius: 8px;
+      padding: 12px 36px; font-size: 16px; cursor: pointer;
+      transition: background 0.2s, transform 0.1s; font-weight: bold;
     }
     .btn:hover { background: #ff6b6b; transform: scale(1.03); }
     .btn:disabled { background: #444; cursor: not-allowed; transform: none; }
-    .start-screen {
+    .btn.green { background: #27ae60; }
+    .btn.green:hover { background: #2ecc71; }
+    .btn.small { padding: 8px 20px; font-size: 14px; }
+
+    /* ===== SHOP SCREEN ===== */
+    #screen-shop {
       position: fixed; inset: 0;
-      background: rgba(26,26,46,0.97);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 100;
+      background: rgba(10,10,30,0.98);
+      display: none; flex-direction: column; align-items: center;
+      justify-content: center; z-index: 90; padding: 20px;
     }
-    .start-screen h1 { font-size: 52px; color: #e94560; margin-bottom: 12px; text-shadow: 0 0 30px rgba(233,69,96,0.5); }
-    .start-screen p { color: #888; margin-bottom: 36px; font-size: 18px; }
-    .message {
-      position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
-      background: #e94560; color: #fff; padding: 10px 28px; border-radius: 24px;
-      font-size: 16px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 50;
-      font-weight: bold;
+    #screen-shop h2 { font-size: 36px; color: #f39c12; margin-bottom: 6px; }
+    .shop-gold { color: #f39c12; font-size: 20px; margin-bottom: 24px; }
+    .shop-items { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px; }
+    .shop-item {
+      background: #16213e; border: 2px solid #0f3460;
+      border-radius: 12px; padding: 18px; width: 200px; text-align: center;
+      transition: border-color 0.2s, transform 0.15s;
     }
+    .shop-item:hover { border-color: #f39c12; transform: translateY(-4px); }
+    .shop-item.owned { border-color: #27ae60; opacity: 0.7; }
+    .shop-item .item-name { font-size: 17px; font-weight: bold; color: #fff; margin-bottom: 6px; }
+    .shop-item .item-cost { color: #f39c12; font-size: 16px; margin-bottom: 8px; }
+    .shop-item .item-effect { color: #aaa; font-size: 13px; margin-bottom: 10px; min-height: 36px; }
+    .shop-item .item-owned { color: #2ecc71; font-size: 13px; font-weight: bold; }
+    .btn.buy-btn { background: #27ae60; }
+    .btn.buy-btn:hover { background: #2ecc71; }
+    .btn.buy-btn:disabled { background: #555; }
+    .shop-skip { margin-top: 8px; }
+
+    /* ===== GAME SCREEN ===== */
+    .level-bar { display: flex; justify-content: center; gap: 8px; padding: 8px; margin-bottom: 4px; }
+    .level-pip {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #333; border: 2px solid #555;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: bold;
+      transition: all 0.3s;
+    }
+    .level-pip.cleared { background: #2ecc71; border-color: #27ae60; color: #fff; }
+    .level-pip.current { background: #e94560; border-color: #ff6b6b; color: #fff; box-shadow: 0 0 12px rgba(233,69,96,0.6); }
+    .top-bar { display: flex; justify-content: center; align-items: center; padding: 8px; font-size: 17px; color: #aaa; min-height: 40px; }
+    .battle-area { display: flex; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; padding: 10px 0; }
+    .panel { background: #16213e; border: 2px solid #0f3460; border-radius: 12px; padding: 16px; min-width: 170px; text-align: center; }
+    .panel h3 { color: #e94560; margin-bottom: 6px; font-size: 18px; }
+    .enemy-portrait { font-size: 44px; margin-bottom: 6px; }
+    .health-bar { background: #333; height: 16px; border-radius: 8px; overflow: hidden; margin: 6px 0; }
+    .health-fill { background: linear-gradient(90deg, #e94560, #ff6b6b); height: 100%; transition: width 0.3s; }
+    .health-fill.enemy { background: linear-gradient(90deg, #9b59b6, #8e44ad); }
+    .block-tag { display: inline-block; background: #4a90d9; color: #fff; padding: 2px 8px; border-radius: 8px; font-size: 12px; margin-top: 4px; }
+    .vs-divider { font-size: 26px; color: #555; padding: 0 16px; }
+    .intent-badge { background: #e94560; color: #fff; padding: 4px 10px; border-radius: 8px; font-size: 12px; margin-top: 6px; display: inline-block; }
+    .intent-badge.buff { background: #9b59b6; }
+    .intent-badge.debuff { background: #e67e22; }
+    .intent-badge.multi { background: #c0392b; }
+    .special-ability { font-size: 11px; color: #f39c12; margin-top: 3px; }
+    .hand-area { display: flex; justify-content: center; gap: 8px; padding: 14px 0; min-height: 160px; flex-wrap: wrap; align-items: center; }
+    .card {
+      background: linear-gradient(145deg, #0f3460, #1a4a7a);
+      border: 2px solid #e94560; border-radius: 10px;
+      padding: 8px; width: 100px; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      user-select: none; box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    }
+    .card:hover { transform: translateY(-8px) scale(1.05); box-shadow: 0 10px 24px rgba(233,69,96,0.4); }
+    .card.unplayable { opacity: 0.45; cursor: not-allowed; }
+    .card.unplayable:hover { transform: none; box-shadow: 0 3px 10px rgba(0,0,0,0.3); }
+    .card .c-cost { background: #e94560; color: #fff; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; margin: 0 auto 4px; }
+    .card .c-name { font-weight: bold; color: #fff; font-size: 11px; text-align: center; margin-bottom: 2px; }
+    .card .c-type { color: #aaa; font-size: 9px; text-transform: uppercase; text-align: center; margin-bottom: 4px; }
+    .card .c-effect { color: #ddd; font-size: 10px; text-align: center; }
+    .bottom-bar { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 8px 0; }
+    .info-group { display: flex; flex-direction: column; gap: 3px; }
+    .energy-display { background: #16213e; border: 2px solid #f39c12; border-radius: 8px; padding: 5px 14px; font-size: 16px; color: #f39c12; font-weight: bold; }
+    .gold-display { color: #f39c12; font-size: 14px; }
+    .draw-info { color: #666; font-size: 12px; }
+    .message { position: fixed; top: 55px; left: 50%; transform: translateX(-50%); background: #e94560; color: #fff; padding: 7px 22px; border-radius: 24px; font-size: 14px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 50; font-weight: bold; }
     .message.show { opacity: 1; }
-    .draw-info { color: #666; font-size: 13px; }
+
+    /* buff indicator */
+    .buffs-bar { display: flex; justify-content: center; gap: 6px; margin-bottom: 4px; min-height: 24px; }
+    .buff-badge { background: #8e44ad; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
   </style>
 </head>
 <body>
   <div id="app">
-    <div id="start-screen" class="start-screen">
+    <!-- START -->
+    <div id="screen-start">
       <h1>卡牌DBG</h1>
-      <p>斩杀史莱姆 - 卡牌构筑游戏原型</p>
-      <button class="btn" onclick="startGame()">开始战斗</button>
+      <div class="sub">斩杀史莱姆 · 5关卡 · 商店系统</div>
+      <button class="btn" onclick="startGame()">开始游戏</button>
     </div>
-    <div id="message" class="message"></div>
-    <div class="top-bar"><span id="intent-label">准备战斗...</span></div>
-    <div class="battle-area">
-      <div class="panel">
-        <h3>玩家</h3>
-        <div class="health-bar"><div class="health-fill" id="player-hp-fill" style="width:100%"></div></div>
-        <div id="player-hp-text">80/80</div>
-        <div class="block-tag" id="player-block">护盾: 0</div>
-        <div class="energy-display" id="energy-display">3/3</div>
-      </div>
-      <div class="vs-divider">VS</div>
-      <div class="panel">
-        <h3>史莱姆</h3>
-        <div class="health-bar"><div class="health-fill" id="enemy-hp-fill" style="width:100%"></div></div>
-        <div id="enemy-hp-text">50/50</div>
-        <div class="intent-badge" id="enemy-intent">???</div>
-        <div class="block-tag" id="enemy-block" style="display:none">护盾: 0</div>
-      </div>
+
+    <!-- SHOP -->
+    <div id="screen-shop">
+      <h2>🛒 商店</h2>
+      <div class="shop-gold" id="shop-gold">💰 金币: 0</div>
+      <div class="shop-items" id="shop-items"></div>
+      <button class="btn small" onclick="leaveShop()">跳过商店 →</button>
     </div>
-    <div class="hand-area" id="hand-area"></div>
-    <div class="bottom-bar">
-      <div><span class="draw-info" id="deck-info">抽牌堆: 20 | 弃牌堆: 0</span></div>
-      <button class="btn" id="end-turn-btn" onclick="endTurn()" disabled>结束回合</button>
+
+    <!-- GAME -->
+    <div id="screen-game">
+      <div id="message" class="message"></div>
+      <div class="buffs-bar" id="buffs-bar"></div>
+      <div class="level-bar" id="level-bar"></div>
+      <div class="top-bar"><span id="intent-label">准备战斗...</span></div>
+      <div class="battle-area">
+        <div class="panel">
+          <h3>玩家</h3>
+          <div class="health-bar"><div class="health-fill" id="player-hp-fill" style="width:100%"></div></div>
+          <div id="player-hp-text">80/80</div>
+          <div class="block-tag" id="player-block">护盾: 0</div>
+          <div class="energy-display" id="energy-display">3/3</div>
+          <div class="gold-display" id="gold-display">💰 0</div>
+        </div>
+        <div class="vs-divider">VS</div>
+        <div class="panel">
+          <h3 id="enemy-name">???</h3>
+          <div class="enemy-portrait" id="enemy-portrait">👾</div>
+          <div class="health-bar"><div class="health-fill enemy" id="enemy-hp-fill" style="width:100%"></div></div>
+          <div id="enemy-hp-text">50/50</div>
+          <div class="intent-badge" id="enemy-intent">???</div>
+          <div class="block-tag" id="enemy-block" style="display:none">护盾: 0</div>
+          <div class="special-ability" id="enemy-ability"></div>
+        </div>
+      </div>
+      <div class="hand-area" id="hand-area"></div>
+      <div class="bottom-bar">
+        <div class="info-group">
+          <span class="draw-info" id="deck-info">抽牌堆: 20 | 弃牌堆: 0</span>
+        </div>
+        <button class="btn" id="end-turn-btn" onclick="endTurn()" disabled>结束回合</button>
+      </div>
     </div>
   </div>
 
 <script>
-// ==================== CARD GAME DBG PROTOTYPE ====================
+// ==================== CARD GAME DBG - SHOP & GOLD ====================
 const CARD_TYPES = { ATTACK: 'attack', SKILL: 'skill', POWER: 'power' };
-const INTENTS = { ATTACK: 'attack', DEFEND: 'defend', BUFF: 'buff' };
+const INTENTS = { ATTACK: 'attack', DEFEND: 'defend', BUFF: 'buff', MULTI: 'multi' };
+
+// --- 5关敌人 ---
+const ENEMIES = [
+  { name: '史莱姆',    portrait: '🟢', hp: 50,  atkMin: 8,  atkMax: 13, ability: null,        reward: 20 },
+  { name: '哥布林',    portrait: '👺', hp: 65,  atkMin: 10, atkMax: 16, ability: 'double_strike', reward: 30 },
+  { name: '骷髅',      portrait: '💀', hp: 80,  atkMin: 12, atkMax: 18, ability: 'bone_armor',    reward: 40 },
+  { name: '兽人',      portrait: '👹', hp: 100, atkMin: 15, atkMax: 22, ability: 'lifesteal',     reward: 55 },
+  { name: '恶魔领主',  portrait: '👿', hp: 130, atkMin: 18, atkMax: 28, ability: 'fury',          reward: 80 },
+];
+
+// --- 商店道具 ---
+const SHOP_ITEMS = [
+  { id: 'hp_up',    name: '生命护符', cost: 30, effect: '最大HP+25', permanent: true,
+    apply: (s) => { s.player.maxHp += 25; s.player.hp += 25; },
+    desc: '最大生命值+25，进入战斗时额外恢复25HP' },
+  { id: 'energy',   name: '能量项链', cost: 40, effect: '每回合能量+1', permanent: true,
+    apply: (s) => { s.player.maxEnergy += 1; },
+    desc: '每回合能量上限+1' },
+  { id: 'strike+',  name: '铁剑',     cost: 35, effect: '打击伤害+4', permanent: true,
+    apply: (s) => { s.cardBonus.Strike += 4; },
+    desc: '所有"打击"卡伤害+4' },
+  { id: 'defend+',  name: '钢盾',     cost: 35, effect: '防御护盾+3', permanent: true,
+    apply: (s) => { s.cardBonus.Defend += 3; },
+    desc: '所有"防御"卡护盾值+3' },
+  { id: 'heal',     name: '治疗药水', cost: 15, effect: '立即恢复30HP', permanent: false,
+    apply: (s) => { s.player.hp = Math.min(s.player.maxHp, s.player.hp + 30); },
+    desc: '立即恢复30点生命' },
+  { id: 'draw',     name: '幸运符',   cost: 25, effect: '每回合抽牌+1', permanent: true,
+    apply: (s) => { s.cardsPerTurn += 1; },
+    desc: '每回合额外抽1张牌' },
+  { id: 'start_gold', name: '钱袋',   cost: 10, effect: '额外获得15金币', permanent: false,
+    apply: (s) => { s.gold += 15; },
+    desc: '立刻获得15金币（相当于10金币购买）' },
+];
+
+function getStarterDeck(cardBonus) {
+  return [
+    ...Array(5).fill(null).map(() => createCard('打击', 1, CARD_TYPES.ATTACK, 6 + (cardBonus.Strike || 0), '造成' + (6 + (cardBonus.Strike||0)) + '伤害')),
+    ...Array(5).fill(null).map(() => createCard('防御', 1, CARD_TYPES.SKILL, 5 + (cardBonus.Defend||0), '获得' + (5 + (cardBonus.Defend||0)) + '护盾')),
+    createCard('重击', 2, CARD_TYPES.ATTACK, 12, '造成12伤害'),
+    createCard('重拳', 2, CARD_TYPES.ATTACK, 8, '造成8伤害'),
+    createCard('硬撑', 1, CARD_TYPES.SKILL, 8, '获得8护盾.抽1'),
+  ];
+}
 
 function createCard(name, cost, type, value, description) {
   return { name, cost, type, value, description };
 }
 
-const STARTING_DECK = [
-  ...Array(5).fill(null).map(() => createCard('打击', 1, CARD_TYPES.ATTACK, 6, '造成6点伤害')),
-  ...Array(5).fill(null).map(() => createCard('防御', 1, CARD_TYPES.SKILL, 5, '获得5点护盾')),
-  createCard('重击', 2, CARD_TYPES.ATTACK, 12, '造成12点伤害'),
-  createCard('重拳', 2, CARD_TYPES.ATTACK, 8, '造成8点伤害'),
-  createCard('硬撑', 1, CARD_TYPES.SKILL, 8, '获得8点护盾。抽1张牌'),
-];
-
+// --- 游戏状态 ---
 const state = {
   phase: 'idle',
   player: { hp: 80, maxHp: 80, block: 0, energy: 3, maxEnergy: 3 },
-  enemy: { hp: 50, maxHp: 50, block: 0, intent: null, intentValue: 0, powerBonus: 0 },
-  drawPile: [], discardPile: [], hand: [], turn: 0,
+  enemy: null,
+  currentLevel: 0,
+  drawPile: [], discardPile: [], hand: [],
+  turn: 0,
+  gold: 0,
+  cardsPerTurn: 5,
+  cardBonus: {},
+  ownedItems: [],
+  pendingHeal: 0,
 };
 
+// --- 工具 ---
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -244,12 +258,196 @@ function showMessage(text, duration = 1500) {
   setTimeout(() => el.classList.remove('show'), duration);
 }
 
+function showScreen(id) {
+  ['screen-start','screen-shop','screen-game'].forEach(s => {
+    document.getElementById(s).style.display = 'none';
+  });
+  document.getElementById(id).style.display = 'flex';
+  if (id === 'screen-game') document.getElementById(id).style.display = 'flex';
+}
+
 function initializeDeck() {
-  state.drawPile = shuffle([...STARTING_DECK]);
+  state.drawPile = shuffle(getStarterDeck(state.cardBonus));
   state.discardPile = []; state.hand = [];
 }
 
-function drawCards(n = 5) {
+// --- 商店 ---
+let currentShopItems = [];
+
+function openShop() {
+  state.phase = 'shop';
+  showScreen('screen-shop');
+  document.getElementById('shop-gold').textContent = '💰 金币: ' + state.gold;
+
+  // 随机选3个道具
+  const available = SHOP_ITEMS.filter(it => !state.ownedItems.includes(it.id) || !it.permanent);
+  currentShopItems = shuffle(available).slice(0, 3);
+  if (currentShopItems.length === 0) currentShopItems = available.slice(0,3);
+
+  const container = document.getElementById('shop-items');
+  container.innerHTML = '';
+  currentShopItems.forEach((item, i) => {
+    const owned = state.ownedItems.includes(item.id);
+    const div = document.createElement('div');
+    div.className = 'shop-item' + (owned ? ' owned' : '');
+    div.innerHTML = `
+      <div class="item-name">${item.name}</div>
+      <div class="item-cost">💰 ${item.cost}</div>
+      <div class="item-effect">${item.effect}<br><small>${item.desc}</small></div>
+      ${owned && item.permanent ? '<div class="item-owned">已拥有</div>' : ''}
+      ${!owned || !item.permanent ? `<button class="btn buy-btn small" onclick="buyItem(${i})" ${state.gold < item.cost ? 'disabled' : ''}>购买</button>` : ''}
+    `;
+    container.appendChild(div);
+  });
+}
+
+function buyItem(index) {
+  const item = currentShopItems[index];
+  if (state.gold < item.cost) { showMessage('金币不足！'); return; }
+  if (state.ownedItems.includes(item.id) && item.permanent) { showMessage('已拥有此道具！'); return; }
+  state.gold -= item.cost;
+  item.apply(state);
+  if (item.permanent) state.ownedItems.push(item.id);
+  showMessage(`购买了 ${item.name}！`);
+  document.getElementById('shop-gold').textContent = '💰 金币: ' + state.gold;
+  openShop(); // 刷新
+}
+
+function leaveShop() {
+  showScreen('screen-game');
+  _startLevel();
+}
+
+function renderBuffs() {
+  const bar = document.getElementById('buffs-bar');
+  bar.innerHTML = '';
+  if (state.cardBonus.Strike > 0) {
+    const b = document.createElement('span'); b.className='buff-badge'; b.textContent='⚔️铁剑'; bar.appendChild(b);
+  }
+  if (state.cardBonus.Defend > 0) {
+    const b = document.createElement('span'); b.className='buff-badge'; b.textContent='🛡钢盾'; bar.appendChild(b);
+  }
+  if (state.player.maxEnergy > 3) {
+    const b = document.createElement('span'); b.className='buff-badge'; b.textContent='⚡能量+'; bar.appendChild(b);
+  }
+  if (state.cardsPerTurn > 5) {
+    const b = document.createElement('span'); b.className='buff-badge'; b.textContent='🎴幸运+'; bar.appendChild(b);
+  }
+}
+
+// --- 关卡 ---
+function _startLevel() {
+  const def = ENEMIES[state.currentLevel];
+  state.enemy = {
+    name: def.name, portrait: def.portrait,
+    hp: def.hp, maxHp: def.hp,
+    atkMin: def.atkMin, atkMax: def.atkMax,
+    ability: def.ability, block: 0,
+    intent: null, intentValue: 0,
+  };
+  state.turn = 0;
+  state.phase = 'idle';
+  // 战斗开始时恢复pendingHeal（如有治疗药水）
+  if (state.pendingHeal > 0) {
+    state.player.hp = Math.min(state.player.maxHp, state.player.hp + state.pendingHeal);
+    state.pendingHeal = 0;
+  }
+  initializeDeck();
+  startPlayerTurn();
+  updateUI();
+}
+
+function startGame() {
+  // 重置所有状态
+  state.currentLevel = 0;
+  state.gold = 0;
+  state.player = { hp: 80, maxHp: 80, block: 0, energy: 3, maxEnergy: 3 };
+  state.cardsPerTurn = 5;
+  state.cardBonus = {};
+  state.ownedItems = [];
+  state.pendingHeal = 0;
+
+  showScreen('screen-game');
+  openShop(); // 开局先进商店
+}
+
+// --- 战斗 ---
+function rollEnemyIntent() {
+  const e = state.enemy;
+  const bonus = e.ability === 'fury' ? Math.floor((1 - e.hp / e.maxHp) * 8) : 0;
+  const roll = Math.random();
+  if (roll < 0.65) {
+    state.enemy.intent = INTENTS.ATTACK;
+    state.enemy.intentValue = e.atkMin + Math.floor(Math.random() * (e.atkMax - e.atkMin + 1)) + bonus;
+  } else if (roll < 0.85) {
+    state.enemy.intent = INTENTS.DEFEND;
+    state.enemy.intentValue = 5 + Math.floor(Math.random() * 5);
+  } else {
+    state.enemy.intent = INTENTS.BUFF;
+    state.enemy.intentValue = 2 + Math.floor(Math.random() * 3);
+  }
+  if (e.ability === 'double_strike' && Math.random() < 0.30) {
+    state.enemy.intent = INTENTS.MULTI;
+    state.enemy.intentValue = Math.floor((e.atkMin + Math.floor(Math.random() * (e.atkMax - e.atkMin + 1)) + bonus) / 2);
+  }
+}
+
+function executeEnemyIntent() {
+  const { intent, intentValue } = state.enemy;
+  const e = state.enemy;
+  if (intent === INTENTS.ATTACK || intent === INTENTS.MULTI) {
+    const hits = intent === INTENTS.MULTI ? 2 : 1;
+    for (let h = 0; h < hits; h++) {
+      const dmg = Math.max(0, intentValue - state.player.block);
+      state.player.hp = Math.max(0, state.player.hp - dmg);
+      state.player.block = 0;
+      showMessage(h === 0 ? `${e.name}攻击！${intentValue}伤害（${dmg}穿透）` : `${e.name}连击！${intentValue}伤害`);
+    }
+    if (e.ability === 'lifesteal') {
+      const heal = Math.floor(intentValue * 0.3);
+      e.hp = Math.min(e.maxHp, e.hp + heal);
+      showMessage(`${e.name}吸取${heal}生命！`);
+    }
+  } else if (intent === INTENTS.DEFEND) {
+    e.block += intentValue;
+    showMessage(`${e.name}防御，+${intentValue}护盾！`);
+  } else if (intent === INTENTS.BUFF) {
+    e.atkMin += intentValue; e.atkMax += intentValue;
+    showMessage(`${e.name}变强！攻击+${intentValue}`);
+  }
+  updateUI();
+}
+
+function startPlayerTurn() {
+  state.phase = 'player_turn';
+  state.turn++;
+  state.player.energy = state.player.maxEnergy;
+  state.player.block = 0;
+  if (state.enemy.ability === 'bone_armor') {
+    state.enemy.block += 4;
+    showMessage('💀 骷髅骨甲，+4护盾！', 1200);
+  }
+  rollEnemyIntent();
+  drawCards(state.cardsPerTurn);
+  updateUI();
+  document.getElementById('end-turn-btn').disabled = false;
+  document.getElementById('intent-label').textContent = `第${state.turn}回合 · 第${state.currentLevel+1}关`;
+}
+
+function endTurn() {
+  if (state.phase !== 'player_turn') return;
+  document.getElementById('end-turn-btn').disabled = true;
+  discardHand();
+  state.phase = 'enemy_turn';
+  document.getElementById('intent-label').textContent = `${state.enemy.name}行动...`;
+  setTimeout(() => {
+    executeEnemyIntent();
+    if (state.player.hp <= 0) { endGame(false); return; }
+    setTimeout(() => startPlayerTurn(), 800);
+  }, 700);
+}
+
+function drawCards(n) {
   for (let i = 0; i < n; i++) {
     if (state.drawPile.length === 0) {
       if (state.discardPile.length === 0) break;
@@ -266,137 +464,117 @@ function discardHand() {
   state.hand = []; renderHand(); updateDeckInfo();
 }
 
-function rollEnemyIntent() {
-  const roll = Math.random();
-  const base = 8 + Math.floor(Math.random() * 6) + state.enemy.powerBonus;
-  if (roll < 0.70) {
-    state.enemy.intent = INTENTS.ATTACK;
-    state.enemy.intentValue = base;
-  } else if (roll < 0.90) {
-    state.enemy.intent = INTENTS.DEFEND;
-    state.enemy.intentValue = 6 + Math.floor(Math.random() * 4);
-  } else {
-    state.enemy.intent = INTENTS.BUFF;
-    state.enemy.intentValue = 2 + Math.floor(Math.random() * 2);
-  }
-}
-
-function executeEnemyIntent() {
-  const { intent, intentValue } = state.enemy;
-  if (intent === INTENTS.ATTACK) {
-    const dmg = Math.max(0, intentValue - state.player.block);
-    state.player.hp = Math.max(0, state.player.hp - dmg);
-    state.player.block = 0;
-    showMessage(`史莱姆攻击！造成了${intentValue}点伤害（${dmg}穿透护盾）`);
-  } else if (intent === INTENTS.DEFEND) {
-    state.enemy.block += intentValue;
-    showMessage(`史莱姆蓄力，获得${intentValue}点护盾！`);
-  } else if (intent === INTENTS.BUFF) {
-    state.enemy.powerBonus += intentValue;
-    showMessage(`史莱姆变强了！攻击强化+${intentValue}`);
-  }
-  updateUI();
-}
-
-function startGame() {
-  document.getElementById('start-screen').style.display = 'none';
-  state.player = { hp: 80, maxHp: 80, block: 0, energy: 3, maxEnergy: 3 };
-  state.enemy = { hp: 50, maxHp: 50, block: 0, intent: null, intentValue: 0, powerBonus: 0 };
-  state.turn = 0; initializeDeck();
-  startPlayerTurn();
-}
-
-function startPlayerTurn() {
-  state.phase = 'player_turn';
-  state.turn++; state.player.energy = state.player.maxEnergy; state.player.block = 0;
-  state.enemy.block = 0;
-  rollEnemyIntent(); drawCards(5); updateUI();
-  document.getElementById('end-turn-btn').disabled = false;
-  document.getElementById('intent-label').textContent = `第${state.turn}回合 - 你的回合`;
-}
-
-function endTurn() {
-  if (state.phase !== 'player_turn') return;
-  document.getElementById('end-turn-btn').disabled = true;
-  discardHand(); state.phase = 'enemy_turn';
-  document.getElementById('intent-label').textContent = '史莱姆行动中...';
-  setTimeout(() => {
-    executeEnemyIntent();
-    if (state.player.hp <= 0) { endBattle(false); return; }
-    setTimeout(() => startPlayerTurn(), 900);
-  }, 700);
-}
-
 function playCard(index) {
   if (state.phase !== 'player_turn') return;
   const card = state.hand[index];
-  if (state.player.energy < card.cost) {  showMessage('能量不足！');return; }
+  if (state.player.energy < card.cost) { showMessage('能量不足！'); return; }
   state.player.energy -= card.cost;
   state.hand.splice(index, 1); state.discardPile.push(card);
+
   if (card.type === CARD_TYPES.ATTACK) {
     const dmg = Math.max(0, card.value - state.enemy.block);
     state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
     state.enemy.block = 0;
-    showMessage(`${card.name}造成${card.value}点伤害！`);
+    showMessage(`${card.name}！${card.value}伤害！`);
   } else if (card.type === CARD_TYPES.SKILL) {
     state.player.block += card.value;
-    if (card.name === '硬撑' && state.drawPile.length > 0) {
-      state.hand.push(state.drawPile.pop());
-    }
-    showMessage(`获得${card.value}点护盾！`);
+    if (card.name === '硬撑' && state.drawPile.length > 0) state.hand.push(state.drawPile.pop());
+    showMessage(`+${card.value}护盾！`);
   }
+
   renderHand(); updateUI(); updateDeckInfo();
-  if (state.enemy.hp <= 0) endBattle(true);
+
+  if (state.enemy.hp <= 0) {
+    state.phase = 'transition';
+    const reward = ENEMIES[state.currentLevel].reward;
+    state.gold += reward;
+    showMessage(`🎉 ${state.enemy.name}被斩杀！+${reward}金币！`);
+    setTimeout(() => {
+      if (state.currentLevel < ENEMIES.length - 1) {
+        state.currentLevel++;
+        openShop();
+      } else {
+        endGame(true);
+      }
+    }, 1800);
+    return;
+  }
 }
 
-function endBattle(victory) {
-  const isVictory = victory;
-  state.phase = isVictory ? 'victory' : 'defeat';
+function endGame(victory) {
+  state.phase = victory ? 'victory' : 'defeat';
   document.getElementById('end-turn-btn').disabled = true;
-  document.getElementById('intent-label').textContent = isVictory ? '胜利！' : '失败！';
-  showMessage(isVictory ? '你赢了！史莱姆被斩杀！' : '你死了...', 3000);
+  document.getElementById('intent-label').textContent = victory ? '🎊 全通关！' : '💀 你死了...';
+  showMessage(victory ? '🎉 恭喜通关！' : '失败...再试一次', 3000);
   setTimeout(() => {
-    document.getElementById('start-screen').style.display = 'flex';
-    document.querySelector('.start-screen .btn').textContent = '再玩一次';
-  }, 1800);
+    showScreen('screen-start');
+    document.querySelector('#screen-start .btn').textContent = victory ? '再玩一次' : '重新开始';
+  }, 2000);
+}
+
+// --- UI ---
+function renderLevelPips() {
+  const bar = document.getElementById('level-bar');
+  bar.innerHTML = '';
+  ENEMIES.forEach((_, i) => {
+    const pip = document.createElement('div');
+    pip.className = 'level-pip';
+    if (i < state.currentLevel) pip.classList.add('cleared');
+    else if (i === state.currentLevel) pip.classList.add('current');
+    pip.textContent = i + 1;
+    bar.appendChild(pip);
+  });
 }
 
 function renderHand() {
   const c = document.getElementById('hand-area');
   c.innerHTML = '';
   state.hand.forEach((card, i) => {
+    const canPlay = state.player.energy >= card.cost && state.phase === 'player_turn';
     const el = document.createElement('div');
-    el.className = 'card';
+    el.className = 'card' + (canPlay ? '' : ' unplayable');
     el.innerHTML = `
       <div class="c-cost">${card.cost}</div>
       <div class="c-name">${card.name}</div>
       <div class="c-type">${card.type === 'attack' ? '攻击' : card.type === 'skill' ? '技能' : '能力'}</div>
       <div class="c-effect">${card.description}</div>`;
-    el.onclick = () => playCard(i);
+    if (canPlay) el.onclick = () => playCard(i);
     c.appendChild(el);
   });
 }
 
 function updateUI() {
   const { player, enemy } = state;
-  document.getElementById('player-hp-fill').style.width = `${(player.hp/player.maxHp)*100}%`;
+  document.getElementById('player-hp-fill').style.width = Math.max(0, (player.hp/player.maxHp)*100) + '%';
   document.getElementById('player-hp-text').textContent = `${player.hp}/${player.maxHp}`;
   document.getElementById('player-block').textContent = `护盾: ${player.block}`;
   document.getElementById('energy-display').textContent = `${player.energy}/${player.maxEnergy}`;
-  document.getElementById('enemy-hp-fill').style.width = `${(enemy.hp/enemy.maxHp)*100}%`;
-  document.getElementById('enemy-hp-text').textContent = `${enemy.hp}/${enemy.maxHp}`;
-  const eb = document.getElementById('enemy-block');
-  if (enemy.block > 0) { eb.style.display = 'inline-block'; eb.textContent = `护盾: ${enemy.block}`; }
-  else eb.style.display = 'none';
-  const intentStr = !enemy.intent ? '???' :
-    enemy.intent === INTENTS.ATTACK ? `攻击 ${enemy.intentValue}` :
-    enemy.intent === INTENTS.DEFEND ? `防御 ${enemy.intentValue}` :
-    `强化 +${enemy.intentValue}`;
-  document.getElementById('enemy-intent').textContent = intentStr;
+  document.getElementById('gold-display').textContent = `💰 ${state.gold}`;
+  renderBuffs();
+  if (enemy) {
+    document.getElementById('enemy-name').textContent = enemy.name;
+    document.getElementById('enemy-portrait').textContent = enemy.portrait;
+    document.getElementById('enemy-hp-fill').style.width = Math.max(0, (enemy.hp/enemy.maxHp)*100) + '%';
+    document.getElementById('enemy-hp-text').textContent = `${enemy.hp}/${enemy.maxHp}`;
+    const eb = document.getElementById('enemy-block');
+    eb.style.display = enemy.block > 0 ? 'inline-block' : 'none';
+    eb.textContent = `护盾: ${enemy.block}`;
+    const badge = document.getElementById('enemy-intent');
+    const abMap = { double_strike:'连击', bone_armor:'骨甲', lifesteal:'吸血', fury:'狂暴' };
+    document.getElementById('enemy-ability').textContent = enemy.ability ? `[${abMap[enemy.ability]||''}]` : '';
+    const intentStr = !enemy.intent ? '???' :
+      enemy.intent === INTENTS.ATTACK ? `攻击 ${enemy.intentValue}` :
+      enemy.intent === INTENTS.MULTI ? `连击 x2` :
+      enemy.intent === INTENTS.DEFEND ? `防御 ${enemy.intentValue}` :
+      `强化 +${enemy.intentValue}`;
+    badge.textContent = intentStr;
+    badge.className = 'intent-badge' + (enemy.intent === INTENTS.BUFF ? ' buff' : enemy.intent === INTENTS.DEFEND ? ' debuff' : enemy.intent === INTENTS.MULTI ? ' multi' : '');
+  }
+  renderLevelPips();
 }
 
 function updateDeckInfo() {
-  document.getElementById('deck-info').textContent = `抽牌堆: ${state.drawPile.length} | 弃牌堆: ${state.discardPile.length}`;
+  document.getElementById('deck-info').textContent = `抽牌堆:${state.drawPile.length} 弃牌堆:${state.discardPile.length}`;
 }
 
 window.startGame = startGame;
