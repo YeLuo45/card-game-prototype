@@ -261,9 +261,11 @@ function showMessage(text, duration = 1500) {
 function showScreen(id) {
   ['screen-start','screen-shop','screen-game'].forEach(s => {
     document.getElementById(s).style.display = 'none';
+    document.getElementById(s).classList.remove('active');
   });
-  document.getElementById(id).style.display = 'flex';
-  if (id === 'screen-game') document.getElementById(id).style.display = 'flex';
+  const el = document.getElementById(id);
+  el.style.display = 'flex';
+  el.classList.add('active');
 }
 
 function initializeDeck() {
