@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DBG卡牌游戏 V2</title>
+  <title>DBG卡牌游戏 V3</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -42,6 +42,51 @@
     .energy { color: #4ecdc4; }
     .shield { color: #a8e6cf; }
     .turn { color: #ffd93d; }
+
+    /* 地图区域 */
+    #map-container {
+      background: rgba(0,0,0,0.5);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+    }
+    #map-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #333;
+    }
+    #map-canvas {
+      display: block;
+      margin: 0 auto;
+      cursor: pointer;
+    }
+
+    /* 节点预览 */
+    #node-preview {
+      display: none;
+      background: rgba(0,0,0,0.8);
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 15px;
+      text-align: center;
+    }
+    #node-preview.show { display: block; }
+    #node-preview-title { font-size: 18px; color: #ffd700; margin-bottom: 10px; }
+    #node-preview-info { font-size: 14px; color: #ccc; margin-bottom: 10px; }
+    #node-preview-btn {
+      padding: 10px 30px;
+      font-size: 16px;
+      background: linear-gradient(145deg, #e74c3c, #c0392b);
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #node-preview-btn:hover { transform: scale(1.05); }
 
     /* 敌人区域 */
     #enemy-area {
@@ -244,6 +289,64 @@
     .reward-card.skill { background: linear-gradient(145deg, #00008b, #4169e1); border: 3px solid #6495ed; }
     .reward-card.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 3px solid #da70d6; }
 
+    /* 商店遮罩 */
+    #shop-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    #shop-overlay.show { display: flex; }
+    #shop-title { font-size: 28px; color: #ffd700; margin-bottom: 15px; }
+    #shop-gold { font-size: 18px; color: #ffd700; margin-bottom: 20px; }
+    #shop-cards {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .shop-card {
+      width: 130px;
+      padding: 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      position: relative;
+    }
+    .shop-card:hover { transform: scale(1.1); }
+    .shop-card.attack { background: linear-gradient(145deg, #8b0000, #cd5c5c); border: 3px solid #ff6347; }
+    .shop-card.skill { background: linear-gradient(145deg, #00008b, #4169e1); border: 3px solid #6495ed; }
+    .shop-card.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 3px solid #da70d6; }
+    .shop-card .card-cost { top: -10px; left: -10px; }
+    .shop-card .price-tag {
+      position: absolute;
+      bottom: -10px;
+      right: -10px;
+      background: #ffd700;
+      color: #000;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    .shop-card.disabled { opacity: 0.5; cursor: not-allowed; }
+    .shop-card.bought { opacity: 0.3; cursor: not-allowed; }
+    #shop-leave {
+      padding: 10px 30px;
+      font-size: 16px;
+      background: #555;
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      cursor: pointer;
+    }
+    #shop-leave:hover { background: #666; }
+
     /* 开始界面 */
     #start-screen {
       display: flex;
@@ -278,6 +381,18 @@
     #game-over-screen.show, #victory-screen.show { display: flex; }
     #game-over-title { font-size: 36px; color: #ff0000; }
     #victory-title { font-size: 36px; color: #ffd700; }
+    .stats-text { font-size: 16px; color: #ccc; }
+    .start-btn {
+      padding: 15px 40px;
+      font-size: 18px;
+      background: linear-gradient(145deg, #e74c3c, #c0392b);
+      border: none;
+      border-radius: 25px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .start-btn:hover { transform: scale(1.05); }
 
     @media (max-width: 768px) {
       #log-panel { position: static; width: 100%; margin-top: 10px; transform: none; max-height: 120px; }
@@ -288,61 +403,80 @@
 <body>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V2</h1>
+  <h1>🃏 DBG卡牌游戏 V3</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
+  <p>通关3层楼，击败最终Boss！</p>
   <button id="start-btn">开始游戏</button>
 </div>
 
 <div id="game-over-screen">
   <h1 id="game-over-title">💀 游戏结束</h1>
-  <p>你被击败了...</p>
+  <p class="stats-text" id="game-over-stats"></p>
   <button id="start-btn-retry" class="start-btn">重新开始</button>
 </div>
 
 <div id="victory-screen">
   <h1 id="victory-title">🏆 胜利！</h1>
-  <p>你击败了巨石像，拯救了世界！</p>
+  <p class="stats-text" id="victory-stats"></p>
   <button id="start-btn-next" class="start-btn">再来一局</button>
 </div>
 
 <div id="game-container" style="display:none">
-  <h1>⚔️ DBG卡牌游戏 V2</h1>
+  <h1>⚔️ DBG卡牌游戏 V3</h1>
 
-  <!-- 状态栏 -->
-  <div id="status-bar">
-    <span class="hp">❤️ 生命: <span id="hp">50</span>/50</span>
-    <span class="energy">⚡ 能量: <span id="energy">3</span>/3</span>
-    <span class="shield">🛡️ 护甲: <span id="shield">0</span></span>
-    <span class="turn">🔄 回合: <span id="turn">1</span></span>
-  </div>
-
-  <!-- 敌人区域 -->
-  <div id="enemy-area">
-    <div id="enemy-name">史莱姆</div>
-    <div id="enemy-hp-bar"><div id="enemy-hp-fill"></div></div>
-    <div id="enemy-info">
-      <span id="enemy-hp-text">20/20</span>
-      <span id="enemy-armor"></span>
-      <span id="enemy-intent">意图: 攻击</span>
+  <!-- 地图界面 -->
+  <div id="map-container">
+    <div id="map-header">
+      <span id="floor-display">🏠 第1层</span>
+      <span class="hp">❤️ <span id="map-hp">80</span>/<span id="map-max-hp">80</span></span>
+      <span class="energy">💰 <span id="map-gold">0</span></span>
     </div>
-    <div id="enemy-debuffs"></div>
-  </div>
-
-  <!-- 玩家区域 -->
-  <div id="player-area">
-    <div id="player-stats">
-      <span class="hp">❤️ <span id="player-hp">50</span>/50</span>
-      <span class="shield">🛡️ 护甲: <span id="player-shield">0</span></span>
+    <canvas id="map-canvas" width="800" height="400"></canvas>
+    <div id="node-preview">
+      <div id="node-preview-title"></div>
+      <div id="node-preview-info"></div>
+      <button id="node-preview-btn">进入</button>
     </div>
-    <div id="player-debuffs"></div>
-    <div id="hand"></div>
   </div>
 
-  <!-- 控制区 -->
-  <div id="controls">
-    <span id="deck-info">牌组: <span id="deck-count">13</span> | 弃牌堆: <span id="discard-count">0</span></span>
-    <button id="end-turn">结束回合</button>
+  <!-- 战斗界面 -->
+  <div id="battle-container" style="display:none">
+    <!-- 状态栏 -->
+    <div id="status-bar">
+      <span class="hp">❤️ 生命: <span id="hp">80</span>/<span id="max-hp">80</span></span>
+      <span class="energy">⚡ 能量: <span id="energy">3</span>/3</span>
+      <span class="shield">🛡️ 护甲: <span id="shield">0</span></span>
+      <span class="turn">🔄 回合: <span id="turn">1</span></span>
+    </div>
+
+    <!-- 敌人区域 -->
+    <div id="enemy-area">
+      <div id="enemy-name">史莱姆</div>
+      <div id="enemy-hp-bar"><div id="enemy-hp-fill"></div></div>
+      <div id="enemy-info">
+        <span id="enemy-hp-text">20/20</span>
+        <span id="enemy-armor"></span>
+        <span id="enemy-intent">意图: 攻击</span>
+      </div>
+      <div id="enemy-debuffs"></div>
+    </div>
+
+    <!-- 玩家区域 -->
+    <div id="player-area">
+      <div id="player-stats">
+        <span class="hp">❤️ <span id="player-hp">80</span>/<span id="player-max-hp">80</span></span>
+        <span class="shield">🛡️ 护甲: <span id="player-shield">0</span></span>
+      </div>
+      <div id="player-debuffs"></div>
+      <div id="hand"></div>
+    </div>
+
+    <!-- 控制区 -->
+    <div id="controls">
+      <span id="deck-info">牌组: <span id="deck-count">13</span> | 弃牌堆: <span id="discard-count">0</span></span>
+      <button id="end-turn">结束回合</button>
+    </div>
   </div>
 </div>
 
@@ -358,14 +492,20 @@
   <div id="reward-cards"></div>
 </div>
 
+<!-- 商店遮罩 -->
+<div id="shop-overlay">
+  <div id="shop-title">🛒 商店</div>
+  <div id="shop-gold">💰 金币: <span id="shop-current-gold">0</span></div>
+  <div id="shop-cards"></div>
+  <button id="shop-leave">离开商店</button>
+</div>
+
 <script>
 // ===== 卡牌数据 =====
 const CARDS = {
-  // 初始保留
   strike:  { id: 'strike',  name: '打击',    cost: 1, type: 'attack', effect: { damage: 6 }, description: '造成6点伤害' },
   defend:  { id: 'defend',  name: '防御',    cost: 1, type: 'skill',  effect: { block: 5 }, description: '获得5点护甲' },
   harden:  { id: 'harden',  name: '硬撑',    cost: 1, type: 'skill',  effect: { block: 8, draw: 1 }, description: '获得8点护甲，抽1张牌' },
-  // V2新增
   consecutiveStrike: { id: 'consecutiveStrike', name: '连续打击', cost: 1, type: 'attack', effect: { damage: 4, hits: 2 }, description: '造成4点伤害2次' },
   painfulStrike:    { id: 'painfulStrike',     name: '痛击',     cost: 2, type: 'attack', effect: { damage: 10, vulnerableChance: 0.4 }, description: '造成10点伤害，40%几率易伤' },
   behead:           { id: 'behead',            name: '斩首',     cost: 3, type: 'attack', effect: { damage: 15, execute: 0.2 }, description: '造成15点伤害，若敌人≤20血则斩杀' },
@@ -375,12 +515,10 @@ const CARDS = {
   counterStance:    { id: 'counterStance',     name: '反击姿态', cost: 1, type: 'power',  effect: { thorns: 5 }, description: '回合结束时受到攻击时，反伤5点' },
   spikeShell:       { id: 'spikeShell',        name: '尖刺外壳', cost: 2, type: 'power',  effect: { aoeDamage: 3 }, description: '回合结束时对所有敌人造成3点伤害' },
   burningFist:      { id: 'burningFist',       name: '灼热拳头', cost: 2, type: 'power',  effect: { burnChance: 0.25, burnDamage: 2, burnDuration: 2 }, description: '攻击时25%几率灼热2点，持续2回合' },
-  // 状态牌（debuff）
   vulnerable:       { id: 'vulnerable',        name: '易伤',     cost: 0, type: 'status', effect: { vulnerable: 1 }, description: '受到伤害+50%，持续2回合', duration: 2 },
   weak:             { id: 'weak',              name: '虚弱',     cost: 0, type: 'status', effect: { weak: 1 }, description: '攻击力-50%，持续2回合', duration: 2 },
 };
 
-// V2新增卡池（用于奖励选牌）
 const NEW_CARDS_POOL = [
   CARDS.consecutiveStrike,
   CARDS.painfulStrike,
@@ -402,7 +540,6 @@ const ENEMIES = {
   golem:    { id: 'golem',    name: '巨石像',    hp: 50, armor: 10, isBoss: true, intents: ['attack', 'defend', 'heavy'] },
 };
 
-// 意图权重
 const INTENT_WEIGHTS = {
   slime:    { attack: 50, defend: 30, buff: 20 },
   goblin:   { attack: 65, defend: 25, buff: 10 },
@@ -411,25 +548,91 @@ const INTENT_WEIGHTS = {
   golem:    { attack: 40, defend: 30, heavy: 30 },
 };
 
+// ===== 地图数据 =====
+const FLOORS = [
+  {
+    id: 1,
+    nodes: [
+      { id: 'f1r1', type: 'rest',    name: '休息',    x: 80,  y: 200, enemy: null },
+      { id: 'f1c1', type: 'combat',  name: '战斗',    x: 220, y: 100, enemy: 'slime' },
+      { id: 'f1c2', type: 'combat',  name: '战斗',    x: 220, y: 300, enemy: 'goblin' },
+      { id: 'f1e1', type: 'elite',   name: '精英战',  x: 400, y: 200, enemy: 'skeleton' },
+      { id: 'f1s1', type: 'shop',    name: '商店',    x: 550, y: 300, enemy: null },
+      { id: 'f1b1', type: 'boss',    name: 'Boss',    x: 700, y: 200, enemy: 'golem' },
+    ],
+    edges: [
+      ['f1r1', 'f1c1'], ['f1c1', 'f1c2'], ['f1c2', 'f1e1'],
+      ['f1e1', 'f1s1'], ['f1s1', 'f1b1'], ['f1c1', 'f1e1'],
+    ]
+  },
+  {
+    id: 2,
+    nodes: [
+      { id: 'f2s1', type: 'shop',    name: '商店',    x: 80,  y: 200, enemy: null },
+      { id: 'f2e1', type: 'elite',   name: '精英战',  x: 220, y: 100, enemy: 'fireElf' },
+      { id: 'f2c1', type: 'combat',  name: '战斗',    x: 220, y: 300, enemy: 'goblin' },
+      { id: 'f2c2', type: 'combat',  name: '战斗',    x: 400, y: 200, enemy: 'skeleton' },
+      { id: 'f2r1', type: 'rest',    name: '休息',    x: 550, y: 100, enemy: null },
+      { id: 'f2c3', type: 'combat',  name: '战斗',    x: 550, y: 300, enemy: 'fireElf' },
+      { id: 'f2b1', type: 'boss',    name: 'Boss',    x: 700, y: 200, enemy: 'golem' },
+    ],
+    edges: [
+      ['f2s1', 'f2e1'], ['f2e1', 'f2c1'], ['f2c1', 'f2c2'],
+      ['f2c2', 'f2r1'], ['f2r1', 'f2c3'], ['f2c3', 'f2b1'],
+      ['f2c2', 'f2c3'], ['f2e1', 'f2c2'],
+    ]
+  },
+  {
+    id: 3,
+    nodes: [
+      { id: 'f3r1', type: 'rest',    name: '休息',    x: 80,  y: 200, enemy: null },
+      { id: 'f3e1', type: 'elite',   name: '精英战',  x: 220, y: 100, enemy: 'skeleton' },
+      { id: 'f3c1', type: 'combat',  name: '战斗',    x: 220, y: 300, enemy: 'skeleton' },
+      { id: 'f3c2', type: 'combat',  name: '战斗',    x: 400, y: 200, enemy: 'fireElf' },
+      { id: 'f3s1', type: 'shop',    name: '商店',    x: 400, y: 350, enemy: null },
+      { id: 'f3c3', type: 'combat',  name: '战斗',    x: 550, y: 100, enemy: 'fireElf' },
+      { id: 'f3c4', type: 'combat',  name: '战斗',    x: 550, y: 300, enemy: 'goblin' },
+      { id: 'f3b1', type: 'boss',    name: 'Boss',    x: 700, y: 200, enemy: 'golem' },
+    ],
+    edges: [
+      ['f3r1', 'f3e1'], ['f3e1', 'f3c1'], ['f3c1', 'f3c2'],
+      ['f3c2', 'f3s1'], ['f3s1', 'f3c4'], ['f3c4', 'f3b1'],
+      ['f3c2', 'f3c3'], ['f3c3', 'f3b1'], ['f3e1', 'f3c2'],
+    ]
+  }
+];
+
+const NODE_TYPES = {
+  combat: { icon: '⚔️', color: '#e94560', textColor: '#fff' },
+  elite:  { icon: '👹', color: '#f39c12', textColor: '#fff' },
+  boss:   { icon: '💀', color: '#9b59b6', textColor: '#fff' },
+  rest:   { icon: '🏠', color: '#2ecc71', textColor: '#fff' },
+  shop:   { icon: '🛒', color: '#3498db', textColor: '#fff' },
+};
+
 // ===== 游戏状态 =====
 let gameState = {
-  playerHp: 50,
-  playerMaxHp: 50,
+  // 玩家属性
+  playerHp: 80,
+  playerMaxHp: 80,
   playerShield: 0,
-  energy: 3,
-  maxEnergy: 3,
-  turn: 1,
+  gold: 0,
+  // 牌组
   deck: [],
   hand: [],
   drawPile: [],
   discardPile: [],
+  // 战斗相关
+  energy: 3,
+  maxEnergy: 3,
+  turn: 1,
   enemy: null,
   enemyHp: 0,
   enemyMaxHp: 0,
   enemyArmor: 0,
   enemyIntent: null,
   enemyIntentValue: 0,
-  playerDebuffs: [], // { type, stacks, duration, name, icon, cssClass }
+  playerDebuffs: [],
   enemyDebuffs: [],
   thorns: 0,
   aoeDamage: 0,
@@ -441,6 +644,16 @@ let gameState = {
   gameOver: false,
   battleLog: [],
   powerCardsPlayedThisCombat: {},
+  // V3 地图相关
+  currentFloor: 1,
+  currentNode: null,
+  unlockedNodes: [],
+  completedNodes: [],
+  inMap: true,
+  selectedNode: null,
+  // 统计
+  totalBattlesWon: 0,
+  totalGoldEarned: 0,
 };
 
 // ===== 工具函数 =====
@@ -469,95 +682,335 @@ function addLog(message, type = 'info') {
   renderLog();
 }
 
-function getEnemyByType(type) {
+function getEnemyByType(type, floor = 1) {
   const base = ENEMIES[type];
-  return JSON.parse(JSON.stringify(base));
+  if (!base) return null;
+  const enemy = JSON.parse(JSON.stringify(base));
+  // 根据楼层调整Boss血量
+  if (enemy.isBoss) {
+    if (floor === 2) enemy.hp = 45;
+    if (floor === 3) enemy.hp = 60;
+  }
+  return enemy;
 }
 
-// ===== 战斗日志渲染 =====
-function renderLog() {
-  const container = document.getElementById('log-entries');
-  container.innerHTML = '';
-  gameState.battleLog.forEach(entry => {
-    const div = document.createElement('div');
-    div.className = `log-entry log-${entry.type}`;
-    div.textContent = `[T${entry.turn}] ${entry.message}`;
-    container.appendChild(div);
+// ===== 地图相关 =====
+function isNodeUnlocked(nodeId) {
+  return gameState.unlockedNodes.includes(nodeId);
+}
+
+function isNodeCompleted(nodeId) {
+  return gameState.completedNodes.includes(nodeId);
+}
+
+function getNodeById(nodeId) {
+  const floor = FLOORS.find(f => f.id === gameState.currentFloor);
+  return floor.nodes.find(n => n.id === nodeId);
+}
+
+function getFloorNodes() {
+  return FLOORS.find(f => f.id === gameState.currentFloor);
+}
+
+function unlockNode(nodeId) {
+  if (!gameState.unlockedNodes.includes(nodeId)) {
+    gameState.unlockedNodes.push(nodeId);
+  }
+}
+
+function completeNode(nodeId) {
+  if (!gameState.completedNodes.includes(nodeId)) {
+    gameState.completedNodes.push(nodeId);
+  }
+  // 解锁相邻节点
+  const floor = getFloorNodes();
+  floor.edges.forEach(([a, b]) => {
+    if (a === nodeId && !gameState.completedNodes.includes(b)) {
+      unlockNode(b);
+    } else if (b === nodeId && !gameState.completedNodes.includes(a)) {
+      unlockNode(a);
+    }
   });
 }
 
-// ===== 初始化游戏 =====
-function initGame() {
-  // 初始牌组: 打击x4、防御x4、硬撑x2、连续打击x2、痛击x1
-  const startingDeck = [
-    CARDS.strike, CARDS.strike, CARDS.strike, CARDS.strike,
-    CARDS.defend, CARDS.defend, CARDS.defend, CARDS.defend,
-    CARDS.harden, CARDS.harden,
-    CARDS.consecutiveStrike, CARDS.consecutiveStrike,
-    CARDS.painfulStrike,
-  ];
-  
-  gameState = {
-    playerHp: 50,
-    playerMaxHp: 50,
-    playerShield: 0,
-    energy: 3,
-    maxEnergy: 3,
-    turn: 1,
-    deck: startingDeck.map(c => ({ ...c })),
-    hand: [],
-    drawPile: [],
-    discardPile: [],
-    enemy: null,
-    enemyHp: 0,
-    enemyMaxHp: 0,
-    enemyArmor: 0,
-    enemyIntent: null,
-    enemyIntentValue: 0,
-    playerDebuffs: [],
-    enemyDebuffs: [],
-    thorns: 0,
-    aoeDamage: 0,
-    burnChance: 0,
-    burnDamage: 0,
-    burnDuration: 0,
-    nextAttackMult: 1,
-    thornsActive: false,
-    gameOver: false,
-    battleLog: [],
-    powerCardsPlayedThisCombat: {},
-  };
-
-  document.getElementById('start-screen').style.display = 'none';
-  document.getElementById('game-over-screen').classList.remove('show');
-  document.getElementById('victory-screen').classList.remove('show');
-  document.getElementById('game-container').style.display = 'block';
-
-  spawnEnemy();
-  startPlayerTurn();
+function initMap() {
+  gameState.currentFloor = 1;
+  gameState.currentNode = null;
+  gameState.unlockedNodes = ['f1r1'];
+  gameState.completedNodes = [];
+  gameState.inMap = true;
 }
 
-function spawnEnemy() {
-  const enemyTypes = ['slime', 'goblin', 'skeleton', 'fireElf'];
-  const type = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
-  // 20%几率出现Boss
-  if (Math.random() < 0.2) {
-    const boss = getEnemyByType('golem');
-    gameState.enemy = boss;
-    gameState.enemyHp = boss.hp;
-    gameState.enemyMaxHp = boss.hp;
-    gameState.enemyArmor = boss.armor || 0;
-    addLog(`Boss ${boss.name} 出现了！`, 'info');
-  } else {
-    const enemy = getEnemyByType(type);
-    gameState.enemy = enemy;
-    gameState.enemyHp = enemy.hp;
-    gameState.enemyMaxHp = enemy.hp;
-    gameState.enemyArmor = enemy.armor || 0;
-    addLog(`遭遇 ${enemy.name}！`, 'info');
+function renderMap() {
+  const canvas = document.getElementById('map-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const floor = getFloorNodes();
+
+  // 绘制连线
+  floor.edges.forEach(([a, b]) => {
+    const nodeA = getNodeById(a);
+    const nodeB = getNodeById(b);
+    const completed = gameState.completedNodes.includes(a) && gameState.completedNodes.includes(b);
+    
+    ctx.beginPath();
+    ctx.moveTo(nodeA.x, nodeA.y);
+    ctx.lineTo(nodeB.x, nodeB.y);
+    ctx.strokeStyle = completed ? '#2ecc71' : '#555';
+    ctx.lineWidth = completed ? 3 : 2;
+    ctx.setLineDash(completed ? [] : [5, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  });
+
+  // 绘制节点
+  floor.nodes.forEach(node => {
+    const unlocked = isNodeUnlocked(node.id);
+    const completed = isNodeCompleted(node.id);
+    const current = gameState.currentNode === node.id;
+    const nodeType = NODE_TYPES[node.type];
+
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, 35, 0, Math.PI * 2);
+    
+    if (completed) {
+      ctx.fillStyle = '#2ecc71';
+    } else if (current) {
+      ctx.fillStyle = '#e74c3c';
+    } else if (unlocked) {
+      ctx.fillStyle = nodeType.color;
+    } else {
+      ctx.fillStyle = '#333';
+    }
+    ctx.fill();
+    
+    // 边框
+    ctx.strokeStyle = current ? '#ffd700' : '#fff';
+    ctx.lineWidth = current ? 4 : 2;
+    ctx.stroke();
+
+    // 图标
+    ctx.fillStyle = nodeType.textColor;
+    ctx.font = '24px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(nodeType.icon, node.x, node.y - 5);
+
+    // 名称
+    ctx.fillStyle = '#fff';
+    ctx.font = '12px Arial';
+    ctx.fillText(node.name, node.x, node.y + 20);
+
+    // 完成标记
+    if (completed) {
+      ctx.fillStyle = '#fff';
+      ctx.font = '16px Arial';
+      ctx.fillText('✓', node.x + 25, node.y - 25);
+    }
+  });
+
+  // 更新状态显示
+  document.getElementById('floor-display').textContent = `🏠 第${gameState.currentFloor}层`;
+  document.getElementById('map-hp').textContent = gameState.playerHp;
+  document.getElementById('map-max-hp').textContent = gameState.playerMaxHp;
+  document.getElementById('map-gold').textContent = gameState.gold;
+}
+
+function handleMapClick(e) {
+  const canvas = document.getElementById('map-canvas');
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  const floor = getFloorNodes();
+  
+  floor.nodes.forEach(node => {
+    const dist = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
+    if (dist < 35 && isNodeUnlocked(node.id)) {
+      showNodePreview(node);
+    }
+  });
+}
+
+function showNodePreview(node) {
+  gameState.selectedNode = node;
+  const preview = document.getElementById('node-preview');
+  const title = document.getElementById('node-preview-title');
+  const info = document.getElementById('node-preview-info');
+  const btn = document.getElementById('node-preview-btn');
+
+  const nodeType = NODE_TYPES[node.type];
+  title.textContent = `${nodeType.icon} ${node.name}`;
+  
+  let infoText = '';
+  switch (node.type) {
+    case 'combat':
+      const enemy1 = getEnemyByType(node.enemy, gameState.currentFloor);
+      infoText = `敌人: ${enemy1.name} (${enemy1.hp}血)`;
+      break;
+    case 'elite':
+      const enemy2 = getEnemyByType(node.enemy, gameState.currentFloor);
+      infoText = `精英: ${enemy2.name} (${enemy2.hp}血) - 胜利获得金币奖励`;
+      break;
+    case 'boss':
+      const enemy3 = getEnemyByType(node.enemy, gameState.currentFloor);
+      infoText = `Boss: ${enemy3.name} (${enemy3.hp}血) - 击败后进入下一层`;
+      break;
+    case 'rest':
+      infoText = `恢复15点生命 (当前: ${gameState.playerHp}/${gameState.playerMaxHp})`;
+      break;
+    case 'shop':
+      infoText = `可购买卡牌 (当前金币: ${gameState.gold})`;
+      break;
   }
+  info.textContent = infoText;
+  preview.classList.add('show');
+}
+
+function enterNode() {
+  const node = gameState.selectedNode;
+  if (!node) return;
+
+  gameState.currentNode = node.id;
+  document.getElementById('node-preview').classList.remove('show');
+
+  switch (node.type) {
+    case 'combat':
+    case 'elite':
+    case 'boss':
+      startCombat(node);
+      break;
+    case 'rest':
+      handleRest();
+      break;
+    case 'shop':
+      handleShop();
+      break;
+  }
+}
+
+function handleRest() {
+  const healAmount = 15;
+  const actualHeal = Math.min(healAmount, gameState.playerMaxHp - gameState.playerHp);
+  gameState.playerHp += actualHeal;
+  addLog(`休息！恢复 ${actualHeal} 点生命`, 'heal');
+  completeNode(gameState.currentNode);
+  gameState.currentNode = null;
+  returnToMap();
+}
+
+function handleShop() {
+  // 设置商店金币
+  gameState.gold = gameState.currentFloor * 10;
+  document.getElementById('shop-current-gold').textContent = gameState.gold;
+  
+  // 生成商店卡牌
+  const shopCards = shuffle(NEW_CARDS_POOL).slice(0, 3);
+  const container = document.getElementById('shop-cards');
+  container.innerHTML = '';
+
+  shopCards.forEach((card, index) => {
+    const price = card.type === 'attack' ? 15 + Math.floor(Math.random() * 11) : 20 + Math.floor(Math.random() * 11);
+    const div = document.createElement('div');
+    div.className = `shop-card ${card.type}`;
+    div.dataset.index = index;
+    div.dataset.price = price;
+    div.innerHTML = `
+      <div class="card-cost">${card.cost}</div>
+      <div class="card-name">${card.name}</div>
+      <div class="card-type">${card.type === 'attack' ? '攻击' : card.type === 'skill' ? '技能' : '能力'}</div>
+      <div class="card-effect">${card.description}</div>
+      <div class="price-tag">💰 ${price}</div>
+    `;
+    div.onclick = () => buyCard(card, price, div);
+    container.appendChild(div);
+  });
+
+  document.getElementById('shop-overlay').classList.add('show');
+}
+
+function buyCard(card, price, element) {
+  if (gameState.gold < price) {
+    addLog('金币不足！', 'debuff');
+    return;
+  }
+  if (element.classList.contains('bought')) return;
+
+  gameState.gold -= price;
+  gameState.deck.push({ ...card });
+  element.classList.add('bought');
+  element.style.cursor = 'not-allowed';
+  document.getElementById('shop-current-gold').textContent = gameState.gold;
+  addLog(`购买卡牌: ${card.name}`, 'info');
+}
+
+function leaveShop() {
+  document.getElementById('shop-overlay').classList.remove('show');
+  completeNode(gameState.currentNode);
+  gameState.currentNode = null;
+  returnToMap();
+}
+
+function returnToMap() {
+  gameState.inMap = true;
+  document.getElementById('map-container').style.display = 'block';
+  document.getElementById('battle-container').style.display = 'none';
+  document.getElementById('log-panel').style.display = 'none';
+  renderMap();
+
+  // 检查游戏结束条件
+  if (gameState.playerHp <= 0) {
+    showGameOver();
+  }
+}
+
+// ===== 战斗相关 =====
+function startCombat(node) {
+  gameState.inMap = false;
+  document.getElementById('map-container').style.display = 'none';
+  document.getElementById('battle-container').style.display = 'block';
+  document.getElementById('log-panel').style.display = 'block';
+
+  // 确定敌人
+  let enemyType = node.enemy;
+  if (node.type === 'elite') {
+    // 精英敌人根据楼层
+    const eliteEnemies = { 1: 'skeleton', 2: 'fireElf', 3: 'skeleton' };
+    enemyType = eliteEnemies[gameState.currentFloor];
+  } else if (node.type === 'boss') {
+    enemyType = 'golem';
+  } else {
+    // 普通战斗敌人
+    const combatEnemies = { 1: ['slime', 'goblin'], 2: ['goblin', 'skeleton'], 3: ['skeleton', 'fireElf'] };
+    const pool = combatEnemies[gameState.currentFloor];
+    enemyType = pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  const enemy = getEnemyByType(enemyType, gameState.currentFloor);
+  gameState.enemy = enemy;
+  gameState.enemyHp = enemy.hp;
+  gameState.enemyMaxHp = enemy.hp;
+  gameState.enemyArmor = enemy.armor || 0;
+  
+  // 重置战斗状态
+  gameState.energy = 3;
+  gameState.turn = 1;
+  gameState.playerShield = 0;
+  gameState.playerDebuffs = [];
+  gameState.enemyDebuffs = [];
+  gameState.thorns = 0;
+  gameState.aoeDamage = 0;
+  gameState.burnChance = 0;
+  gameState.powerCardsPlayedThisCombat = {};
+  gameState.battleLog = [];
+  gameState.gameOver = false;
+
+  addLog(`遭遇 ${enemy.name}！`, 'info');
   rollEnemyIntent();
   renderEnemy();
+  renderUI();
+  startPlayerTurn();
 }
 
 function rollEnemyIntent() {
@@ -570,6 +1023,7 @@ function rollEnemyIntent() {
     case 'attack':
       value = enemy.isBoss ? 12 : (enemy.id === 'goblin' ? 4 : 6);
       if (enemy.id === 'fireElf') value = 5;
+      if (enemy.id === 'skeleton') value = 8;
       break;
     case 'defend':
       value = enemy.isBoss ? 15 : (enemy.id === 'skeleton' ? 8 : 4);
@@ -581,7 +1035,7 @@ function rollEnemyIntent() {
       value = 0;
       break;
     case 'heavy':
-      value = 8; // Boss全体攻击
+      value = 8;
       break;
   }
   
@@ -593,12 +1047,10 @@ function startPlayerTurn() {
   gameState.energy = gameState.maxEnergy;
   gameState.nextAttackMult = 1;
   
-  // 重置能力牌效果
   if (gameState.powerCardsPlayedThisCombat['counterStance']) {
     gameState.thornsActive = true;
   }
   
-  // 抽5张牌
   drawCards(5);
   renderUI();
   addLog('你的回合开始', 'info');
@@ -631,52 +1083,39 @@ function playCard(card, index) {
 
   const effect = card.effect;
 
-  // 处理攻击牌
   if (card.type === 'attack') {
     let damage = effect.damage || 0;
     let hits = effect.hits || 1;
     
-    // 战吼加成
     damage = Math.floor(damage * gameState.nextAttackMult);
     gameState.nextAttackMult = 1;
     
-    // 虚弱减少
     const hasWeak = gameState.playerDebuffs.find(d => d.type === 'weak');
     if (hasWeak) {
       damage = Math.floor(damage * 0.5);
       addLog('虚弱状态，伤害-50%', 'debuff');
     }
     
-    // 多段攻击
     for (let i = 0; i < hits; i++) {
       dealDamageToEnemy(damage);
     }
     
-    // 痛击-易伤几率
     if (effect.vulnerableChance && Math.random() < effect.vulnerableChance) {
       applyDebuffToEnemy('vulnerable', 1, 2);
       addLog('敌人陷入易伤！', 'debuff');
     }
     
-    // 斩首-斩杀
     if (effect.execute && gameState.enemyHp <= 20) {
       gameState.enemyHp = 0;
       addLog('斩首！敌人被斩杀！', 'damage');
     }
     
-    // 灼热拳头
     if (gameState.burnChance > 0 && Math.random() < gameState.burnChance) {
       applyDebuffToEnemy('burn', gameState.burnDamage, gameState.burnDuration);
       addLog('敌人被灼热！', 'debuff');
     }
-    
-    // 荆棘反伤
-    if (gameState.thorns > 0) {
-      // 荆棘在回合结束结算
-    }
   }
 
-  // 处理技能牌
   if (card.type === 'skill') {
     if (effect.block) {
       gameState.playerShield += effect.block;
@@ -697,7 +1136,6 @@ function playCard(card, index) {
     }
   }
 
-  // 处理能力牌
   if (card.type === 'power') {
     gameState.powerCardsPlayedThisCombat[card.id] = true;
     
@@ -724,13 +1162,11 @@ function playCard(card, index) {
 function dealDamageToEnemy(damage) {
   let actualDamage = damage;
   
-  // 易伤加成
   const hasVulnerable = gameState.enemyDebuffs.find(d => d.type === 'vulnerable');
   if (hasVulnerable) {
     actualDamage = Math.floor(damage * 1.5);
   }
   
-  // 护甲抵消
   if (gameState.enemyArmor > 0) {
     const blocked = Math.min(gameState.enemyArmor, actualDamage);
     gameState.enemyArmor -= blocked;
@@ -788,9 +1224,7 @@ function applyDebuffToPlayer(type, stacks, duration) {
 function endTurn() {
   if (gameState.gameOver) return;
   
-  // 玩家能力牌效果
   if (gameState.thorns > 0 && gameState.thornsActive) {
-    // 荆棘在受到攻击时结算（此处简化为回合结束）
     addLog(`荆棘反弹 ${gameState.thorns} 点伤害`, 'damage');
   }
   
@@ -799,24 +1233,17 @@ function endTurn() {
     addLog(`尖刺外壳造成 ${gameState.aoeDamage} 点伤害`, 'damage');
   }
   
-  // 玩家debuff回合结算
   processDebuffs('player');
   
-  // 弃掉手牌
   gameState.discardPile.push(...gameState.hand);
   gameState.hand = [];
   
-  // 敌人回合
   executeEnemyIntent();
-  
-  // 敌人debuff回合结算
   processDebuffs('enemy');
   
-  // 检查结束条件
   if (checkEnemyDeath()) return;
   if (checkPlayerDeath()) return;
   
-  // 重置
   gameState.turn++;
   gameState.thornsActive = false;
   gameState.enemyArmor = gameState.enemy.armor || 0;
@@ -871,7 +1298,6 @@ function executeEnemyIntent() {
       break;
     case 'buff':
       intentText = '强化';
-      // 随机给玩家debuff
       if (enemy.id === 'fireElf' || Math.random() < 0.3) {
         const debuffType = Math.random() < 0.5 ? 'weak' : 'vulnerable';
         applyDebuffToPlayer(debuffType, 1, 2);
@@ -890,7 +1316,6 @@ function executeEnemyIntent() {
       break;
   }
   
-  // Boss每3回合自动获得护盾
   if (enemy.isBoss && gameState.turn % 3 === 0) {
     gameState.enemyArmor += 8;
     addLog('巨石像获得 8 护甲', 'block');
@@ -901,21 +1326,18 @@ function executeEnemyIntent() {
 }
 
 function dealDamageToPlayer(damage, isEnemyAttack = true) {
-  // 虚弱减少敌人攻击力
   const hasWeak = gameState.playerDebuffs.find(d => d.type === 'weak');
   if (hasWeak && isEnemyAttack) {
     damage = Math.floor(damage * 0.5);
     addLog('虚弱状态，敌人伤害-50%', 'debuff');
   }
   
-  // 易伤加成
   const hasVulnerable = gameState.playerDebuffs.find(d => d.type === 'vulnerable');
   if (hasVulnerable) {
     damage = Math.floor(damage * 1.5);
     addLog('易伤状态，受到伤害+50%', 'debuff');
   }
   
-  // 护甲抵消
   if (gameState.playerShield > 0) {
     const blocked = Math.min(gameState.playerShield, damage);
     gameState.playerShield -= blocked;
@@ -923,7 +1345,6 @@ function dealDamageToPlayer(damage, isEnemyAttack = true) {
     if (blocked > 0) addLog(`护甲抵消 ${blocked} 点伤害`, 'block');
   }
   
-  // 荆棘反弹
   if (gameState.thorns > 0 && isEnemyAttack) {
     const thornsDamage = gameState.thorns;
     dealDamageToEnemy(thornsDamage);
@@ -941,19 +1362,48 @@ function checkEnemyDeath() {
     gameState.enemyHp = 0;
     renderEnemy();
     
-    if (gameState.enemy.isBoss) {
-      // Boss战胜利
-      addLog('🏆 击败巨石像！胜利！', 'info');
-      setTimeout(() => {
-        document.getElementById('game-container').style.display = 'none';
-        document.getElementById('victory-screen').classList.add('show');
-      }, 500);
-      gameState.gameOver = true;
-      return true;
+    const node = getNodeById(gameState.currentNode);
+    const isElite = node && node.type === 'elite';
+    const isBoss = node && node.type === 'boss';
+    
+    if (isBoss) {
+      addLog('🏆 击败Boss！', 'info');
+      completeNode(gameState.currentNode);
+      gameState.totalBattlesWon++;
+      
+      // 检查是否通关
+      if (gameState.currentFloor >= 3) {
+        // 胜利！
+        setTimeout(() => showVictory(), 500);
+        return true;
+      } else {
+        // 进入下一层
+        gameState.currentFloor++;
+        gameState.currentNode = null;
+        setTimeout(() => {
+          addLog(`进入第 ${gameState.currentFloor} 层！`, 'info');
+          returnToMap();
+        }, 500);
+        return true;
+      }
     }
     
+    // 战斗胜利
     addLog(`${gameState.enemy.name} 被击败！`, 'info');
-    showRewardSelection();
+    completeNode(gameState.currentNode);
+    gameState.totalBattlesWon++;
+    
+    // 精英战斗奖励金币
+    if (isElite) {
+      const goldReward = gameState.currentFloor * 10;
+      gameState.gold += goldReward;
+      gameState.totalGoldEarned += goldReward;
+      addLog(`获得 ${goldReward} 金币奖励！`, 'info');
+    }
+    
+    setTimeout(() => {
+      showRewardSelection();
+    }, 500);
     return true;
   }
   return false;
@@ -964,10 +1414,7 @@ function checkPlayerDeath() {
     gameState.playerHp = 0;
     renderUI();
     addLog('你被击败了...', 'info');
-    setTimeout(() => {
-      document.getElementById('game-container').style.display = 'none';
-      document.getElementById('game-over-screen').classList.add('show');
-    }, 500);
+    setTimeout(() => showGameOver(), 500);
     gameState.gameOver = true;
     return true;
   }
@@ -975,7 +1422,6 @@ function checkPlayerDeath() {
 }
 
 function showRewardSelection() {
-  // 从新卡池选3张
   const rewards = shuffle(NEW_CARDS_POOL).slice(0, 3);
   const container = document.getElementById('reward-cards');
   container.innerHTML = '';
@@ -1001,25 +1447,31 @@ function selectReward(card) {
   document.getElementById('overlay').classList.remove('show');
   addLog(`获得新卡: ${card.name}`, 'info');
   
-  // 继续下一场战斗
-  spawnEnemy();
-  gameState.turn = 1;
-  gameState.playerHp = gameState.playerMaxHp;
-  gameState.playerShield = 0;
-  gameState.playerDebuffs = [];
-  gameState.enemyDebuffs = [];
-  gameState.thorns = 0;
-  gameState.aoeDamage = 0;
-  gameState.burnChance = 0;
-  gameState.powerCardsPlayedThisCombat = {};
-  
-  startPlayerTurn();
+  returnToMap();
+}
+
+function showGameOver() {
+  document.getElementById('game-container').style.display = 'none';
+  document.getElementById('log-panel').style.display = 'none';
+  document.getElementById('game-over-screen').classList.add('show');
+  document.getElementById('game-over-stats').textContent = 
+    `通关楼层: ${gameState.currentFloor} | 战斗胜利: ${gameState.totalBattlesWon} | 获得金币: ${gameState.totalGoldEarned}`;
+}
+
+function showVictory() {
+  document.getElementById('game-container').style.display = 'none';
+  document.getElementById('log-panel').style.display = 'none';
+  document.getElementById('victory-screen').classList.add('show');
+  document.getElementById('victory-stats').textContent = 
+    `总战斗胜利: ${gameState.totalBattlesWon} | 总获得金币: ${gameState.totalGoldEarned}`;
 }
 
 // ===== UI 渲染 =====
 function renderUI() {
   document.getElementById('hp').textContent = gameState.playerHp;
+  document.getElementById('max-hp').textContent = gameState.playerMaxHp;
   document.getElementById('player-hp').textContent = gameState.playerHp;
+  document.getElementById('player-max-hp').textContent = gameState.playerMaxHp;
   document.getElementById('energy').textContent = gameState.energy;
   document.getElementById('shield').textContent = gameState.playerShield;
   document.getElementById('player-shield').textContent = gameState.playerShield;
@@ -1077,7 +1529,6 @@ function renderEnemy() {
   };
   document.getElementById('enemy-intent').textContent = `意图: ${intentLabels[gameState.enemyIntent] || gameState.enemyIntent}`;
   
-  // 渲染debuff
   const debuffContainer = document.getElementById('enemy-debuffs');
   debuffContainer.innerHTML = '';
   gameState.enemyDebuffs.forEach(debuff => {
@@ -1102,11 +1553,91 @@ function renderPlayerDebuffs() {
   });
 }
 
+function renderLog() {
+  const container = document.getElementById('log-entries');
+  container.innerHTML = '';
+  gameState.battleLog.forEach(entry => {
+    const div = document.createElement('div');
+    div.className = `log-entry log-${entry.type}`;
+    div.textContent = `[T${entry.turn}] ${entry.message}`;
+    container.appendChild(div);
+  });
+}
+
+// ===== 初始化游戏 =====
+function initGame() {
+  // 初始牌组
+  const startingDeck = [
+    CARDS.strike, CARDS.strike, CARDS.strike, CARDS.strike,
+    CARDS.defend, CARDS.defend, CARDS.defend, CARDS.defend,
+    CARDS.harden, CARDS.harden,
+    CARDS.consecutiveStrike, CARDS.consecutiveStrike,
+    CARDS.painfulStrike,
+  ];
+  
+  gameState = {
+    playerHp: 80,
+    playerMaxHp: 80,
+    playerShield: 0,
+    gold: 0,
+    deck: startingDeck.map(c => ({ ...c })),
+    hand: [],
+    drawPile: [],
+    discardPile: [],
+    energy: 3,
+    maxEnergy: 3,
+    turn: 1,
+    enemy: null,
+    enemyHp: 0,
+    enemyMaxHp: 0,
+    enemyArmor: 0,
+    enemyIntent: null,
+    enemyIntentValue: 0,
+    playerDebuffs: [],
+    enemyDebuffs: [],
+    thorns: 0,
+    aoeDamage: 0,
+    burnChance: 0,
+    burnDamage: 0,
+    burnDuration: 0,
+    nextAttackMult: 1,
+    thornsActive: false,
+    gameOver: false,
+    battleLog: [],
+    powerCardsPlayedThisCombat: {},
+    currentFloor: 1,
+    currentNode: null,
+    unlockedNodes: [],
+    completedNodes: [],
+    inMap: true,
+    selectedNode: null,
+    totalBattlesWon: 0,
+    totalGoldEarned: 0,
+  };
+
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('game-over-screen').classList.remove('show');
+  document.getElementById('victory-screen').classList.remove('show');
+  document.getElementById('game-container').style.display = 'block';
+  document.getElementById('map-container').style.display = 'block';
+  document.getElementById('battle-container').style.display = 'none';
+  document.getElementById('log-panel').style.display = 'none';
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('shop-overlay').classList.remove('show');
+  document.getElementById('node-preview').classList.remove('show');
+
+  initMap();
+  renderMap();
+}
+
 // ===== 事件绑定 =====
 document.getElementById('start-btn').onclick = initGame;
 document.getElementById('start-btn-retry').onclick = initGame;
 document.getElementById('start-btn-next').onclick = initGame;
 document.getElementById('end-turn').onclick = endTurn;
+document.getElementById('map-canvas').onclick = handleMapClick;
+document.getElementById('node-preview-btn').onclick = enterNode;
+document.getElementById('shop-leave').onclick = leaveShop;
 </script>
 
 </body>
