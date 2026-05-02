@@ -1005,6 +1005,8 @@ function startCombat(node) {
   gameState.powerCardsPlayedThisCombat = {};
   gameState.battleLog = [];
   gameState.gameOver = false;
+  gameState.drawPile = shuffle([...gameState.deck]);
+  gameState.discardPile = [];
 
   addLog(`遭遇 ${enemy.name}！`, 'info');
   rollEnemyIntent();
