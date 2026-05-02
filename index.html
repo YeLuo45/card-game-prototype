@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DBG卡牌游戏 V8</title>
+  <title>DBG卡牌游戏 V11</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -501,9 +501,9 @@
     }
     .relic-icon:hover { transform: scale(1.15); }
     .relic-icon.starting { background: linear-gradient(145deg, #b8860b, #daa520); }
-    .relic-icon.common { background: linear-gradient(145deg, #1e90ff, #4169e1); }
-    .relic-icon.rare { background: linear-gradient(145deg, #9b59b6, #8e44ad); }
-    .relic-icon.legendary { background: linear-gradient(145deg, #e74c3c, #c0392b); }
+    .relic-icon.common { background: linear-gradient(145deg, #1e90ff, #4169e1); border-color: #95a5a6; }
+    .relic-icon.rare { background: linear-gradient(145deg, #9b59b6, #8e44ad); border-color: #3498db; }
+    .relic-icon.legendary { background: linear-gradient(145deg, #e74c3c, #c0392b); border-color: #f39c12; }
     .relic-tooltip {
       position: absolute;
       bottom: 50px;
@@ -1071,6 +1071,71 @@ const RELICS = {
     description: '攻击时30%几率攻击两次（各50%伤害）',
     effect: { doubleAttackChance: 0.3, doubleAttackMult: 0.5 },
   },
+  // ===== V11 新增遗物 =====
+  bloodOath: {
+    id: 'bloodOath',
+    name: '血之誓言',
+    icon: '🩸',
+    rarity: 'legendary',
+    description: '攻击时30%几率造成双倍伤害',
+    effect: { criticalChance: 0.3 },
+  },
+  frostHeart: {
+    id: 'frostHeart',
+    name: '冰霜之心',
+    icon: '❄️',
+    rarity: 'rare',
+    description: '每回合开始时，10%几率获得1能量',
+    effect: { startOfTurnEnergy: 0.1 },
+  },
+  burningSoul: {
+    id: 'burningSoul',
+    name: '燃烧之魂',
+    icon: '🔥',
+    rarity: 'rare',
+    description: '中毒伤害+100%',
+    effect: { poisonMultiplier: 2.0 },
+  },
+  guardianHorn: {
+    id: 'guardianHorn',
+    name: '守护者之角',
+    icon: '🦄',
+    rarity: 'rare',
+    description: '每场战斗第一次受到致命伤害时，存活1HP',
+    effect: { surviveLethal: true },
+  },
+  windBoots: {
+    id: 'windBoots',
+    name: '疾风之靴',
+    icon: '👟',
+    rarity: 'common',
+    description: '每回合额外抽1张牌',
+    effect: { startOfTurnDraw: 1 },
+  },
+  shadowDagger: {
+    id: 'shadowDagger',
+    name: '暗影匕首',
+    icon: '🗡️',
+    rarity: 'rare',
+    description: '攻击时15%几率附加3层易伤',
+    effect: { vulnerableChance: 0.15, vulnerableStacks: 3 },
+  },
+  lifeSpring: {
+    id: 'lifeSpring',
+    name: '生命之泉',
+    icon: '💧',
+    rarity: 'rare',
+    description: '每击败一个敌人恢复3HP',
+    effect: { healOnKill: 3 },
+  },
+  energyVortex: {
+    id: 'energyVortex',
+    name: '能量漩涡',
+    icon: '🌀',
+    rarity: 'legendary',
+    description: '回合结束时，未使用的能量转化为伤害',
+    effect: { energyToDamage: true },
+  },
 };
 
 // 遗物池（按稀有度）
@@ -1406,6 +1471,9 @@ let gameState = {
   // V7 敌人特殊机制
   enemyThorns: 0, // 敌人反击伤害
   summonedMinions: 0, // 黑暗领主召唤的小怪数量
+  // V11 遗物特殊状态
+  guardianHornUsed: false, // 守护者之角本场战斗是否已使用
+  phoenixFeatherUsed: false, // 凤凰羽毛本局游戏是否已使用
   // V3 地图相关
   currentFloor: 1,
   currentNode: null,
@@ -1433,6 +1501,11 @@ let gameState = {
 };
 
 // ===== V6 遗物效果应用 =====
+// 辅助函数：检查玩家是否拥有指定遗物
+function hasRelic(relicId) {
+  return gameState.relics.some(r => r.id === relicId);
+}
+
 function applyRelicEffect(trigger, context = {}) {
   gameState.relics.forEach(relic => {
     const effect = relic.effect;
@@ -1460,10 +1533,32 @@ function applyRelicEffect(trigger, context = {}) {
             addLog(`遗物 ${relic.name} 回复 ${healAmount} 生命`, 'heal');
           }
         }
+        if (effect.startOfTurnBlock) {
+          gameState.playerShield += effect.startOfTurnBlock;
+          addLog(`遗物 ${relic.name} 提供 ${effect.startOfTurnBlock} 护甲`, 'block');
+        }
         break;
       case 'onAttack':
         if (effect.damageBonus) {
           context.bonusDamage = (context.bonusDamage || 0) + effect.damageBonus;
+        }
+        // 低血量额外伤害
+        if (effect.lowHpDamageBonus) {
+          const hpPercent = gameState.playerHp / gameState.playerMaxHp;
+          if (hpPercent <= effect.lowHpThreshold) {
+            context.bonusDamage = (context.bonusDamage || 0) + effect.lowHpDamageBonus;
+            addLog(`遗物 ${relic.name} 低血量加成 +${effect.lowHpDamageBonus} 伤害`, 'info');
+          }
+        }
+        // 血量损失伤害加成（每失去10%生命+2伤害）
+        if (effect.hpLossDamageBonus) {
+          const hpLossPercent = 1 - (gameState.playerHp / gameState.playerMaxHp);
+          const bonusStacks = Math.floor(hpLossPercent * 10); // 每10%一级
+          const bonusDmg = bonusStacks * effect.hpLossDamagePer10Percent;
+          if (bonusDmg > 0) {
+            context.bonusDamage = (context.bonusDamage || 0) + bonusDmg;
+            addLog(`遗物 ${relic.name} 激怒加成 +${bonusDmg} 伤害 (${bonusStacks}层)`, 'info');
+          }
         }
         if (effect.attackPoisonChance && Math.random() < effect.attackPoisonChance) {
           applyDebuffToEnemy('poison', effect.attackPoisonStacks, 3);
@@ -1473,10 +1568,22 @@ function applyRelicEffect(trigger, context = {}) {
           applyDebuffToEnemy('burn', effect.attackBurnStacks, 2);
           addLog(`遗物 ${relic.name} 使敌人灼烧 ${effect.attackBurnStacks} 层`, 'debuff');
         }
+        if (effect.attackVulnerableChance && Math.random() < effect.attackVulnerableChance) {
+          applyDebuffToEnemy('vulnerable', effect.attackVulnerableStacks, 2);
+          addLog(`遗物 ${relic.name} 使敌人易伤 ${effect.attackVulnerableStacks} 层`, 'debuff');
+        }
         if (effect.doubleAttackChance && Math.random() < effect.doubleAttackChance) {
           context.extraHits = (context.extraHits || 0) + 1;
           context.extraHitMult = effect.doubleAttackMult;
           addLog(`遗物 ${relic.name} 触发双重攻击！`, 'info');
+        }
+        // 攻击吸血
+        if (effect.attackLifesteal) {
+          const healAmt = Math.min(effect.attackLifesteal, gameState.playerMaxHp - gameState.playerHp);
+          if (healAmt > 0) {
+            gameState.playerHp += healAmt;
+            addLog(`遗物 ${relic.name} 攻击吸血回复 ${healAmt} 生命`, 'heal');
+          }
         }
         break;
       case 'onDamage':
@@ -2155,6 +2262,8 @@ function startCombat(node) {
   gameState.battleLog = [];
   gameState.gameOver = false;
   gameState.drawPile = shuffle([...gameState.deck]);
+  // V11 守护者之角重置
+  gameState.guardianHornUsed = false;
   
   // V6 遗物效果: 战斗开始时
   applyRelicEffect('startOfCombat');
@@ -2229,7 +2338,19 @@ function startPlayerTurn() {
   
   // V6 遗物效果: 回合开始时
   applyRelicEffect('startOfTurn');
-  
+
+  // V11 冰霜之心: 10%几率获得1能量
+  if (hasRelic('frostHeart') && Math.random() < 0.1) {
+    gameState.energy += 1;
+    addLog('冰霜之心触发！额外获得1能量', 'buff');
+  }
+
+  // V11 疾风之靴: 每回合额外抽1张牌
+  if (hasRelic('windBoots')) {
+    drawCards(1);
+    addLog('疾风之靴触发！额外抽1张牌', 'buff');
+  }
+
   // V4 诅咒效果: 回合开始时处理
   gameState.curses.forEach(curse => {
     if (curse.effect.curseWeak) {
@@ -2864,6 +2985,27 @@ function dealDamageToPlayer(damage, isEnemyAttack = true) {
   if (damage > 0) {
     gameState.playerHp -= damage;
     addLog(`受到 ${damage} 点伤害`, 'damage');
+  }
+  
+  // 暗影斗篷：致命伤害时25%几率存活1点生命
+  if (gameState.playerHp <= 0) {
+    const shadowCloakRelic = gameState.relics.find(r => r.id === 'shadowCloak');
+    if (shadowCloakRelic && Math.random() < shadowCloakRelic.effect.lethalDamageSurviveChance) {
+      gameState.playerHp = 1;
+      addLog(`遗物 暗影斗篷 救了你！存活1点生命`, 'heal');
+    }
+  }
+  
+  // 凤凰羽毛：首次濒死时回复25%最大生命并获得3能量
+  if (gameState.playerHp <= 0 && !gameState.phoenixFeatherUsed) {
+    const phoenixRelic = gameState.relics.find(r => r.id === 'phoenixFeather');
+    if (phoenixRelic) {
+      const healAmount = Math.floor(gameState.playerMaxHp * phoenixRelic.effect.nearDeathHealPercent);
+      gameState.playerHp = Math.min(gameState.playerMaxHp, healAmount);
+      gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + phoenixRelic.effect.nearDeathEnergyGain);
+      gameState.phoenixFeatherUsed = true;
+      addLog(`遗物 凤凰羽毛 复活！回复 ${healAmount} 生命并获得 ${phoenixRelic.effect.nearDeathEnergyGain} 能量`, 'heal');
+    }
   }
 }
 
