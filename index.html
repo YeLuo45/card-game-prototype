@@ -684,8 +684,9 @@
 </div>
 
 <div id="victory-screen">
-  <h1 id="victory-title">🏆 胜利！</h1>
+  <h1 id="victory-title">🏆 恭喜通关！</h1>
   <p class="stats-text" id="victory-stats"></p>
+  <p class="stats-text">你击败了所有敌人，成为真正的卡牌大师！</p>
   <button id="start-btn-next" class="start-btn">再来一局</button>
 </div>
 
@@ -1217,6 +1218,18 @@ const ENEMIES = {
   ancientDragon:  { id: 'ancientDragon', name: '远古巨龙', hp: 80, isBoss: true, intents: ['attack', 'dragonScale', 'heavy', 'buff'], special: 'dragonScale', dragonScale: 0, maxDragonScale: 25 },
   darkLord:  { id: 'darkLord', name: '黑暗领主', hp: 70, isBoss: true, intents: ['attack', 'summon', 'curse'], special: 'summon' },
   slimeKing: { id: 'slimeKing', name: '史莱姆王', hp: 65, isBoss: true, intents: ['attack', 'defend', 'multihit'], special: '分裂' },
+  // ===== V10 新增敌人 =====
+  ghost:       { id: 'ghost',       name: '幽灵',       hp: 18,  intents: ['attack', 'debuff', 'buff'] },
+  necromancer: { id: 'necromancer', name: '亡灵法师',   hp: 42, isElite: true, intents: ['curse', 'summon', 'attack'], special: 'reanimate' },
+  voidBeast:   { id: 'voidBeast',   name: '虚空野兽',   hp: 48, isElite: true, intents: ['attack', 'voidBlast', 'buff'], special: 'voidBlast' },
+  minotaur:    { id: 'minotaur',    name: '牛头人',     hp: 55, isElite: true, intents: ['heavy', 'attack', 'defend'], special: 'charge' },
+  vampireBat:  { id: 'vampireBat',  name: '吸血蝙蝠',   hp: 25, isElite: true, intents: ['attack', 'drain', 'buff'], special: 'drain' },
+  plagueRat:   { id: 'plagueRat',   name: '瘟疫鼠',     hp: 20,  intents: ['attack', 'debuff', 'attack'] },
+  stoneGolem:  { id: 'stoneGolem',  name: '石头傀儡',   hp: 40,  intents: ['defend', 'defend', 'attack'] },
+  darkKnight:  { id: 'darkKnight',  name: '暗影骑士',   hp: 52, isElite: true, intents: ['attack', 'counter', 'heavy'], special: 'crushingBlow' },
+  // V10 Boss
+  voidLord:    { id: 'voidLord',    name: '虚空领主',   hp: 90, isBoss: true, intents: ['voidBlast', 'voidSiphon', 'summon', 'attack'], special: 'voidPhase', voidPhase: 0, maxVoidPhase: 30 },
+  deckMaster:  { id: 'deckMaster',  name: '牌组之主',   hp: 100, isBoss: true, intents: ['cardTheft', 'deckManipulation', 'attack', 'buff'], special: 'deckManipulation' },
 };
 
 const INTENT_WEIGHTS = {
@@ -1234,6 +1247,17 @@ const INTENT_WEIGHTS = {
   ancientDragon:  { attack: 30, dragonScale: 30, heavy: 25, buff: 15 },
   darkLord:  { attack: 35, summon: 35, curse: 30 },
   slimeKing: { attack: 35, defend: 35, multihit: 30 },
+  // V10 新增敌人意图权重
+  ghost:       { attack: 45, debuff: 30, buff: 25 },
+  necromancer: { curse: 40, summon: 30, attack: 30 },
+  voidBeast:   { attack: 40, voidBlast: 35, buff: 25 },
+  minotaur:    { heavy: 45, attack: 30, defend: 25 },
+  vampireBat:  { attack: 40, drain: 35, buff: 25 },
+  plagueRat:   { attack: 50, debuff: 50 },
+  stoneGolem:  { defend: 50, defend: 30, attack: 20 },
+  darkKnight:  { attack: 40, counter: 30, heavy: 30 },
+  voidLord:    { voidBlast: 30, voidSiphon: 30, summon: 25, attack: 15 },
+  deckMaster:  { cardTheft: 30, deckManipulation: 30, attack: 25, buff: 15 },
 };
 
 // ===== 地图数据 =====
@@ -1285,7 +1309,47 @@ const FLOORS = [
     edges: [
       ['f3r1', 'f3e1'], ['f3e1', 'f3c1'], ['f3c1', 'f3c2'],
       ['f3c2', 'f3s1'], ['f3s1', 'f3c4'], ['f3c4', 'f3b1'],
-      ['f3c2', 'f3c3'], ['f3c3', 'f3b1'], ['f3e1', 'f3c2'],
+      ['f3e1', 'f3c2'], ['f3e1', 'f3c3'],
+    ]
+  },
+  // V10 第4层：深渊
+  {
+    id: 4,
+    name: '深渊',
+    nodes: [
+      { id: 'f4r1', type: 'rest',    name: '休息',    x: 80,  y: 200, enemy: null },
+      { id: 'f4e1', type: 'elite',   name: '精英战',  x: 220, y: 100, enemy: 'necromancer' },
+      { id: 'f4c1', type: 'combat',  name: '战斗',    x: 220, y: 300, enemy: 'ghost' },
+      { id: 'f4c2', type: 'combat',  name: '战斗',    x: 400, y: 200, enemy: 'plagueRat' },
+      { id: 'f4e2', type: 'elite',   name: '精英战',  x: 400, y: 350, enemy: 'voidBeast' },
+      { id: 'f4c3', type: 'combat',  name: '战斗',    x: 550, y: 100, enemy: 'stoneGolem' },
+      { id: 'f4s1', type: 'shop',    name: '商店',    x: 550, y: 300, enemy: null },
+      { id: 'f4b1', type: 'boss',    name: 'Boss',    x: 700, y: 200, enemy: 'voidLord' },
+    ],
+    edges: [
+      ['f4r1', 'f4e1'], ['f4e1', 'f4c1'], ['f4c1', 'f4c2'],
+      ['f4c2', 'f4e2'], ['f4e2', 'f4s1'], ['f4s1', 'f4b1'],
+      ['f4c2', 'f4c3'], ['f4c3', 'f4b1'], ['f4e1', 'f4c2'],
+    ]
+  },
+  // V10 第5层：王座
+  {
+    id: 5,
+    name: '王座',
+    nodes: [
+      { id: 'f5r1', type: 'rest',    name: '休息',    x: 80,  y: 200, enemy: null },
+      { id: 'f5e1', type: 'elite',   name: '精英战',  x: 220, y: 100, enemy: 'darkKnight' },
+      { id: 'f5c1', type: 'combat',  name: '战斗',    x: 220, y: 300, enemy: 'vampireBat' },
+      { id: 'f5e2', type: 'elite',   name: '精英战',  x: 400, y: 200, enemy: 'minotaur' },
+      { id: 'f5c2', type: 'combat',  name: '战斗',    x: 400, y: 350, enemy: 'ghost' },
+      { id: 'f5s1', type: 'shop',    name: '商店',    x: 550, y: 100, enemy: null },
+      { id: 'f5c3', type: 'combat',  name: '战斗',    x: 550, y: 300, enemy: 'plagueRat' },
+      { id: 'f5b1', type: 'boss',    name: '最终Boss', x: 700, y: 200, enemy: 'deckMaster' },
+    ],
+    edges: [
+      ['f5r1', 'f5e1'], ['f5e1', 'f5c1'], ['f5c1', 'f5e2'],
+      ['f5e2', 'f5c2'], ['f5c2', 'f5s1'], ['f5s1', 'f5c3'],
+      ['f5c3', 'f5b1'], ['f5e2', 'f5c3'], ['f5e1', 'f5e2'],
     ]
   }
 ];
@@ -2656,11 +2720,100 @@ function executeEnemyIntent() {
       }
       addLog('史莱姆王分裂成多个发起攻击！', 'damage');
       break;
+    case 'voidBlast':
+      // V10 虚空野兽/虚空领主：虚空冲击
+      intentText = `虚空冲击 ${value}`;
+      dealDamageToPlayer(value, true);
+      // 虚空冲击附加易伤
+      applyDebuffToPlayer('vulnerable', 1, 1);
+      addLog('虚空能量冲击你！', 'damage');
+      if (enemy.id === 'voidLord') {
+        enemy.voidPhase = Math.min((enemy.voidPhase || 0) + 5, enemy.maxVoidPhase);
+        addLog(`虚空领主吸收虚空能量！（${enemy.voidPhase}/${enemy.maxVoidPhase}）`, 'info');
+      }
+      break;
+    case 'voidSiphon':
+      // V10 虚空领主：虚空虹吸
+      intentText = '虚空虹吸';
+      const siphonDmg = 8 + (enemy.voidPhase || 0) * 0.5;
+      dealDamageToPlayer(Math.floor(siphonDmg), true);
+      // 治疗虚空领主
+      gameState.enemyHp = Math.min(gameState.enemyHp + 10, gameState.enemyMaxHp);
+      addLog(`虚空领主吸取你的能量！受到${Math.floor(siphonDmg)}伤害，虚空领主回复10HP`, 'damage');
+      renderEnemy();
+      break;
+    case 'drain':
+      // V10 吸血蝙蝠：吸血攻击
+      intentText = `吸血攻击 ${value}`;
+      dealDamageToPlayer(value, true);
+      gameState.enemyHp = Math.min(gameState.enemyHp + value, gameState.enemyMaxHp);
+      addLog(`吸血蝙蝠吸取了你${value}点生命！`, 'damage');
+      renderEnemy();
+      break;
+    case 'crushingBlow':
+      // V10 暗影骑士：碾压打击
+      intentText = `碾压打击 ${value}`;
+      dealDamageToPlayer(value, true);
+      applyDebuffToPlayer('vulnerable', 1, 2);
+      addLog('暗影骑士发动碾压打击！你被施加易伤！', 'damage');
+      break;
+    case 'cardTheft':
+      // V10 牌组之主：偷牌
+      intentText = '偷牌';
+      if (gameState.hand.length > 0) {
+        const stolenIdx = Math.floor(Math.random() * gameState.hand.length);
+        const stolenCard = gameState.hand.splice(stolenIdx, 1)[0];
+        gameState.discardPile.push(stolenCard);
+        addLog(`牌组之主偷走了你的「${stolenCard.name}」！`, 'damage');
+        renderHand();
+      }
+      // 给予玩家诅咒
+      const stolenCurse = CURSE_CARDS_POOL[Math.floor(Math.random() * CURSE_CARDS_POOL.length)];
+      gameState.curses.push({ ...stolenCurse });
+      addLog(`牌组之主给予你「${stolenCurse.name}」！`, 'debuff');
+      break;
+    case 'deckManipulation':
+      // V10 牌组之主：牌组操控
+      intentText = '牌组操控';
+      addLog('牌组之主翻洗了你的牌组！', 'info');
+      // 随机丢弃2张手牌
+      let discarded = 0;
+      while (gameState.hand.length > 0 && discarded < 2) {
+        const idx = Math.floor(Math.random() * gameState.hand.length);
+        const card = gameState.hand.splice(idx, 1)[0];
+        gameState.discardPile.push(card);
+        discarded++;
+      }
+      if (discarded > 0) addLog(`有${discarded}张手牌被随机弃置！`, 'info');
+      // 抽2张牌
+      for (let i = 0; i < 2; i++) {
+        drawCard();
+      }
+      addLog('牌组之主让你抽取了2张牌...', 'info');
+      break;
+    case 'charge':
+      // V10 牛头人：冲锋
+      intentText = `冲锋 ${value}`;
+      dealDamageToPlayer(value, true);
+      // 下回合必定反击
+      gameState.enemyThorns = Math.floor(value * 0.5);
+      addLog(`牛头人冲锋攻击并准备反击！`, 'damage');
+      break;
   }
-  
+
   if (enemy.isBoss && gameState.turn % 3 === 0) {
     gameState.enemyArmor += 8;
-    addLog('巨石像获得 8 护甲', 'block');
+    addLog('Boss获得 8 护甲', 'block');
+  }
+  
+  // V10 虚空领主：虚空相位满时全体攻击
+  if (enemy.id === 'voidLord' && enemy.voidPhase >= enemy.maxVoidPhase) {
+    const voidBlastDmg = 25;
+    dealDamageToPlayer(voidBlastDmg, true);
+    addLog(`虚空领主释放虚空爆发！全屏冲击造成${voidBlastDmg}伤害！`, 'damage');
+    enemy.voidPhase = 0;
+    addLog('虚空领主虚空能量归零！', 'info');
+    renderEnemy();
   }
   
   // V7 召唤小怪结算：回合结束时召唤物造成伤害
@@ -2731,8 +2884,8 @@ function checkEnemyDeath() {
       // V6 遗物效果: 战斗胜利
       applyRelicEffect('onVictory');
       
-      // 检查是否通关
-      if (gameState.currentFloor >= 3) {
+      // 检查是否通关（击败第5层Boss）
+      if (gameState.currentFloor >= 5) {
         // 胜利！
         setTimeout(() => showVictory(), 500);
         return true;
