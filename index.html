@@ -469,6 +469,7 @@
         <span id="enemy-intent">意图: 攻击</span>
       </div>
       <div id="enemy-debuffs"></div>
+      <div id="enemy-status"></div>
     </div>
 
     <!-- 玩家区域 -->
@@ -540,6 +541,9 @@ const CARDS = {
   // ===== V4 状态牌 =====
   paralysis:        { id: 'paralysis',         name: '麻痹',     cost: 0, type: 'status', effect: { vulnerable: 2 }, description: '易伤2回合', duration: 2 },
   confusion:        { id: 'confusion',         name: '混乱',     cost: 0, type: 'status', effect: { skipTurn: 1 }, description: '敌人下回合跳过', duration: 1 },
+  // ===== V4 中毒流血状态牌 =====
+  status_poison:    { id: 'status_poison',      name: '中毒',     cost: 0, type: 'status', effect: { poison: 3 }, description: '每回合3点伤害，持续3回合', duration: 3, stackable: true },
+  status_bleed:     { id: 'status_bleed',       name: '流血',     cost: 0, type: 'status', effect: { bleed: 2 }, description: '回合开始2点伤害，持续2回合', duration: 2, stackable: true },
 };
 
 const NEW_CARDS_POOL = [
@@ -687,6 +691,8 @@ let gameState = {
   dodgeNext: 0, // 闪避标记
   nextCritMult: 1, // 下次攻击暴击倍率
   skipEnemyNextTurn: false, // 敌人跳过下回合
+  poisonStacks: 0, // 中毒层数
+  bleedStacks: 0, // 流血层数
   // V3 地图相关
   currentFloor: 1,
   currentNode: null,
@@ -1116,6 +1122,22 @@ function startPlayerTurn() {
     }
   });
   
+  // V4 中毒结算: 每回合受到 poisonStacks * 3 点伤害
+  if (gameState.poisonStacks > 0) {
+    const poisonDmg = gameState.poisonStacks * 3;
+    gameState.playerHp -= poisonDmg;
+    addLog(`中毒发作！受到 ${poisonDmg} 点伤害（${gameState.poisonStacks}层）`, 'debuff');
+    gameState.poisonStacks = Math.max(0, gameState.poisonStacks - 1);
+  }
+  
+  // V4 流血结算: 回合开始受到 bleedStacks * 2 点伤害
+  if (gameState.bleedStacks > 0) {
+    const bleedDmg = gameState.bleedStacks * 2;
+    gameState.playerHp -= bleedDmg;
+    addLog(`流血发作！受到 ${bleedDmg} 点伤害（${gameState.bleedStacks}层）`, 'debuff');
+    gameState.bleedStacks = Math.max(0, gameState.bleedStacks - 1);
+  }
+  
   if (gameState.powerCardsPlayedThisCombat['counterStance']) {
     gameState.thornsActive = true;
   }
@@ -1293,6 +1315,14 @@ function playCard(card, index) {
       gameState.skipEnemyNextTurn = true;
       addLog(`${card.name}: 敌人下回合跳过`, 'debuff');
     }
+    if (effect.poison) {
+      gameState.poisonStacks += effect.poison;
+      addLog(`${card.name}: 敌人中毒 ${effect.poison} 层（每回合3点）`, 'debuff');
+    }
+    if (effect.bleed) {
+      gameState.bleedStacks += effect.bleed;
+      addLog(`${card.name}: 敌人流血 ${effect.bleed} 层（回合开始2点）`, 'debuff');
+    }
   }
 
   renderUI();
@@ -1420,6 +1450,31 @@ function processDebuffs(target) {
 }
 
 function executeEnemyIntent() {
+  // V4 中毒/流血结算: 敌人回合开始时受到毒伤
+  if (gameState.poisonStacks > 0) {
+    const poisonDmg = gameState.poisonStacks * 3;
+    gameState.enemyHp -= poisonDmg;
+    addLog(`敌人中毒发作！受到 ${poisonDmg} 点伤害（${gameState.poisonStacks}层）`, 'debuff');
+    gameState.poisonStacks = Math.max(0, gameState.poisonStacks - 1);
+    if (gameState.enemyHp <= 0) {
+      addLog('敌人被毒死！', 'info');
+      checkEnemyDeath();
+      return;
+    }
+  }
+  
+  if (gameState.bleedStacks > 0) {
+    const bleedDmg = gameState.bleedStacks * 2;
+    gameState.enemyHp -= bleedDmg;
+    addLog(`敌人流血发作！受到 ${bleedDmg} 点伤害（${gameState.bleedStacks}层）`, 'debuff');
+    gameState.bleedStacks = Math.max(0, gameState.bleedStacks - 1);
+    if (gameState.enemyHp <= 0) {
+      addLog('敌人流血过多而死！', 'info');
+      checkEnemyDeath();
+      return;
+    }
+  }
+  
   // V4 混乱状态: 敌人跳过回合
   if (gameState.skipEnemyNextTurn) {
     gameState.skipEnemyNextTurn = false;
@@ -1699,6 +1754,21 @@ function renderEnemy() {
     span.title = `${debuff.name}: ${debuff.stacks}层，持续${debuff.duration}回合`;
     debuffContainer.appendChild(span);
   });
+  
+  // V4 中毒/流血层数显示
+  let extraStatus = '';
+  if (gameState.poisonStacks > 0) {
+    extraStatus += ` <span style="color:#27ae60">☠️中毒×${gameState.poisonStacks}</span>`;
+  }
+  if (gameState.bleedStacks > 0) {
+    extraStatus += ` <span style="color:#c0392b">🩸流血×${gameState.bleedStacks}</span>`;
+  }
+  if (extraStatus) {
+    const statusEl = document.getElementById('enemy-status');
+    if (statusEl) {
+      statusEl.innerHTML = extraStatus;
+    }
+  }
 }
 
 function renderPlayerDebuffs() {
@@ -1771,6 +1841,8 @@ function initGame() {
     dodgeNext: 0,
     nextCritMult: 1,
     skipEnemyNextTurn: false,
+    poisonStacks: 0,
+    bleedStacks: 0,
     currentFloor: 1,
     currentNode: null,
     unlockedNodes: [],
