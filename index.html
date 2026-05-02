@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DBG卡牌游戏 V14</title>
+  <title>DBG卡牌游戏 V15</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -1170,6 +1170,30 @@ const CARDS = {
   // ===== V4 中毒流血状态牌 =====
   status_poison:    { id: 'status_poison',      name: '中毒',     cost: 0, type: 'status', effect: { poison: 3 }, description: '每回合3点伤害，持续3回合', duration: 3, stackable: true },
   status_bleed:     { id: 'status_bleed',       name: '流血',     cost: 0, type: 'status', effect: { bleed: 2 }, description: '回合开始2点伤害，持续2回合', duration: 2, stackable: true },
+  // ===== V15 新增稀有/精英卡牌 =====
+  // 稀有攻击牌
+  executionerBlade: { id: 'executionerBlade', name: '处决之刃', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 12, executeThreshold: 0.3 }, description: '造成12点伤害，若敌人≤30%血量则斩杀' },
+  piercingStrike:   { id: 'piercingStrike',   name: '穿刺打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 8, pierce: true }, description: '造成8点伤害，无视敌人护甲' },
+  flameSlash:       { id: 'flameSlash',       name: '烈焰斩',   cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 7, burnStacks: 3, burnDuration: 2 }, description: '造成7点伤害，附加3层灼烧2回合' },
+  bloodSword:       { id: 'bloodSword',       name: '血刃',     cost: 3, type: 'attack', rarity: 'rare', effect: { damage: 10, lifesteal: 0.6 }, description: '造成10点伤害，60%伤害转化为生命' },
+  voidStrike:       { id: 'voidStrike',       name: '虚空打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 9, poisonStacks: 2, poisonDuration: 3 }, description: '造成9点伤害，附加2层中毒3回合' },
+  doubleEdge:       { id: 'doubleEdge',       name: '双刃斩',   cost: 1, type: 'attack', rarity: 'rare', effect: { damage: 5, hits: 2, selfDamage: 3 }, description: '造成5点伤害2次，自伤3点' },
+  savageBlow:       { id: 'savageBlow',       name: '野蛮打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 14, vulnerableStacks: 2 }, description: '造成14点伤害，敌人获得2层易伤' },
+  deathMark:        { id: 'deathMark',        name: '死亡标记', cost: 3, type: 'attack', rarity: 'rare', effect: { damage: 16, markKill: true }, description: '造成16点伤害，若击杀则回复生命' },
+  // 稀有技能牌
+  ironGuard:        { id: 'ironGuard',        name: '铁卫',     cost: 1, type: 'skill', rarity: 'rare', effect: { block: 8, thorns: 3 }, description: '获得8点护甲和3点荆棘' },
+  bloodPact:        { id: 'bloodPact',        name: '血契',     cost: 1, type: 'skill', rarity: 'rare', effect: { sacrificeHp: 6, draw: 3 }, description: '失去6点生命，抽3张牌' },
+  battleCry:        { id: 'battleCry',        name: '战嚎',     cost: 1, type: 'skill', rarity: 'rare', effect: { draw: 2, nextAttackMult: 1.4 }, description: '抽2张牌，下次攻击+40%' },
+  shieldWall:       { id: 'shieldWall',       name: '盾墙',     cost: 2, type: 'skill', rarity: 'rare', effect: { block: 18, nextTurnBlockBonus: 8 }, description: '获得18点护甲，下回合额外获得8点' },
+  healingWave:      { id: 'healingWave',      name: '治疗波',   cost: 2, type: 'skill', rarity: 'rare', effect: { heal: 12, removeDebuff: true }, description: '治疗12点，移除所有debuff' },
+  comboFinisher:    { id: 'comboFinisher',    name: '连击终结', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 10, comboBonus: true }, description: '若本回合已攻击，则造成20点伤害' },
+  emergencyShield:  { id: 'emergencyShield',  name: '紧急护盾', cost: 1, type: 'skill', rarity: 'rare', effect: { blockScaling: true }, description: '获得等同于缺失生命的护甲' },
+  // 稀有能力牌
+  blazingAura:      { id: 'blazingAura',      name: '炽热光环', cost: 1, type: 'power', rarity: 'rare', effect: { auraBurn: 2, auraBurnDuration: 2 }, description: '每回合开始时，敌人受2层灼烧2回合' },
+  bloodRage:        { id: 'bloodRage',        name: '血之狂怒', cost: 2, type: 'power', rarity: 'rare', effect: { lifestealAura: 0.2 }, description: '造成伤害时，20%伤害转化为生命' },
+  armoredSoul:      { id: 'armoredSoul',      name: '护甲灵魂', cost: 1, type: 'power', rarity: 'rare', effect: { thornsAura: 4, blockAura: 3 }, description: '回合结束获得3护甲和4点荆棘' },
+  quickening:       { id: 'quickening',       name: '加速',     cost: 1, type: 'power', rarity: 'rare', effect: { startOfTurnDraw: 1 }, description: '每回合开始时抽1张牌' },
+  vampiricAura:     { id: 'vampiricAura',     name: '吸血光环', cost: 2, type: 'power', rarity: 'rare', effect: { vampiricAura: 0.3 }, description: '攻击时30%几率偷取敌人生命' },
 };
 
 const NEW_CARDS_POOL = [
@@ -1211,6 +1235,18 @@ const SHOP_CARD_POOL = [
   { ...CARDS.demonContract, price: 40 },
   { ...CARDS.lightningReflex, price: 25 },
   { ...CARDS.vampiricTouch, price: 30 },
+  // V15 新增稀有卡牌
+  { ...CARDS.executionerBlade, price: 28 },
+  { ...CARDS.piercingStrike, price: 24 },
+  { ...CARDS.flameSlash, price: 22 },
+  { ...CARDS.bloodSword, price: 32 },
+  { ...CARDS.voidStrike, price: 25 },
+  { ...CARDS.savageBlow, price: 26 },
+  { ...CARDS.ironGuard, price: 20 },
+  { ...CARDS.bloodPact, price: 18 },
+  { ...CARDS.blazingAura, price: 30 },
+  { ...CARDS.bloodRage, price: 35 },
+  { ...CARDS.quickening, price: 28 },
 ];
 
 // 遗物商店价格表
@@ -1267,6 +1303,27 @@ const REWARD_CARD_POOL = [
   CARD_REWARDS.demonContract,
   CARD_REWARDS.lightningReflex,
   CARD_REWARDS.vampiricTouch,
+  // V15 新增稀有/精英卡牌
+  CARDS.executionerBlade,
+  CARDS.piercingStrike,
+  CARDS.flameSlash,
+  CARDS.bloodSword,
+  CARDS.voidStrike,
+  CARDS.doubleEdge,
+  CARDS.savageBlow,
+  CARDS.deathMark,
+  CARDS.ironGuard,
+  CARDS.bloodPact,
+  CARDS.battleCry,
+  CARDS.shieldWall,
+  CARDS.healingWave,
+  CARDS.comboFinisher,
+  CARDS.emergencyShield,
+  CARDS.blazingAura,
+  CARDS.bloodRage,
+  CARDS.armoredSoul,
+  CARDS.quickening,
+  CARDS.vampiricAura,
 ];
 
 // ===== V5 奖励池数据 =====
@@ -2291,6 +2348,12 @@ let gameState = {
   // V11 遗物特殊状态
   guardianHornUsed: false, // 守护者之角本场战斗是否已使用
   phoenixFeatherUsed: false, // 凤凰羽毛本局游戏是否已使用
+  // V15 新增状态
+  burnStacks: 0, // 灼烧层数
+  comboActive: false, // 连击状态（本回合是否已攻击）
+  nextTurnBlockBonus: 0, // 下回合额外护甲
+  auraBurnActive: false, // 光环灼烧是否激活
+  lifestealAuraActive: false, // 吸血光环是否激活
   // V3 地图相关
   currentFloor: 1,
   currentNode: null,
@@ -3352,6 +3415,13 @@ function startPlayerTurn() {
   gameState.energy = gameState.maxEnergy;
   gameState.nextAttackMult = 1;
   
+  // V15 盾墙: 下回合额外护甲在回合开始时应用
+  if (gameState.nextTurnBlockBonus > 0) {
+    gameState.playerShield += gameState.nextTurnBlockBonus;
+    addLog(`盾墙效果触发！额外获得 ${gameState.nextTurnBlockBonus} 点护甲`, 'block');
+    gameState.nextTurnBlockBonus = 0;
+  }
+  
   // V6 遗物效果: 回合开始时
   applyRelicEffect('startOfTurn');
 
@@ -3365,6 +3435,18 @@ function startPlayerTurn() {
   if (hasRelic('windBoots')) {
     drawCards(1);
     addLog('疾风之靴触发！额外抽1张牌', 'buff');
+  }
+
+  // V15 加速: 每回合开始抽1张牌
+  if (gameState.quickeningActive) {
+    drawCards(1);
+    addLog('加速触发！额外抽1张牌', 'buff');
+  }
+
+  // V15 炽热光环: 每回合开始对敌人造成灼烧
+  if (gameState.auraBurnActive) {
+    applyDebuffToEnemy('burn', 2, 2);
+    addLog('炽热光环触发！敌人获得灼烧', 'debuff');
   }
 
   // V4 诅咒效果: 回合开始时处理
@@ -3440,6 +3522,13 @@ function playCard(card, index) {
     let damage = effect.damage || 0;
     let hits = effect.hits || 1;
     
+    // V15 combo bonus check (before damage modifications)
+    if (effect.comboBonus && gameState.comboActive) {
+      damage = 20; // 20 damage if combo is active
+      addLog('连击终结！造成20点伤害！', 'damage');
+    }
+    gameState.comboActive = true; // Mark that an attack was made this turn
+    
     damage = Math.floor(damage * gameState.nextAttackMult);
     // V4 暴击
     damage = Math.floor(damage * gameState.nextCritMult);
@@ -3457,7 +3546,14 @@ function playCard(card, index) {
     damage += attackContext.bonusDamage || 0;
     
     for (let i = 0; i < hits; i++) {
-      dealDamageToEnemy(damage);
+      // V15 pierce: ignore armor
+      if (effect.pierce) {
+        const overkill = gameState.enemyHp - damage;
+        gameState.enemyHp = Math.max(0, gameState.enemyHp - damage);
+        addLog(`穿刺打击！无视护甲造成 ${damage} 点伤害`, 'damage');
+      } else {
+        dealDamageToEnemy(damage);
+      }
     }
     
     // V6 遗物效果: 额外攻击
@@ -3469,9 +3565,10 @@ function playCard(card, index) {
       }
     }
     
-    // V4 吸血效果
-    if (effect.lifesteal && damage > 0) {
-      const healAmount = Math.floor(damage * effect.lifesteal);
+    // V4 吸血效果 & V15 lifestealAura
+    if ((effect.lifesteal || gameState.lifestealAuraActive) && damage > 0) {
+      const lifestealRate = effect.lifesteal || 0;
+      const healAmount = Math.floor(damage * (lifestealRate || 0.2));
       const actualHeal = Math.min(healAmount, gameState.playerMaxHp - gameState.playerHp);
       gameState.playerHp += actualHeal;
       if (actualHeal > 0) addLog(`吸血回复 ${actualHeal} 点生命`, 'heal');
@@ -3482,9 +3579,49 @@ function playCard(card, index) {
       addLog('敌人陷入易伤！', 'debuff');
     }
     
+    // V15 execute with threshold percentage
+    if (effect.executeThreshold) {
+      const threshold = gameState.enemyMaxHp * effect.executeThreshold;
+      if (gameState.enemyHp <= threshold) {
+        gameState.enemyHp = 0;
+        addLog('处决之刃触发斩杀！', 'damage');
+      }
+    }
+    // Legacy execute
     if (effect.execute && gameState.enemyHp <= 20) {
       gameState.enemyHp = 0;
       addLog('斩首！敌人被斩杀！', 'damage');
+    }
+    
+    // V15 burnStacks on attack
+    if (effect.burnStacks && effect.burnDuration) {
+      applyDebuffToEnemy('burn', effect.burnStacks, effect.burnDuration);
+      addLog(`敌人被灼烧 ${effect.burnStacks} 层！`, 'debuff');
+    }
+    
+    // V15 poisonStacks on attack
+    if (effect.poisonStacks && effect.poisonDuration) {
+      gameState.poisonStacks += effect.poisonStacks;
+      addLog(`敌人中毒 ${effect.poisonStacks} 层！`, 'debuff');
+    }
+    
+    // V15 vulnerableStacks
+    if (effect.vulnerableStacks) {
+      applyDebuffToEnemy('vulnerable', effect.vulnerableStacks, 2);
+      addLog(`敌人获得 ${effect.vulnerableStacks} 层易伤！`, 'debuff');
+    }
+    
+    // V15 deathMark kill heal
+    if (effect.markKill && gameState.enemyHp <= 0) {
+      const healAmount = Math.min(10, gameState.playerMaxHp - gameState.playerHp);
+      gameState.playerHp += healAmount;
+      addLog(`死亡标记击杀，回复 ${healAmount} 生命！`, 'heal');
+    }
+    
+    // V15 selfDamage (double edge)
+    if (effect.selfDamage) {
+      dealDamageToPlayer(effect.selfDamage, false);
+      addLog(`双刃斩自伤 ${effect.selfDamage} 点！`, 'damage');
     }
     
     if (gameState.burnChance > 0 && Math.random() < gameState.burnChance) {
@@ -3501,12 +3638,45 @@ function playCard(card, index) {
       showDamageNumber(effect.block, 'shield', 'player-area');
       addLog(`获得 ${effect.block} 点护甲`, 'block');
     }
+    // V15 thorns on skill (ironGuard)
+    if (effect.thorns) {
+      gameState.thorns += effect.thorns;
+      addLog(`获得 ${effect.thorns} 点荆棘`, 'info');
+    }
+    // V15 nextTurnBlockBonus (shieldWall)
+    if (effect.nextTurnBlockBonus) {
+      gameState.nextTurnBlockBonus += effect.nextTurnBlockBonus;
+      addLog(`下回合额外获得 ${effect.nextTurnBlockBonus} 点护甲`, 'info');
+    }
+    // V15 blockScaling (emergencyShield)
+    if (effect.blockScaling) {
+      const missingHp = gameState.playerMaxHp - gameState.playerHp;
+      if (missingHp > 0) {
+        gameState.playerShield += missingHp;
+        animateShieldGain();
+        showDamageNumber(missingHp, 'shield', 'player-area');
+        addLog(`紧急护盾获得 ${missingHp} 点护甲`, 'block');
+      }
+    }
     if (effect.heal) {
       const healAmount = Math.min(effect.heal, gameState.playerMaxHp - gameState.playerHp);
       gameState.playerHp += healAmount;
       showDamageNumber(healAmount, 'heal', 'player-area');
       audioManager.play('heal');
       addLog(`治疗 ${healAmount} 点生命`, 'heal');
+      // V15 removeDebuff (healingWave)
+      if (effect.removeDebuff) {
+        gameState.playerDebuffs = [];
+        addLog('移除所有debuff！', 'info');
+      }
+    }
+    // V15 sacrificeHp (bloodPact)
+    if (effect.sacrificeHp && effect.draw) {
+      const sacrifice = Math.min(effect.sacrificeHp, gameState.playerHp - 1);
+      gameState.playerHp -= sacrifice;
+      addLog(`血契: 失去 ${sacrifice} 点生命`, 'damage');
+      drawCards(effect.draw);
+      addLog(`抽 ${effect.draw} 张牌`, 'info');
     }
     if (effect.draw) {
       drawCards(effect.draw);
@@ -3514,7 +3684,7 @@ function playCard(card, index) {
     }
     if (effect.nextAttackMult) {
       gameState.nextAttackMult = effect.nextAttackMult;
-      addLog('下次攻击伤害+50%', 'info');
+      addLog(`下次攻击伤害+${Math.round((effect.nextAttackMult - 1) * 100)}%`, 'info');
     }
   }
 
@@ -3535,6 +3705,34 @@ function playCard(card, index) {
       gameState.burnDamage = effect.burnDamage;
       gameState.burnDuration = effect.burnDuration;
       addLog('攻击附带灼热', 'info');
+    }
+    // V15 blazingAura: burn enemy at turn start
+    if (effect.auraBurn && effect.auraBurnDuration) {
+      gameState.auraBurnActive = true;
+      applyDebuffToEnemy('burn', effect.auraBurn, effect.auraBurnDuration);
+      addLog(`炽热光环: 敌人获得 ${effect.auraBurn} 层灼烧`, 'info');
+    }
+    // V15 bloodRage: lifesteal aura
+    if (effect.lifestealAura) {
+      gameState.lifestealAuraActive = true;
+      addLog(`血之狂怒: 造成伤害时20%转化为生命`, 'info');
+    }
+    // V15 armoredSoul: thorns and block at turn end
+    if (effect.thornsAura || effect.blockAura) {
+      gameState.thornsAuraActive = true;
+      gameState.thornsAuraValue = effect.thornsAura || 0;
+      gameState.blockAuraValue = effect.blockAura || 0;
+      addLog(`护甲灵魂: 回合结束获得 ${effect.blockAura} 护甲和 ${effect.thornsAura} 荆棘`, 'info');
+    }
+    // V15 quickening: draw at turn start
+    if (effect.startOfTurnDraw) {
+      gameState.quickeningActive = true;
+      addLog('加速: 每回合开始抽1张牌', 'info');
+    }
+    // V15 vampiricAura
+    if (effect.vampiricAura) {
+      gameState.lifestealAuraActive = true;
+      addLog(`吸血光环: 攻击时30%偷取生命`, 'info');
     }
   }
 
@@ -3741,6 +3939,20 @@ function endTurn() {
   gameState.enemyArmor = gameState.enemy.armor || 0;
   // V7 重置敌人特殊状态
   gameState.enemyThorns = 0;
+  // V15 重置连击状态
+  gameState.comboActive = false;
+  
+  // V15 护甲灵魂: 回合结束获得护甲和荆棘
+  if (gameState.powerCardsPlayedThisCombat['armoredSoul']) {
+    if (gameState.blockAuraValue > 0) {
+      gameState.playerShield += gameState.blockAuraValue;
+      addLog(`护甲灵魂触发！获得 ${gameState.blockAuraValue} 点护甲`, 'block');
+    }
+    if (gameState.thornsAuraValue > 0) {
+      gameState.thorns += gameState.thornsAuraValue;
+      addLog(`护甲灵魂触发！获得 ${gameState.thornsAuraValue} 点荆棘`, 'info');
+    }
+  }
   
   startPlayerTurn();
 }
@@ -4633,6 +4845,19 @@ function initGame() {
     // V7 敌人特殊机制
     enemyThorns: 0,
     summonedMinions: 0,
+    // V11 遗物特殊状态
+    guardianHornUsed: false,
+    phoenixFeatherUsed: false,
+    // V15 新增状态
+    burnStacks: 0,
+    comboActive: false,
+    nextTurnBlockBonus: 0,
+    auraBurnActive: false,
+    lifestealAuraActive: false,
+    thornsAuraActive: false,
+    thornsAuraValue: 0,
+    blockAuraValue: 0,
+    quickeningActive: false,
     currentFloor: 1,
     currentNode: null,
     unlockedNodes: [],
