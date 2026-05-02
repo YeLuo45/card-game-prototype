@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DBG卡牌游戏 V12</title>
+  <title>DBG卡牌游戏 V13</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -1012,6 +1012,55 @@ const NEW_CARDS_POOL = [
   CARDS.meditation,
   CARDS.deadlyPrecision,
   CARDS.vampiricTouch,
+];
+
+// ===== V13 牌组构建核心 =====
+// 扩展卡牌奖励池 - 包含更多卡牌类型
+const CARD_REWARDS = {
+  // 基础攻击牌
+  strike: { id: 'strike', name: '打击', cost: 1, type: 'attack', effect: { damage: 6 }, description: '造成6点伤害' },
+  consecutiveStrike: { id: 'consecutiveStrike', name: '连续打击', cost: 1, type: 'attack', effect: { damage: 4, hits: 2 }, description: '造成4点伤害2次' },
+  painfulStrike: { id: 'painfulStrike', name: '痛击', cost: 2, type: 'attack', effect: { damage: 10, vulnerableChance: 0.4 }, description: '造成10点伤害，40%几率易伤' },
+  behead: { id: 'behead', name: '斩首', cost: 3, type: 'attack', effect: { damage: 15, execute: 0.2 }, description: '造成15点伤害，若敌人≤20血则斩杀' },
+  burningFist: { id: 'burningFist', name: '燃烧之拳', cost: 2, type: 'attack', effect: { damage: 8, burnChance: 0.3 }, description: '造成8点伤害，30%灼烧' },
+  vampiricStrike: { id: 'vampiricStrike', name: '吸血打击', cost: 2, type: 'attack', effect: { damage: 7, lifesteal: 3 }, description: '造成7点伤害，偷取3生命' },
+  // 基础技能牌
+  defend: { id: 'defend', name: '防御', cost: 1, type: 'skill', effect: { block: 5 }, description: '获得5点护甲' },
+  harden: { id: 'harden', name: '硬撑', cost: 1, type: 'skill', effect: { block: 8, draw: 1 }, description: '获得8点护甲，抽1张牌' },
+  ironWall: { id: 'ironWall', name: '铁壁', cost: 1, type: 'skill', effect: { block: 12 }, description: '获得12点护甲' },
+  firstAid: { id: 'firstAid', name: '急救', cost: 2, type: 'skill', effect: { block: 8, heal: 6 }, description: '获得8点护甲，治疗6点' },
+  warCry: { id: 'warCry', name: '战吼', cost: 1, type: 'skill', effect: { nextAttackMult: 1.5 }, description: '下次攻击伤害+50%' },
+  // 能力牌
+  counterStance: { id: 'counterStance', name: '反击姿态', cost: 1, type: 'power', effect: { thorns: 5 }, description: '回合结束时受到攻击时，反伤5点' },
+  spikeShell: { id: 'spikeShell', name: '尖刺外壳', cost: 1, type: 'power', effect: { thorns: 3, block: 5 }, description: '获得5点护甲，回合结束反伤3点' },
+  meditation: { id: 'meditation', name: '冥想', cost: 2, type: 'power', effect: { energyGain: 2, draw: 2 }, description: '获得2能量，抽2张牌' },
+  deadlyPrecision: { id: 'deadlyPrecision', name: '致命精准', cost: 2, type: 'power', effect: { nextAttackCrit: 2.0 }, description: '下次攻击必定暴击，伤害翻倍' },
+  // 特殊牌
+  demonContract: { id: 'demonContract', name: '恶魔契约', cost: 0, type: 'special', effect: { maxHpLoss: 5, energyGain: 3 }, description: '失去5点最大生命，获得3能量' },
+  lightningReflex: { id: 'lightningReflex', name: '闪电反应', cost: 1, type: 'special', effect: { dodgeChance: 0.5, draw: 1 }, description: '50%几率躲避攻击，抽1张牌' },
+  vampiricTouch: { id: 'vampiricTouch', name: '吸血之触', cost: 2, type: 'special', effect: { damage: 6, lifesteal: 4 }, description: '造成6点伤害，偷取4生命' },
+};
+
+// 奖励卡牌池（从CARD_REWARDS中选取可奖励的卡牌）
+const REWARD_CARD_POOL = [
+  CARD_REWARDS.strike,
+  CARD_REWARDS.consecutiveStrike,
+  CARD_REWARDS.painfulStrike,
+  CARD_REWARDS.behead,
+  CARD_REWARDS.burningFist,
+  CARD_REWARDS.vampiricStrike,
+  CARD_REWARDS.defend,
+  CARD_REWARDS.harden,
+  CARD_REWARDS.ironWall,
+  CARD_REWARDS.firstAid,
+  CARD_REWARDS.warCry,
+  CARD_REWARDS.counterStance,
+  CARD_REWARDS.spikeShell,
+  CARD_REWARDS.meditation,
+  CARD_REWARDS.deadlyPrecision,
+  CARD_REWARDS.demonContract,
+  CARD_REWARDS.lightningReflex,
+  CARD_REWARDS.vampiricTouch,
 ];
 
 // ===== V5 奖励池数据 =====
@@ -3860,11 +3909,78 @@ function selectRelicReward(relic) {
   returnToMap();
 }
 
-// V6: 跳过奖励
+// V13: 显示卡牌奖励界面（战斗后选择卡牌奖励）
+function showCardReward(rewards) {
+  const cardsContainer = document.getElementById('reward-cards');
+  const relicsContainer = document.getElementById('reward-relics');
+  
+  // 渲染卡牌奖励
+  cardsContainer.innerHTML = '';
+  rewards.forEach((card) => {
+    const div = document.createElement('div');
+    div.className = `reward-card ${card.type}`;
+    div.innerHTML = `
+      <div class="card-cost">${card.cost}</div>
+      <div class="card-name">${card.name}</div>
+      <div class="card-type">${getCardTypeName(card.type)}</div>
+      <div class="card-effect">${card.description}</div>
+    `;
+    div.onclick = () => selectRewardCard(card);
+    cardsContainer.appendChild(div);
+  });
+  
+  // 隐藏遗物奖励区域
+  relicsContainer.innerHTML = '';
+  
+  // 绑定跳过奖励按钮
+  const skipBtn = document.getElementById('skip-reward-btn');
+  if (skipBtn) {
+    skipBtn.onclick = () => skipReward();
+  }
+  
+  // 隐藏奖励类型切换按钮，卡牌奖励界面只显示卡牌
+  const rewardTypes = document.getElementById('reward-types');
+  if (rewardTypes) {
+    rewardTypes.style.display = 'none';
+  }
+  
+  // 更新标题
+  const title = document.getElementById('overlay-title');
+  if (title) {
+    title.textContent = '🎉 战斗胜利！选择卡牌奖励';
+  }
+  const subtitle = document.getElementById('overlay-subtitle');
+  if (subtitle) {
+    subtitle.textContent = '选择一张卡牌加入你的牌组';
+  }
+  
+  document.getElementById('overlay').classList.add('show');
+}
+
+// V13: 选择奖励卡牌
+function selectRewardCard(card) {
+  gameState.deck.push({ ...card });
+  // V9 更新最大卡牌数
+  if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
+    gameState.achievementStats.maxCardsOwned = gameState.deck.length;
+  }
+  document.getElementById('overlay').classList.remove('show');
+  addLog(`获得新卡: ${card.name}`, 'info');
+  // V9 检查成就
+  checkAchievements();
+  returnToMap();
+}
+
+// V13: 跳过卡牌奖励
 function skipReward() {
   document.getElementById('overlay').classList.remove('show');
-  addLog('跳过了奖励', 'info');
+  addLog('跳过了卡牌奖励', 'info');
   returnToMap();
+}
+
+// V6: 跳过奖励 (兼容性别名)
+function skipCardReward() {
+  skipReward();
 }
 
 // V6: 生成奖励（卡牌+遗物）
@@ -3872,19 +3988,10 @@ function showRewardSelection() {
   const node = getNodeById(gameState.currentNode);
   const isElite = node && (node.type === 'elite' || node.type === 'boss');
   
-  // 生成卡牌奖励
-  const cardPool = isElite ? REWARD_POOLS.rare : REWARD_POOLS.common;
-  const shuffledCards = shuffle([...cardPool]);
+  // V13: 使用扩展的REWARD_CARD_POOL生成卡牌奖励
+  const shuffledCards = shuffle([...REWARD_CARD_POOL]);
   const cardCount = isElite ? 3 : 2;
   const cardRewards = shuffledCards.slice(0, Math.min(cardCount, shuffledCards.length));
-  
-  // 补充卡牌奖励
-  while (cardRewards.length < 2 && REWARD_POOLS.all.length > cardRewards.length) {
-    const remaining = shuffle(REWARD_POOLS.all).filter(c => !cardRewards.includes(c));
-    if (remaining.length > 0) {
-      cardRewards.push(remaining[0]);
-    } else break;
-  }
   
   // 生成遗物奖励（精英/Boss战斗有更高几率获得遗物，且稀有/传说遗物概率更高）
   const shuffledRelics = shuffle([...AVAILABLE_RELICS]).filter(r => !gameState.acquiredRelicIds.includes(r.id));
@@ -3902,7 +4009,8 @@ function showRewardSelection() {
     }
   }
   
-  showRewardScreen(cardRewards, relicRewards);
+  // V13: 显示卡牌奖励选择界面
+  showCardReward(cardRewards);
 }
 
 function showGameOver() {
