@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DBG卡牌游戏 V3</title>
+  <title>DBG卡牌游戏 V4</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -194,6 +194,9 @@
     .card.attack { background: linear-gradient(145deg, #8b0000, #cd5c5c); border: 2px solid #ff6347; }
     .card.skill { background: linear-gradient(145deg, #00008b, #4169e1); border: 2px solid #6495ed; }
     .card.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 2px solid #da70d6; }
+    .card.curse { background: linear-gradient(145deg, #2d1b4e, #4a3f6b); border: 2px solid #8b008b; }
+    .card.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 2px solid #00ff7f; }
+    .card.status { background: linear-gradient(145deg, #4e4e4e, #6b6b6b); border: 2px solid #a0a0a0; }
     .card-cost {
       position: absolute;
       top: -8px;
@@ -288,6 +291,9 @@
     .reward-card.attack { background: linear-gradient(145deg, #8b0000, #cd5c5c); border: 3px solid #ff6347; }
     .reward-card.skill { background: linear-gradient(145deg, #00008b, #4169e1); border: 3px solid #6495ed; }
     .reward-card.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 3px solid #da70d6; }
+    .reward-card.curse { background: linear-gradient(145deg, #2d1b4e, #4a3f6b); border: 3px solid #8b008b; }
+    .reward-card.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 3px solid #00ff7f; }
+    .reward-card.status { background: linear-gradient(145deg, #4e4e4e, #6b6b6b); border: 3px solid #a0a0a0; }
 
     /* 商店遮罩 */
     #shop-overlay {
@@ -322,6 +328,9 @@
     .shop-card.attack { background: linear-gradient(145deg, #8b0000, #cd5c5c); border: 3px solid #ff6347; }
     .shop-card.skill { background: linear-gradient(145deg, #00008b, #4169e1); border: 3px solid #6495ed; }
     .shop-card.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 3px solid #da70d6; }
+    .shop-card.curse { background: linear-gradient(145deg, #2d1b4e, #4a3f6b); border: 3px solid #8b008b; }
+    .shop-card.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 3px solid #00ff7f; }
+    .shop-card.status { background: linear-gradient(145deg, #4e4e4e, #6b6b6b); border: 3px solid #a0a0a0; }
     .shop-card .card-cost { top: -10px; left: -10px; }
     .shop-card .price-tag {
       position: absolute;
@@ -403,10 +412,10 @@
 <body>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V3</h1>
+  <h1>🃏 DBG卡牌游戏 V4</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
-  <p>通关3层楼，击败最终Boss！</p>
+  <p>诅咒牌与特殊牌系统 - 通关3层楼，击败最终Boss！</p>
   <button id="start-btn">开始游戏</button>
 </div>
 
@@ -423,7 +432,7 @@
 </div>
 
 <div id="game-container" style="display:none">
-  <h1>⚔️ DBG卡牌游戏 V3</h1>
+  <h1>⚔️ DBG卡牌游戏 V4 - 诅咒与特殊牌系统</h1>
 
   <!-- 地图界面 -->
   <div id="map-container">
@@ -517,6 +526,20 @@ const CARDS = {
   burningFist:      { id: 'burningFist',       name: '灼热拳头', cost: 2, type: 'power',  effect: { burnChance: 0.25, burnDamage: 2, burnDuration: 2 }, description: '攻击时25%几率灼热2点，持续2回合' },
   vulnerable:       { id: 'vulnerable',        name: '易伤',     cost: 0, type: 'status', effect: { vulnerable: 1 }, description: '受到伤害+50%，持续2回合', duration: 2 },
   weak:             { id: 'weak',              name: '虚弱',     cost: 0, type: 'status', effect: { weak: 1 }, description: '攻击力-50%，持续2回合', duration: 2 },
+  // ===== V4 诅咒牌 =====
+  painCurse:        { id: 'painCurse',         name: '痛苦诅咒', cost: 0, type: 'curse',  effect: { curseMaxHp: -3 }, description: '诅咒: 最大生命-3' },
+  weakCurse:        { id: 'weakCurse',         name: '虚弱诅咒', cost: 0, type: 'curse',  effect: { curseWeak: 2 }, description: '诅咒: 回合开始时攻击力-50%持续2回合' },
+  darkCurse:        { id: 'darkCurse',         name: '黑暗诅咒', cost: 0, type: 'curse',  effect: { curseEnergy: -1 }, description: '诅咒: 回合开始时能量-1' },
+  deathCurse:       { id: 'deathCurse',         name: '死亡诅咒', cost: 0, type: 'curse',  effect: { curseDamage: 5 }, description: '诅咒: 受到5点伤害' },
+  // ===== V4 特殊牌 =====
+  demonContract:    { id: 'demonContract',     name: '恶魔契约', cost: 0, type: 'special', effect: { sacrificeHp: 10, gainEnergy: 3 }, description: '牺牲10HP获得3能量' },
+  lightningReflex:  { id: 'lightningReflex',   name: '闪电动作', cost: 1, type: 'special', effect: { dodge: 1, draw: 1 }, description: '闪避下次攻击,抽1张' },
+  meditation:      { id: 'meditation',        name: '冥想',     cost: 0, type: 'special', effect: { gainEnergy: 2, selfWeak: 2 }, description: '获得2能量,获得虚弱2回合' },
+  deadlyPrecision:  { id: 'deadlyPrecision',   name: '致命精准', cost: 2, type: 'special', effect: { nextCrit: 2 }, description: '下次攻击伤害x2' },
+  vampiricTouch:    { id: 'vampiricTouch',      name: '吸血',     cost: 2, type: 'special', effect: { lifesteal: 0.5, damage: 8 }, description: '造成8点伤害,回复50%伤害的生命' },
+  // ===== V4 状态牌 =====
+  paralysis:        { id: 'paralysis',         name: '麻痹',     cost: 0, type: 'status', effect: { vulnerable: 2 }, description: '易伤2回合', duration: 2 },
+  confusion:        { id: 'confusion',         name: '混乱',     cost: 0, type: 'status', effect: { skipTurn: 1 }, description: '敌人下回合跳过', duration: 1 },
 };
 
 const NEW_CARDS_POOL = [
@@ -529,6 +552,19 @@ const NEW_CARDS_POOL = [
   CARDS.counterStance,
   CARDS.spikeShell,
   CARDS.burningFist,
+  // V4 特殊牌
+  CARDS.demonContract,
+  CARDS.lightningReflex,
+  CARDS.meditation,
+  CARDS.deadlyPrecision,
+  CARDS.vampiricTouch,
+];
+
+const CURSE_CARDS_POOL = [
+  CARDS.painCurse,
+  CARDS.weakCurse,
+  CARDS.darkCurse,
+  CARDS.deathCurse,
 ];
 
 // ===== 敌人数据 =====
@@ -538,6 +574,7 @@ const ENEMIES = {
   skeleton: { id: 'skeleton', name: '骷髅战士',  hp: 35,  intents: ['defend', 'defend', 'attack'] },
   fireElf:  { id: 'fireElf',  name: '火焰精灵',  hp: 25,  intents: ['attack', 'debuff', 'buff'] },
   golem:    { id: 'golem',    name: '巨石像',    hp: 50, armor: 10, isBoss: true, intents: ['attack', 'defend', 'heavy'] },
+  darkMage: { id: 'darkMage', name: '黑暗法师', hp: 30, intents: ['attack', 'curse', 'buff'] },
 };
 
 const INTENT_WEIGHTS = {
@@ -546,6 +583,7 @@ const INTENT_WEIGHTS = {
   skeleton: { attack: 30, defend: 50, buff: 20 },
   fireElf:  { attack: 40, debuff: 40, buff: 20 },
   golem:    { attack: 40, defend: 30, heavy: 30 },
+  darkMage: { attack: 40, curse: 40, buff: 20 },
 };
 
 // ===== 地图数据 =====
@@ -644,6 +682,11 @@ let gameState = {
   gameOver: false,
   battleLog: [],
   powerCardsPlayedThisCombat: {},
+  // V4 诅咒与特殊状态
+  curses: [], // 玩家拥有的诅咒
+  dodgeNext: 0, // 闪避标记
+  nextCritMult: 1, // 下次攻击暴击倍率
+  skipEnemyNextTurn: false, // 敌人跳过下回合
   // V3 地图相关
   currentFloor: 1,
   currentNode: null,
@@ -657,6 +700,19 @@ let gameState = {
 };
 
 // ===== 工具函数 =====
+// V4 卡牌类型名称
+function getCardTypeName(type) {
+  const types = {
+    'attack': '攻击',
+    'skill': '技能',
+    'power': '能力',
+    'curse': '诅咒',
+    'special': '特殊',
+    'status': '状态'
+  };
+  return types[type] || type;
+}
+
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -919,7 +975,7 @@ function handleShop() {
     div.innerHTML = `
       <div class="card-cost">${card.cost}</div>
       <div class="card-name">${card.name}</div>
-      <div class="card-type">${card.type === 'attack' ? '攻击' : card.type === 'skill' ? '技能' : '能力'}</div>
+      <div class="card-type">${getCardTypeName(card.type)}</div>
       <div class="card-effect">${card.description}</div>
       <div class="price-tag">💰 ${price}</div>
     `;
@@ -982,7 +1038,7 @@ function startCombat(node) {
     enemyType = 'golem';
   } else {
     // 普通战斗敌人
-    const combatEnemies = { 1: ['slime', 'goblin'], 2: ['goblin', 'skeleton'], 3: ['skeleton', 'fireElf'] };
+    const combatEnemies = { 1: ['slime', 'goblin'], 2: ['goblin', 'skeleton'], 3: ['skeleton', 'fireElf', 'darkMage'] };
     const pool = combatEnemies[gameState.currentFloor];
     enemyType = pool[Math.floor(Math.random() * pool.length)];
   }
@@ -1049,6 +1105,17 @@ function startPlayerTurn() {
   gameState.energy = gameState.maxEnergy;
   gameState.nextAttackMult = 1;
   
+  // V4 诅咒效果: 回合开始时处理
+  gameState.curses.forEach(curse => {
+    if (curse.effect.curseWeak) {
+      applyDebuffToPlayer('weak', curse.effect.curseWeak, 2);
+    }
+    if (curse.effect.curseEnergy) {
+      gameState.energy += curse.effect.curseEnergy;
+      if (gameState.energy < 0) gameState.energy = 0;
+    }
+  });
+  
   if (gameState.powerCardsPlayedThisCombat['counterStance']) {
     gameState.thornsActive = true;
   }
@@ -1090,6 +1157,9 @@ function playCard(card, index) {
     let hits = effect.hits || 1;
     
     damage = Math.floor(damage * gameState.nextAttackMult);
+    // V4 暴击
+    damage = Math.floor(damage * gameState.nextCritMult);
+    gameState.nextCritMult = 1;
     gameState.nextAttackMult = 1;
     
     const hasWeak = gameState.playerDebuffs.find(d => d.type === 'weak');
@@ -1100,6 +1170,14 @@ function playCard(card, index) {
     
     for (let i = 0; i < hits; i++) {
       dealDamageToEnemy(damage);
+    }
+    
+    // V4 吸血效果
+    if (effect.lifesteal && damage > 0) {
+      const healAmount = Math.floor(damage * effect.lifesteal);
+      const actualHeal = Math.min(healAmount, gameState.playerMaxHp - gameState.playerHp);
+      gameState.playerHp += actualHeal;
+      if (actualHeal > 0) addLog(`吸血回复 ${actualHeal} 点生命`, 'heal');
     }
     
     if (effect.vulnerableChance && Math.random() < effect.vulnerableChance) {
@@ -1154,6 +1232,66 @@ function playCard(card, index) {
       gameState.burnDamage = effect.burnDamage;
       gameState.burnDuration = effect.burnDuration;
       addLog('攻击附带灼热', 'info');
+    }
+  }
+
+  // V4 特殊牌处理
+  if (card.type === 'special') {
+    if (effect.sacrificeHp && effect.gainEnergy) {
+      const sacrifice = effect.sacrificeHp;
+      const actualSacrifice = Math.min(sacrifice, gameState.playerHp - 1);
+      gameState.playerHp -= actualSacrifice;
+      gameState.energy += effect.gainEnergy;
+      addLog(`恶魔契约: 牺牲 ${actualSacrifice}HP，获得 ${effect.gainEnergy} 能量`, 'info');
+    }
+    if (effect.dodge) {
+      gameState.dodgeNext = effect.dodge;
+      addLog(`获得 ${effect.dodge} 次闪避`, 'info');
+    }
+    if (effect.nextCrit) {
+      gameState.nextCritMult = effect.nextCrit;
+      addLog(`下次攻击伤害x${effect.nextCrit}`, 'info');
+    }
+  }
+
+  // V4 诅咒牌处理
+  if (card.type === 'curse') {
+    if (effect.curseMaxHp) {
+      gameState.playerMaxHp += effect.curseMaxHp;
+      if (gameState.playerHp > gameState.playerMaxHp) {
+        gameState.playerHp = gameState.playerMaxHp;
+      }
+      addLog(`${card.name}: 最大生命${effect.curseMaxHp > 0 ? '+' : ''}${effect.curseMaxHp}`, effect.curseMaxHp > 0 ? 'heal' : 'debuff');
+    }
+    if (effect.curseWeak) {
+      applyDebuffToPlayer('weak', effect.curseWeak, 2);
+      addLog(`${card.name}: 获得虚弱 ${effect.curseWeak}层`, 'debuff');
+    }
+    if (effect.curseEnergy) {
+      gameState.energy += effect.curseEnergy;
+      addLog(`${card.name}: 能量${effect.curseEnergy > 0 ? '+' : ''}${effect.curseEnergy}`, 'info');
+    }
+    if (effect.curseDamage) {
+      dealDamageToPlayer(effect.curseDamage, false);
+      addLog(`${card.name}: 受到 ${effect.curseDamage} 点伤害`, 'damage');
+    }
+    // 诅咒加入玩家诅咒列表
+    gameState.curses.push({ ...card });
+  }
+
+  // V4 状态牌处理
+  if (card.type === 'status') {
+    if (effect.vulnerable) {
+      applyDebuffToEnemy('vulnerable', 1, effect.vulnerable);
+      addLog(`${card.name}: 敌人易伤 ${effect.vulnerable} 回合`, 'debuff');
+    }
+    if (effect.weak) {
+      applyDebuffToEnemy('weak', 1, effect.weak);
+      addLog(`${card.name}: 敌人虚弱 ${effect.weak} 回合`, 'debuff');
+    }
+    if (effect.skipTurn) {
+      gameState.skipEnemyNextTurn = true;
+      addLog(`${card.name}: 敌人下回合跳过`, 'debuff');
     }
   }
 
@@ -1282,6 +1420,14 @@ function processDebuffs(target) {
 }
 
 function executeEnemyIntent() {
+  // V4 混乱状态: 敌人跳过回合
+  if (gameState.skipEnemyNextTurn) {
+    gameState.skipEnemyNextTurn = false;
+    addLog('敌人被混乱，跳过本回合', 'debuff');
+    renderEnemy();
+    return;
+  }
+  
   const intent = gameState.enemyIntent;
   const value = gameState.enemyIntentValue;
   const enemy = gameState.enemy;
@@ -1311,6 +1457,12 @@ function executeEnemyIntent() {
       applyDebuffToPlayer('burn', 2, 2);
       addLog('火焰精灵灼热你！', 'debuff');
       break;
+    case 'curse':
+      intentText = '诅咒';
+      const curseCard = CURSE_CARDS_POOL[Math.floor(Math.random() * CURSE_CARDS_POOL.length)];
+      gameState.curses.push({ ...curseCard });
+      addLog(`黑暗法师施加了${curseCard.name}！`, 'debuff');
+      break;
     case 'heavy':
       intentText = `重压 ${value}`;
       dealDamageToPlayer(value, true);
@@ -1328,6 +1480,13 @@ function executeEnemyIntent() {
 }
 
 function dealDamageToPlayer(damage, isEnemyAttack = true) {
+  // V4 闪避判定
+  if (isEnemyAttack && gameState.dodgeNext > 0) {
+    gameState.dodgeNext--;
+    addLog('闪避成功！', 'info');
+    return;
+  }
+  
   const hasWeak = gameState.playerDebuffs.find(d => d.type === 'weak');
   if (hasWeak && isEnemyAttack) {
     damage = Math.floor(damage * 0.5);
@@ -1434,7 +1593,7 @@ function showRewardSelection() {
     div.innerHTML = `
       <div class="card-cost">${card.cost}</div>
       <div class="card-name">${card.name}</div>
-      <div class="card-type">${card.type === 'attack' ? '攻击' : card.type === 'skill' ? '技能' : '能力'}</div>
+      <div class="card-type">${getCardTypeName(card.type)}</div>
       <div class="card-effect">${card.description}</div>
     `;
     div.onclick = () => selectReward(card);
@@ -1497,7 +1656,7 @@ function renderHand() {
     div.innerHTML = `
       <div class="card-cost">${card.cost}</div>
       <div class="card-name">${card.name}</div>
-      <div class="card-type">${card.type === 'attack' ? '攻击' : card.type === 'skill' ? '技能' : '能力'}</div>
+      <div class="card-type">${getCardTypeName(card.type)}</div>
       <div class="card-effect">${card.description}</div>
     `;
     
@@ -1607,6 +1766,11 @@ function initGame() {
     gameOver: false,
     battleLog: [],
     powerCardsPlayedThisCombat: {},
+    // V4 诅咒与特殊状态
+    curses: [],
+    dodgeNext: 0,
+    nextCritMult: 1,
+    skipEnemyNextTurn: false,
     currentFloor: 1,
     currentNode: null,
     unlockedNodes: [],
