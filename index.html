@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DBG卡牌游戏 V5</title>
+  <title>DBG卡牌游戏 V6</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -356,6 +356,80 @@
     }
     #shop-leave:hover { background: #666; }
 
+    /* 遗物/神器系统 V6 */
+    #relics-panel {
+      background: rgba(0,0,0,0.5);
+      border-radius: 10px;
+      padding: 10px 15px;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    #relics-panel h4 {
+      color: #ffd700;
+      font-size: 14px;
+      margin: 0;
+    }
+    .relic-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.2s;
+      border: 2px solid #ffd700;
+    }
+    .relic-icon:hover { transform: scale(1.15); }
+    .relic-icon.starting { background: linear-gradient(145deg, #b8860b, #daa520); }
+    .relic-icon.common { background: linear-gradient(145deg, #1e90ff, #4169e1); }
+    .relic-icon.rare { background: linear-gradient(145deg, #9b59b6, #8e44ad); }
+    .relic-icon.legendary { background: linear-gradient(145deg, #e74c3c, #c0392b); }
+    .relic-tooltip {
+      position: absolute;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.95);
+      border: 1px solid #ffd700;
+      border-radius: 8px;
+      padding: 10px;
+      width: 200px;
+      font-size: 12px;
+      color: #fff;
+      z-index: 200;
+      display: none;
+      text-align: center;
+    }
+    .relic-icon:hover .relic-tooltip { display: block; }
+    .relic-tooltip .relic-name { color: #ffd700; font-weight: bold; margin-bottom: 5px; }
+    .relic-tooltip .relic-desc { color: #ccc; font-size: 11px; }
+
+    /* 奖励界面增加遗物选项 */
+    #reward-types {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .reward-type-btn {
+      padding: 8px 20px;
+      border: 2px solid #555;
+      border-radius: 20px;
+      background: #333;
+      color: #aaa;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .reward-type-btn:hover { border-color: #ffd700; color: #ffd700; }
+    .reward-type-btn.active { border-color: #ffd700; background: rgba(255,215,0,0.2); color: #ffd700; }
+    #skip-reward-btn { margin-top: 15px; }
+
     /* 开始界面 */
     #start-screen {
       display: flex;
@@ -412,10 +486,10 @@
 <body>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V5</h1>
+  <h1>🃏 DBG卡牌游戏 V6</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
-  <p>V5 战斗奖励卡牌选择系统 - 可跳过奖励</p>
+  <p>V6 遗物系统 - 战斗获得神器加成</p>
   <button id="start-btn">开始游戏</button>
 </div>
 
@@ -432,7 +506,7 @@
 </div>
 
 <div id="game-container" style="display:none">
-  <h1>⚔️ DBG卡牌游戏 V5 - 战斗奖励选择系统</h1>
+  <h1>⚔️ DBG卡牌游戏 V6 - 遗物系统</h1>
 
   <!-- 地图界面 -->
   <div id="map-container">
@@ -440,6 +514,7 @@
       <span id="floor-display">🏠 第1层</span>
       <span class="hp">❤️ <span id="map-hp">80</span>/<span id="map-max-hp">80</span></span>
       <span class="energy">💰 <span id="map-gold">0</span></span>
+      <span id="relics-header" style="color:#ffd700;font-size:14px;">🎁 遗物: <span id="relics-count">0</span></span>
     </div>
     <canvas id="map-canvas" width="800" height="400"></canvas>
     <div id="node-preview">
@@ -479,6 +554,10 @@
         <span class="shield">🛡️ 护甲: <span id="player-shield">0</span></span>
       </div>
       <div id="player-debuffs"></div>
+      <div id="relics-panel" style="display:none">
+        <h4>🎁 遗物:</h4>
+        <div id="relics-container"></div>
+      </div>
       <div id="hand"></div>
     </div>
 
@@ -498,10 +577,15 @@
 
 <!-- 奖励选牌遮罩 -->
 <div id="overlay">
-  <div id="overlay-title">🎉 战斗胜利！选择一张卡牌作为奖励</div>
-  <div id="overlay-subtitle" style="color: #aaa; margin-bottom: 15px; font-size: 14px;">选择卡牌加入你的牌组，或跳过奖励</div>
+  <div id="overlay-title">🎉 战斗胜利！选择奖励</div>
+  <div id="overlay-subtitle" style="color: #aaa; margin-bottom: 15px; font-size: 14px;">选择卡牌或遗物加入你的收藏</div>
+  <div id="reward-types">
+    <button class="reward-type-btn active" data-type="card">🃏 卡牌</button>
+    <button class="reward-type-btn" data-type="relic">🎁 遗物</button>
+  </div>
   <div id="reward-cards"></div>
-  <button id="skip-reward-btn" style="margin-top: 20px; padding: 10px 30px; font-size: 16px; background: #555; border: none; border-radius: 20px; color: #fff; cursor: pointer;">跳过奖励</button>
+  <div id="reward-relics" style="display:none"></div>
+  <button id="skip-reward-btn" style="margin-top: 15px; padding: 10px 30px; font-size: 16px; background: #555; border: none; border-radius: 20px; color: #fff; cursor: pointer;">跳过奖励</button>
 </div>
 
 <!-- 商店遮罩 -->
@@ -601,6 +685,141 @@ const CURSE_CARDS_POOL = [
   CARDS.weakCurse,
   CARDS.darkCurse,
   CARDS.deathCurse,
+];
+
+// ===== V6 遗物/神器数据 =====
+const RELICS = {
+  // 初始遗物
+  brokenChain: {
+    id: 'brokenChain',
+    name: '断裂的锁链',
+    icon: '⛓',
+    rarity: 'starting',
+    description: '战斗开始时获得1点能量',
+    effect: { startOfCombatEnergy: 1 },
+  },
+  // 普通遗物
+  bloodChalice: {
+    id: 'bloodChalice',
+    name: '鲜血圣杯',
+    icon: '🏆',
+    rarity: 'common',
+    description: '每回合回复2点生命',
+    effect: { perTurnHeal: 2 },
+  },
+  leatherArmor: {
+    id: 'leatherArmor',
+    name: '皮甲',
+    icon: '🛡',
+    rarity: 'common',
+    description: '战斗开始时获得5点护甲',
+    effect: { startOfCombatBlock: 5 },
+  },
+  attackCharm: {
+    id: 'attackCharm',
+    name: '攻击护符',
+    icon: '⚔️',
+    rarity: 'common',
+    description: '攻击伤害+3',
+    effect: { damageBonus: 3 },
+  },
+  energyCrystal: {
+    id: 'energyCrystal',
+    name: '能量水晶',
+    icon: '💎',
+    rarity: 'common',
+    description: '最大能量+1',
+    effect: { maxEnergyBonus: 1 },
+  },
+  poisonDagger: {
+    id: 'poisonDagger',
+    name: '淬毒匕首',
+    icon: '🗡',
+    rarity: 'common',
+    description: '攻击时20%几率使敌人中毒3层',
+    effect: { attackPoisonChance: 0.2, attackPoisonStacks: 3 },
+  },
+  // 稀有遗物
+  ancientCoin: {
+    id: 'ancientCoin',
+    name: '古老硬币',
+    icon: '🪙',
+    rarity: 'rare',
+    description: '战斗胜利后获得5金币',
+    effect: { goldPerVictory: 5 },
+  },
+  vampireFang: {
+    id: 'vampireFang',
+    name: '吸血鬼牙',
+    icon: '🧛',
+    rarity: 'rare',
+    description: '造成伤害时15%几率回复1点生命',
+    effect: { damageLifestealChance: 0.15, damageLifestealAmount: 1 },
+  },
+  blazingEmber: {
+    id: 'blazingEmber',
+    name: '炽热余烬',
+    icon: '🔥',
+    rarity: 'rare',
+    description: '攻击时15%几率造成灼烧2层',
+    effect: { attackBurnChance: 0.15, attackBurnStacks: 2 },
+  },
+  thunderstone: {
+    id: 'thunderstone',
+    name: '雷神之石',
+    icon: '⚡',
+    rarity: 'rare',
+    description: '攻击伤害+6',
+    effect: { damageBonus: 6 },
+  },
+  mirrorShield: {
+    id: 'mirrorShield',
+    name: '镜之盾',
+    icon: '🔮',
+    rarity: 'rare',
+    description: '战斗开始时获得10点护甲',
+    effect: { startOfCombatBlock: 10 },
+  },
+  // 传说遗物
+  dragonHeart: {
+    id: 'dragonHeart',
+    name: '龙之心',
+    icon: '🐉',
+    rarity: 'legendary',
+    description: '攻击伤害+10，每回合回复5点生命',
+    effect: { damageBonus: 10, perTurnHeal: 5 },
+  },
+  voidStone: {
+    id: 'voidStone',
+    name: '虚空之石',
+    icon: '🌑',
+    rarity: 'legendary',
+    description: '最大生命+20，攻击伤害+5',
+    effect: { maxHpBonus: 20, damageBonus: 5 },
+  },
+  twinClaws: {
+    id: 'twinClaws',
+    name: '双子之爪',
+    icon: '🦷',
+    rarity: 'legendary',
+    description: '攻击时30%几率攻击两次（各50%伤害）',
+    effect: { doubleAttackChance: 0.3, doubleAttackMult: 0.5 },
+  },
+};
+
+// 遗物池（按稀有度）
+const RELIC_POOLS = {
+  starting: Object.values(RELICS).filter(r => r.rarity === 'starting'),
+  common: Object.values(RELICS).filter(r => r.rarity === 'common'),
+  rare: Object.values(RELICS).filter(r => r.rarity === 'rare'),
+  legendary: Object.values(RELICS).filter(r => r.rarity === 'legendary'),
+};
+
+// 所有可获得的非初始遗物
+const AVAILABLE_RELICS = [
+  ...RELIC_POOLS.common,
+  ...RELIC_POOLS.rare,
+  ...RELIC_POOLS.legendary,
 ];
 
 // ===== 敌人数据 =====
@@ -735,7 +954,120 @@ let gameState = {
   // 统计
   totalBattlesWon: 0,
   totalGoldEarned: 0,
+  // V6 遗物系统
+  relics: [], // 玩家拥有的遗物
+  acquiredRelicIds: [], // 已获得的遗物ID（防止重复）
 };
+
+// ===== V6 遗物效果应用 =====
+function applyRelicEffect(trigger, context = {}) {
+  gameState.relics.forEach(relic => {
+    const effect = relic.effect;
+    switch (trigger) {
+      case 'startOfCombat':
+        if (effect.startOfCombatEnergy) {
+          gameState.energy += effect.startOfCombatEnergy;
+          addLog(`遗物 ${relic.name} 提供 ${effect.startOfCombatEnergy} 能量`, 'info');
+        }
+        if (effect.startOfCombatBlock) {
+          gameState.playerShield += effect.startOfCombatBlock;
+          addLog(`遗物 ${relic.name} 提供 ${effect.startOfCombatBlock} 护甲`, 'block');
+        }
+        if (effect.maxEnergyBonus) {
+          gameState.maxEnergy += effect.maxEnergyBonus;
+          gameState.energy += effect.maxEnergyBonus;
+          addLog(`遗物 ${relic.name} 最大能量+${effect.maxEnergyBonus}`, 'info');
+        }
+        break;
+      case 'startOfTurn':
+        if (effect.perTurnHeal) {
+          const healAmount = Math.min(effect.perTurnHeal, gameState.playerMaxHp - gameState.playerHp);
+          if (healAmount > 0) {
+            gameState.playerHp += healAmount;
+            addLog(`遗物 ${relic.name} 回复 ${healAmount} 生命`, 'heal');
+          }
+        }
+        break;
+      case 'onAttack':
+        if (effect.damageBonus) {
+          context.bonusDamage = (context.bonusDamage || 0) + effect.damageBonus;
+        }
+        if (effect.attackPoisonChance && Math.random() < effect.attackPoisonChance) {
+          applyDebuffToEnemy('poison', effect.attackPoisonStacks, 3);
+          addLog(`遗物 ${relic.name} 使敌人中毒 ${effect.attackPoisonStacks} 层`, 'debuff');
+        }
+        if (effect.attackBurnChance && Math.random() < effect.attackBurnChance) {
+          applyDebuffToEnemy('burn', effect.attackBurnStacks, 2);
+          addLog(`遗物 ${relic.name} 使敌人灼烧 ${effect.attackBurnStacks} 层`, 'debuff');
+        }
+        if (effect.doubleAttackChance && Math.random() < effect.doubleAttackChance) {
+          context.extraHits = (context.extraHits || 0) + 1;
+          context.extraHitMult = effect.doubleAttackMult;
+          addLog(`遗物 ${relic.name} 触发双重攻击！`, 'info');
+        }
+        break;
+      case 'onDamage':
+        if (effect.damageLifestealChance && Math.random() < effect.damageLifestealChance) {
+          const healAmt = Math.min(effect.damageLifestealAmount, gameState.playerMaxHp - gameState.playerHp);
+          if (healAmt > 0) {
+            gameState.playerHp += healAmt;
+            addLog(`遗物 ${relic.name} 吸血回复 ${healAmt} 生命`, 'heal');
+          }
+        }
+        break;
+      case 'onVictory':
+        if (effect.goldPerVictory) {
+          gameState.gold += effect.goldPerVictory;
+          gameState.totalGoldEarned += effect.goldPerVictory;
+          addLog(`遗物 ${relic.name} 战斗胜利获得 ${effect.goldPerVictory} 金币`, 'info');
+        }
+        break;
+    }
+  });
+  return context;
+}
+
+function grantStartingRelic() {
+  const startingRelic = RELIC_POOLS.starting[0]; // 断裂的锁链
+  if (startingRelic && !gameState.acquiredRelicIds.includes(startingRelic.id)) {
+    gameState.relics.push({ ...startingRelic });
+    gameState.acquiredRelicIds.push(startingRelic.id);
+    // 初始遗物效果：最大能量+1
+    if (startingRelic.effect.maxEnergyBonus) {
+      gameState.maxEnergy += startingRelic.effect.maxEnergyBonus;
+    }
+    addLog(`获得初始遗物: ${startingRelic.name}`, 'info');
+  }
+}
+
+function renderRelicsPanel() {
+  const panel = document.getElementById('relics-panel');
+  const container = document.getElementById('relics-container');
+  const countSpan = document.getElementById('relics-count');
+  
+  if (gameState.relics.length === 0) {
+    panel.style.display = 'none';
+    return;
+  }
+  
+  panel.style.display = 'flex';
+  if (countSpan) countSpan.textContent = gameState.relics.length;
+  
+  container.innerHTML = '';
+  gameState.relics.forEach(relic => {
+    const div = document.createElement('div');
+    div.className = `relic-icon ${relic.rarity}`;
+    div.innerHTML = `
+      ${relic.icon}
+      <div class="relic-tooltip">
+        <div class="relic-name">${relic.name}</div>
+        <div class="relic-desc">${relic.description}</div>
+      </div>
+    `;
+    div.title = `${relic.name}: ${relic.description}`;
+    container.appendChild(div);
+  });
+}
 
 // ===== 工具函数 =====
 // V4 卡牌类型名称
@@ -909,6 +1241,8 @@ function renderMap() {
   document.getElementById('map-hp').textContent = gameState.playerHp;
   document.getElementById('map-max-hp').textContent = gameState.playerMaxHp;
   document.getElementById('map-gold').textContent = gameState.gold;
+  document.getElementById('relics-count').textContent = gameState.relics.length;
+  renderRelicsPanel();
 }
 
 function handleMapClick(e) {
@@ -1102,8 +1436,10 @@ function startCombat(node) {
   gameState.battleLog = [];
   gameState.gameOver = false;
   gameState.drawPile = shuffle([...gameState.deck]);
-  gameState.discardPile = [];
-
+  
+  // V6 遗物效果: 战斗开始时
+  applyRelicEffect('startOfCombat');
+  
   addLog(`遭遇 ${enemy.name}！`, 'info');
   rollEnemyIntent();
   renderEnemy();
@@ -1144,6 +1480,9 @@ function rollEnemyIntent() {
 function startPlayerTurn() {
   gameState.energy = gameState.maxEnergy;
   gameState.nextAttackMult = 1;
+  
+  // V6 遗物效果: 回合开始时
+  applyRelicEffect('startOfTurn');
   
   // V4 诅咒效果: 回合开始时处理
   gameState.curses.forEach(curse => {
@@ -1224,8 +1563,21 @@ function playCard(card, index) {
       addLog('虚弱状态，伤害-50%', 'debuff');
     }
     
+    // V6 遗物效果: 攻击前
+    const attackContext = applyRelicEffect('onAttack', { damage });
+    damage += attackContext.bonusDamage || 0;
+    
     for (let i = 0; i < hits; i++) {
       dealDamageToEnemy(damage);
+    }
+    
+    // V6 遗物效果: 额外攻击
+    if (attackContext.extraHits) {
+      const extraDamage = Math.floor(damage * attackContext.extraHitMult);
+      for (let i = 0; i < attackContext.extraHits; i++) {
+        dealDamageToEnemy(extraDamage);
+        addLog(`遗物触发额外攻击！造成 ${extraDamage} 点伤害`, 'damage');
+      }
     }
     
     // V4 吸血效果
@@ -1381,6 +1733,8 @@ function dealDamageToEnemy(damage) {
   if (actualDamage > 0) {
     gameState.enemyHp -= actualDamage;
     addLog(`造成 ${actualDamage} 点伤害`, 'damage');
+    // V6 遗物效果: 造成伤害时
+    applyRelicEffect('onDamage', { damage: actualDamage });
   }
 }
 
@@ -1620,6 +1974,8 @@ function checkEnemyDeath() {
       addLog('🏆 击败Boss！', 'info');
       completeNode(gameState.currentNode);
       gameState.totalBattlesWon++;
+      // V6 遗物效果: 战斗胜利
+      applyRelicEffect('onVictory');
       
       // 检查是否通关
       if (gameState.currentFloor >= 3) {
@@ -1667,6 +2023,8 @@ function checkEnemyDeath() {
     addLog(`${gameState.enemy.name} 被击败！`, 'info');
     completeNode(gameState.currentNode);
     gameState.totalBattlesWon++;
+    // V6 遗物效果: 战斗胜利
+    applyRelicEffect('onVictory');
     
     // 精英战斗奖励金币
     if (isElite) {
@@ -1696,18 +2054,20 @@ function checkPlayerDeath() {
   return false;
 }
 
-// ===== V5 战斗奖励卡牌选择系统 =====
-// V5: 增强的奖励选择界面，使用新的奖励池系统
+// ===== V6 战斗奖励系统（卡牌+遗物）=====
 
-function showRewardScreen(rewards) {
-  const container = document.getElementById('reward-cards');
-  container.innerHTML = '';
+// V6: 当前选择的奖励类型
+let currentRewardType = 'card';
+
+function showRewardScreen(rewards, relics) {
+  const cardsContainer = document.getElementById('reward-cards');
+  const relicsContainer = document.getElementById('reward-relics');
   
-  // 渲染奖励卡牌
-  rewards.forEach((card, index) => {
+  // 渲染卡牌奖励
+  cardsContainer.innerHTML = '';
+  rewards.forEach((card) => {
     const div = document.createElement('div');
     div.className = `reward-card ${card.type}`;
-    div.dataset.index = index;
     div.innerHTML = `
       <div class="card-cost">${card.cost}</div>
       <div class="card-name">${card.name}</div>
@@ -1715,17 +2075,59 @@ function showRewardScreen(rewards) {
       <div class="card-effect">${card.description}</div>
     `;
     div.onclick = () => selectReward(card);
-    container.appendChild(div);
+    cardsContainer.appendChild(div);
+  });
+  
+  // 渲染遗物奖励
+  relicsContainer.innerHTML = '';
+  relics.forEach((relic) => {
+    const div = document.createElement('div');
+    div.className = `reward-card ${relic.rarity}`;
+    div.style.borderColor = relic.rarity === 'legendary' ? '#e74c3c' : relic.rarity === 'rare' ? '#9b59b6' : '#1e90ff';
+    div.innerHTML = `
+      <div style="font-size:40px;margin-bottom:10px;">${relic.icon}</div>
+      <div class="card-name">${relic.name}</div>
+      <div class="card-type">${relic.rarity === 'legendary' ? '传说' : relic.rarity === 'rare' ? '稀有' : '普通'}</div>
+      <div class="card-effect">${relic.description}</div>
+    `;
+    div.onclick = () => selectRelicReward(relic);
+    relicsContainer.appendChild(div);
   });
   
   // 绑定跳过奖励按钮
   const skipBtn = document.getElementById('skip-reward-btn');
   skipBtn.onclick = () => skipReward();
   
+  // 绑定奖励类型切换按钮
+  document.querySelectorAll('.reward-type-btn').forEach(btn => {
+    btn.onclick = () => switchRewardType(btn.dataset.type);
+  });
+  
+  // 默认显示卡牌
+  switchRewardType('card');
+  
   document.getElementById('overlay').classList.add('show');
 }
 
-// V5: 选择奖励卡牌
+function switchRewardType(type) {
+  currentRewardType = type;
+  const cardsContainer = document.getElementById('reward-cards');
+  const relicsContainer = document.getElementById('reward-relics');
+  
+  document.querySelectorAll('.reward-type-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === type);
+  });
+  
+  if (type === 'card') {
+    cardsContainer.style.display = 'flex';
+    relicsContainer.style.display = 'none';
+  } else {
+    cardsContainer.style.display = 'none';
+    relicsContainer.style.display = 'flex';
+  }
+}
+
+// V6: 选择奖励卡牌
 function selectReward(card) {
   gameState.deck.push({ ...card });
   document.getElementById('overlay').classList.remove('show');
@@ -1733,39 +2135,72 @@ function selectReward(card) {
   returnToMap();
 }
 
-// V5: 跳过奖励
-function skipReward() {
+// V6: 选择遗物奖励
+function selectRelicReward(relic) {
+  if (gameState.acquiredRelicIds.includes(relic.id)) {
+    addLog('已拥有此遗物！', 'debuff');
+    return;
+  }
+  gameState.relics.push({ ...relic });
+  gameState.acquiredRelicIds.push(relic.id);
+  
+  // 应用遗物效果
+  if (relic.effect.maxHpBonus) {
+    gameState.playerMaxHp += relic.effect.maxHpBonus;
+    gameState.playerHp += relic.effect.maxHpBonus;
+    addLog(`遗物 ${relic.name} 最大生命+${relic.effect.maxHpBonus}`, 'heal');
+  }
+  
   document.getElementById('overlay').classList.remove('show');
-  addLog('跳过了卡牌奖励', 'info');
+  addLog(`获得遗物: ${relic.name}`, 'info');
+  renderRelicsPanel();
+  renderMap();
   returnToMap();
 }
 
-// V5: 生成奖励（兼容原有接口）
+// V6: 跳过奖励
+function skipReward() {
+  document.getElementById('overlay').classList.remove('show');
+  addLog('跳过了奖励', 'info');
+  returnToMap();
+}
+
+// V6: 生成奖励（卡牌+遗物）
 function showRewardSelection() {
-  const isElite = gameState.currentNode && (
-    getNodeById(gameState.currentNode)?.type === 'elite' ||
-    getNodeById(gameState.currentNode)?.type === 'boss'
-  );
+  const node = getNodeById(gameState.currentNode);
+  const isElite = node && (node.type === 'elite' || node.type === 'boss');
   
-  // 精英/Boss战斗提供更好的奖励池
-  const pool = isElite ? REWARD_POOLS.rare : REWARD_POOLS.common;
-  const shuffledPool = shuffle([...pool]);
+  // 生成卡牌奖励
+  const cardPool = isElite ? REWARD_POOLS.rare : REWARD_POOLS.common;
+  const shuffledCards = shuffle([...cardPool]);
+  const cardCount = isElite ? 3 : 2;
+  const cardRewards = shuffledCards.slice(0, Math.min(cardCount, shuffledCards.length));
   
-  // 普通战斗2张，精英/Boss战斗3张
-  const rewardCount = isElite ? 3 : 2;
-  const rewards = shuffledPool.slice(0, Math.min(rewardCount, shuffledPool.length));
-  
-  // 如果奖励数量不足，从完整池补充
-  while (rewards.length < 2 && REWARD_POOLS.all.length > rewards.length) {
-    const remaining = shuffle(REWARD_POOLS.all).filter(c => !rewards.includes(c));
+  // 补充卡牌奖励
+  while (cardRewards.length < 2 && REWARD_POOLS.all.length > cardRewards.length) {
+    const remaining = shuffle(REWARD_POOLS.all).filter(c => !cardRewards.includes(c));
     if (remaining.length > 0) {
-      rewards.push(remaining[0]);
-    } else {
-      break;
+      cardRewards.push(remaining[0]);
+    } else break;
+  }
+  
+  // 生成遗物奖励（精英/Boss战斗有更高几率获得遗物，且稀有/传说遗物概率更高）
+  const shuffledRelics = shuffle([...AVAILABLE_RELICS]).filter(r => !gameState.acquiredRelicIds.includes(r.id));
+  let relicRewards = [];
+  
+  if (isElite) {
+    // 精英/Boss: 100%获得遗物，从稀有/传说池抽取
+    const eliteRelics = [...RELIC_POOLS.rare, ...RELIC_POOLS.legendary].filter(r => !gameState.acquiredRelicIds.includes(r.id));
+    relicRewards = shuffle(eliteRelics).slice(0, 2);
+  } else {
+    // 普通战斗: 50%几率获得遗物，从普通/稀有池抽取
+    if (Math.random() < 0.5 && shuffledRelics.length > 0) {
+      const commonRareRelics = shuffledRelics.filter(r => r.rarity === 'common' || r.rarity === 'rare');
+      relicRewards = shuffle(commonRareRelics).slice(0, 1);
     }
   }
   
-  showRewardScreen(rewards);
+  showRewardScreen(cardRewards, relicRewards);
 }
 
 function showGameOver() {
@@ -1953,7 +2388,13 @@ function initGame() {
     selectedNode: null,
     totalBattlesWon: 0,
     totalGoldEarned: 0,
+    // V6 遗物系统
+    relics: [],
+    acquiredRelicIds: [],
   };
+
+  // V6 授予初始遗物
+  grantStartingRelic();
 
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('game-over-screen').classList.remove('show');
