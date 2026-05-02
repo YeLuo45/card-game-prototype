@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DBG卡牌游戏 V11</title>
+  <title>DBG卡牌游戏 V12</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -664,12 +664,174 @@
       #log-panel { position: static; width: 100%; margin-top: 10px; transform: none; max-height: 120px; }
       .card { width: 90px; padding: 8px; }
     }
+
+    /* ===== V12 动画与特效 ===== */
+    
+    /* 伤害数字动画 */
+    .damage-number {
+      position: fixed;
+      font-size: 28px;
+      font-weight: bold;
+      color: #ff4444;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(255,68,68,0.6);
+      pointer-events: none;
+      z-index: 1000;
+      animation: damageFloat 1s ease-out forwards;
+    }
+    .damage-number.shield {
+      color: #4ecdc4;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(78,205,196,0.6);
+    }
+    .damage-number.heal {
+      color: #2ecc71;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(46,204,113,0.6);
+    }
+    .damage-number.critical {
+      color: #ff00ff;
+      font-size: 36px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(255,0,255,0.8);
+      animation: criticalShake 1s ease-out forwards;
+    }
+    .damage-number.poison {
+      color: #27ae60;
+      font-size: 24px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(39,174,96,0.6);
+    }
+    
+    @keyframes damageFloat {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      50% { opacity: 1; transform: translateY(-40px) scale(1.2); }
+      100% { opacity: 0; transform: translateY(-80px) scale(0.8); }
+    }
+    
+    @keyframes criticalShake {
+      0% { opacity: 1; transform: translate(0, 0) scale(1); }
+      10% { transform: translate(-5px, -5px) scale(1.3); }
+      20% { transform: translate(5px, -5px) scale(1.3); }
+      30% { transform: translate(-5px, 5px) scale(1.3); }
+      40% { transform: translate(5px, 5px) scale(1.3); }
+      50% { transform: translate(0, -20px) scale(1.2); }
+      100% { opacity: 0; transform: translate(0, -80px) scale(0.8); }
+    }
+    
+    /* 卡牌飞出动画 */
+    .card-fly {
+      animation: cardFlyOut 0.4s ease-in forwards;
+    }
+    
+    @keyframes cardFlyOut {
+      0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+      100% { opacity: 0; transform: translateY(-200px) rotate(15deg) scale(0.5); }
+    }
+    
+    /* 手牌可玩高亮 */
+    .card.playable {
+      box-shadow: 0 0 15px rgba(255,215,0,0.8), 0 0 30px rgba(255,215,0,0.4);
+      animation: playablePulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes playablePulse {
+      0%, 100% { box-shadow: 0 0 15px rgba(255,215,0,0.6), 0 0 30px rgba(255,215,0,0.3); }
+      50% { box-shadow: 0 0 25px rgba(255,215,0,1), 0 0 50px rgba(255,215,0,0.6); }
+    }
+    
+    .card.playable:hover {
+      transform: translateY(-12px) scale(1.05);
+      box-shadow: 0 0 30px rgba(255,215,0,1), 0 0 60px rgba(255,215,0,0.8);
+    }
+    
+    /* 屏幕震动 */
+    .screen-shake {
+      animation: screenShake 0.3s ease-out;
+    }
+    
+    @keyframes screenShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+    
+    /* 敌人受击闪烁 */
+    .enemy-hit {
+      animation: enemyHitFlash 0.2s ease-out;
+    }
+    
+    @keyframes enemyHitFlash {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(2) hue-rotate(-30deg); }
+    }
+    
+    /* 玩家受击闪烁 */
+    .player-hit {
+      animation: playerHitFlash 0.3s ease-out;
+    }
+    
+    @keyframes playerHitFlash {
+      0%, 100% { background-color: rgba(20,60,80,0.6); }
+      50% { background-color: rgba(255,50,50,0.6); }
+    }
+    
+    /* 卡牌使用成功动画 */
+    .card-success {
+      animation: cardSuccessAnim 0.3s ease-out;
+    }
+    
+    @keyframes cardSuccessAnim {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); background-color: rgba(255,255,255,0.3); }
+      100% { transform: scale(1); }
+    }
+    
+    /* 护甲获得动画 */
+    .shield-gain {
+      animation: shieldGain 0.5s ease-out;
+    }
+    
+    @keyframes shieldGain {
+      0% { text-shadow: none; }
+      50% { text-shadow: 0 0 20px #4ecdc4, 0 0 40px #4ecdc4; }
+      100% { text-shadow: none; }
+    }
+    
+    /* Buff图标出现 */
+    .buff-appear {
+      animation: buffAppear 0.4s ease-out;
+    }
+    
+    @keyframes buffAppear {
+      0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+      70% { transform: scale(1.2) rotate(10deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    
+    /* 能量消耗动画 */
+    .energy-spend {
+      animation: energySpend 0.3s ease-out;
+    }
+    
+    @keyframes energySpend {
+      0% { color: #4ecdc4; transform: scale(1); }
+      50% { color: #fff; transform: scale(1.3); }
+      100% { color: #4ecdc4; transform: scale(1); }
+    }
+    
+    /* 抽牌动画 */
+    .draw-card-anim {
+      animation: drawCard 0.4s ease-out;
+    }
+    
+    @keyframes drawCard {
+      0% { opacity: 0; transform: translateX(-50px) rotate(-10deg); }
+      100% { opacity: 1; transform: translateX(0) rotate(0deg); }
+    }
   </style>
 </head>
 <body>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V9</h1>
+  <h1>🃏 DBG卡牌游戏 V12</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
   <p>V9 成就系统 - 解锁全部成就挑战！</p>
@@ -691,7 +853,7 @@
 </div>
 
 <div id="game-container" style="display:none">
-  <h1>⚔️ DBG卡牌游戏 V7 - 敌人扩充</h1>
+  <h1>⚔️ DBG卡牌游戏 V12 - 音效与特效</h1>
 
   <!-- 地图界面 -->
   <div id="map-container">
@@ -951,6 +1113,406 @@ function hasUpgrade(card) {
 // 获取卡牌升级信息
 function getCardUpgradeInfo(card) {
   return CARD_UPGRADES[card.id] || null;
+}
+
+// ===== V12 音效与特效系统 =====
+
+// 音效管理器 - 使用Web Audio API合成音效
+class AudioManager {
+  constructor() {
+    this.ctx = null;
+    this.enabled = true;
+    this.masterVolume = 0.3;
+    this.initialized = false;
+  }
+
+  init() {
+    if (this.initialized) return;
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.initialized = true;
+    } catch (e) {
+      console.warn('Web Audio API not supported');
+      this.enabled = false;
+    }
+  }
+
+  // 播放音效
+  play(type) {
+    if (!this.enabled || !this.ctx) return;
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+
+    const now = this.ctx.currentTime;
+    switch(type) {
+      case 'attack': this.playAttack(now); break;
+      case 'skill': this.playSkill(now); break;
+      case 'power': this.playPower(now); break;
+      case 'hit': this.playHit(now); break;
+      case 'block': this.playBlock(now); break;
+      case 'heal': this.playHeal(now); break;
+      case 'enemyAttack': this.playEnemyAttack(now); break;
+      case 'victory': this.playVictory(now); break;
+      case 'defeat': this.playDefeat(now); break;
+      case 'draw': this.playDraw(now); break;
+      case 'energy': this.playEnergy(now); break;
+      case 'critical': this.playCritical(now); break;
+      case 'poison': this.playPoison(now); break;
+      case 'buff': this.playBuff(now); break;
+      case 'click': this.playClick(now); break;
+    }
+  }
+
+  // 攻击音效 - 短促的打击声
+  playAttack(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(150, time);
+    osc.frequency.exponentialRampToValueAtTime(50, time + 0.1);
+    gain.gain.setValueAtTime(this.masterVolume * 0.5, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+    osc.start(time);
+    osc.stop(time + 0.1);
+  }
+
+  // 技能音效 - 清脆的能量声
+  playSkill(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(800, time);
+    osc.frequency.setValueAtTime(1200, time + 0.05);
+    osc.frequency.exponentialRampToValueAtTime(400, time + 0.15);
+    gain.gain.setValueAtTime(this.masterVolume * 0.3, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+    osc.start(time);
+    osc.stop(time + 0.15);
+  }
+
+  // 能力音效 - 持续的嗡鸣
+  playPower(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(300, time);
+    osc.frequency.setValueAtTime(450, time + 0.1);
+    osc.frequency.setValueAtTime(300, time + 0.2);
+    gain.gain.setValueAtTime(this.masterVolume * 0.25, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+    osc.start(time);
+    osc.stop(time + 0.3);
+  }
+
+  // 受击音效
+  playHit(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(200, time);
+    osc.frequency.exponentialRampToValueAtTime(80, time + 0.08);
+    gain.gain.setValueAtTime(this.masterVolume * 0.4, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.08);
+    osc.start(time);
+    osc.stop(time + 0.08);
+  }
+
+  // 护甲音效
+  playBlock(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(400, time);
+    osc.frequency.setValueAtTime(600, time + 0.05);
+    gain.gain.setValueAtTime(this.masterVolume * 0.2, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+    osc.start(time);
+    osc.stop(time + 0.1);
+  }
+
+  // 治疗音效
+  playHeal(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(523, time);
+    osc.frequency.setValueAtTime(659, time + 0.1);
+    osc.frequency.setValueAtTime(784, time + 0.2);
+    gain.gain.setValueAtTime(this.masterVolume * 0.25, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+    osc.start(time);
+    osc.stop(time + 0.3);
+  }
+
+  // 敌人攻击音效
+  playEnemyAttack(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(100, time);
+    osc.frequency.exponentialRampToValueAtTime(40, time + 0.15);
+    gain.gain.setValueAtTime(this.masterVolume * 0.45, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+    osc.start(time);
+    osc.stop(time + 0.15);
+  }
+
+  // 胜利音效
+  playVictory(time) {
+    const notes = [523, 659, 784, 1047];
+    notes.forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.frequency.setValueAtTime(freq, time + i * 0.15);
+      gain.gain.setValueAtTime(this.masterVolume * 0.3, time + i * 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.01, time + i * 0.15 + 0.3);
+      osc.start(time + i * 0.15);
+      osc.stop(time + i * 0.15 + 0.3);
+    });
+  }
+
+  // 失败音效
+  playDefeat(time) {
+    const notes = [400, 350, 300, 250];
+    notes.forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.frequency.setValueAtTime(freq, time + i * 0.2);
+      gain.gain.setValueAtTime(this.masterVolume * 0.3, time + i * 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.01, time + i * 0.2 + 0.25);
+      osc.start(time + i * 0.2);
+      osc.stop(time + i * 0.2 + 0.25);
+    });
+  }
+
+  // 抽牌音效
+  playDraw(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(600, time);
+    osc.frequency.exponentialRampToValueAtTime(900, time + 0.08);
+    gain.gain.setValueAtTime(this.masterVolume * 0.15, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.08);
+    osc.start(time);
+    osc.stop(time + 0.08);
+  }
+
+  // 能量音效
+  playEnergy(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(400, time);
+    osc.frequency.setValueAtTime(800, time + 0.05);
+    osc.frequency.setValueAtTime(1200, time + 0.1);
+    gain.gain.setValueAtTime(this.masterVolume * 0.2, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+    osc.start(time);
+    osc.stop(time + 0.15);
+  }
+
+  // 暴击音效
+  playCritical(time) {
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc1.type = 'square';
+    osc2.type = 'sawtooth';
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc1.frequency.setValueAtTime(200, time);
+    osc1.frequency.exponentialRampToValueAtTime(800, time + 0.1);
+    osc2.frequency.setValueAtTime(100, time);
+    osc2.frequency.exponentialRampToValueAtTime(400, time + 0.1);
+    gain.gain.setValueAtTime(this.masterVolume * 0.5, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+    osc1.start(time);
+    osc1.stop(time + 0.2);
+    osc2.start(time);
+    osc2.stop(time + 0.2);
+  }
+
+  // 中毒音效
+  playPoison(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(200, time);
+    osc.frequency.setValueAtTime(150, time + 0.1);
+    osc.frequency.setValueAtTime(100, time + 0.2);
+    gain.gain.setValueAtTime(this.masterVolume * 0.2, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.25);
+    osc.start(time);
+    osc.stop(time + 0.25);
+  }
+
+  // Buff音效
+  playBuff(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(500, time);
+    osc.frequency.setValueAtTime(700, time + 0.08);
+    osc.frequency.setValueAtTime(900, time + 0.16);
+    gain.gain.setValueAtTime(this.masterVolume * 0.2, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.24);
+    osc.start(time);
+    osc.stop(time + 0.24);
+  }
+
+  // 点击音效
+  playClick(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(1000, time);
+    gain.gain.setValueAtTime(this.masterVolume * 0.1, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.03);
+    osc.start(time);
+    osc.stop(time + 0.03);
+  }
+
+  setVolume(v) {
+    this.masterVolume = Math.max(0, Math.min(1, v));
+  }
+
+  toggle() {
+    this.enabled = !this.enabled;
+    return this.enabled;
+  }
+}
+
+const audioManager = new AudioManager();
+
+// ===== V12 特效函数 =====
+
+// 显示浮动伤害/治疗数字
+function showDamageNumber(value, type, targetId) {
+  const el = document.createElement('div');
+  el.className = `damage-number ${type}`;
+  el.textContent = type === 'heal' ? `+${value}` : (type === 'shield' ? `🛡️${value}` : `-${value}`);
+  
+  const target = targetId ? document.getElementById(targetId) : document.getElementById('enemy-area');
+  if (target) {
+    const rect = target.getBoundingClientRect();
+    el.style.left = `${rect.left + rect.width / 2 + (Math.random() - 0.5) * 40}px`;
+    el.style.top = `${rect.top + rect.height / 2}px`;
+  } else {
+    el.style.left = `${window.innerWidth / 2 + (Math.random() - 0.5) * 100}px`;
+    el.style.top = `${window.innerHeight / 2}px`;
+  }
+  
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+// 屏幕震动效果
+function screenShake() {
+  const container = document.getElementById('game-container');
+  if (container) {
+    container.classList.add('screen-shake');
+    setTimeout(() => container.classList.remove('screen-shake'), 300);
+  }
+}
+
+// 敌人受击闪烁
+function flashEnemy() {
+  const enemyArea = document.getElementById('enemy-area');
+  if (enemyArea) {
+    enemyArea.classList.add('enemy-hit');
+    setTimeout(() => enemyArea.classList.remove('enemy-hit'), 200);
+  }
+}
+
+// 玩家受击闪烁
+function flashPlayer() {
+  const playerArea = document.getElementById('player-area');
+  if (playerArea) {
+    playerArea.classList.add('player-hit');
+    setTimeout(() => playerArea.classList.remove('player-hit'), 300);
+  }
+}
+
+// 卡牌飞出动画
+function animateCardFly(cardEl) {
+  if (cardEl) {
+    cardEl.classList.add('card-fly');
+  }
+}
+
+// 手牌可玩状态高亮
+function updateHandPlayableState() {
+  const cards = document.querySelectorAll('#hand .card');
+  cards.forEach(card => {
+    // 检查是否有足够能量（通过比较cost和当前energy）
+    const costEl = card.querySelector('.card-cost');
+    if (costEl) {
+      const cost = parseInt(costEl.textContent);
+      if (gameState.energy >= cost && !gameState.gameOver) {
+        card.classList.add('playable');
+      } else {
+        card.classList.remove('playable');
+      }
+    }
+  });
+}
+
+// 能量消耗动画
+function animateEnergySpend() {
+  const energyEl = document.getElementById('energy');
+  if (energyEl) {
+    energyEl.classList.add('energy-spend');
+    setTimeout(() => energyEl.classList.remove('energy-spend'), 300);
+  }
+}
+
+// 护甲获得动画
+function animateShieldGain() {
+  const shieldEl = document.getElementById('player-shield');
+  if (shieldEl) {
+    shieldEl.classList.add('shield-gain');
+    setTimeout(() => shieldEl.classList.remove('shield-gain'), 500);
+  }
+}
+
+// 抽牌动画
+function animateDrawCard(cardEl) {
+  if (cardEl) {
+    cardEl.classList.add('draw-card-anim');
+    setTimeout(() => cardEl.classList.remove('draw-card-anim'), 400);
+  }
 }
 
 // ===== V6 遗物/神器数据 =====
@@ -2396,7 +2958,10 @@ function drawCards(n) {
       addLog('重新洗牌', 'info');
     }
     const card = gameState.drawPile.pop();
-    if (card) gameState.hand.push(card);
+    if (card) {
+      gameState.hand.push(card);
+      audioManager.play('draw');
+    }
   }
 }
 
@@ -2409,12 +2974,15 @@ function playCard(card, index) {
   if (gameState.gameOver) return;
 
   gameState.energy -= card.cost;
+  animateEnergySpend();
+  audioManager.play('energy');
   gameState.hand.splice(index, 1);
   gameState.discardPile.push(card);
 
   const effect = card.effect;
 
   if (card.type === 'attack') {
+    audioManager.play('attack');
     let damage = effect.damage || 0;
     let hits = effect.hits || 1;
     
@@ -2472,13 +3040,18 @@ function playCard(card, index) {
   }
 
   if (card.type === 'skill') {
+    audioManager.play('skill');
     if (effect.block) {
       gameState.playerShield += effect.block;
+      animateShieldGain();
+      showDamageNumber(effect.block, 'shield', 'player-area');
       addLog(`获得 ${effect.block} 点护甲`, 'block');
     }
     if (effect.heal) {
       const healAmount = Math.min(effect.heal, gameState.playerMaxHp - gameState.playerHp);
       gameState.playerHp += healAmount;
+      showDamageNumber(healAmount, 'heal', 'player-area');
+      audioManager.play('heal');
       addLog(`治疗 ${healAmount} 点生命`, 'heal');
     }
     if (effect.draw) {
@@ -2492,6 +3065,7 @@ function playCard(card, index) {
   }
 
   if (card.type === 'power') {
+    audioManager.play('power');
     gameState.powerCardsPlayedThisCombat[card.id] = true;
     
     if (effect.thorns) {
@@ -2586,6 +3160,7 @@ function dealDamageToEnemy(damage) {
   let actualDamage = damage;
   
   const hasVulnerable = gameState.enemyDebuffs.find(d => d.type === 'vulnerable');
+  let isCritical = false;
   if (hasVulnerable) {
     actualDamage = Math.floor(damage * 1.5);
   }
@@ -2599,14 +3174,38 @@ function dealDamageToEnemy(damage) {
   
   if (actualDamage > 0) {
     gameState.enemyHp -= actualDamage;
+    flashEnemy();
+    showDamageNumber(actualDamage, 'damage', 'enemy-area');
     addLog(`造成 ${actualDamage} 点伤害`, 'damage');
     // V6 遗物效果: 造成伤害时
     applyRelicEffect('onDamage', { damage: actualDamage });
+
+    // V11 血之誓言: 30%几率双倍伤害
+    if (hasRelic('bloodOath') && Math.random() < 0.3) {
+      gameState.enemyHp -= actualDamage;
+      showDamageNumber(actualDamage, 'critical', 'enemy-area');
+      audioManager.play('critical');
+      isCritical = true;
+      addLog(`血之誓言触发！造成双倍伤害 ${actualDamage * 2}`, 'critical');
+    }
+
+    // V11 暗影匕首: 15%几率附加3层易伤
+    if (hasRelic('shadowDagger') && Math.random() < 0.15) {
+      applyDebuffToEnemy('vulnerable', 3, 3);
+      addLog('暗影匕首触发！敌人获得3层易伤', 'debuff');
+    }
+
     // V7 暗影刺客反击机制
     if (gameState.enemyThorns > 0) {
       const thornsDmg = gameState.enemyThorns;
       gameState.playerHp -= thornsDmg;
+      flashPlayer();
+      showDamageNumber(thornsDmg, 'damage', 'player-area');
       addLog(`暗影刺客反击！受到 ${thornsDmg} 点伤害`, 'damage');
+    }
+    
+    if (!isCritical) {
+      audioManager.play('hit');
     }
   }
 }
@@ -2663,7 +3262,15 @@ function endTurn() {
     dealDamageToEnemy(gameState.aoeDamage);
     addLog(`尖刺外壳造成 ${gameState.aoeDamage} 点伤害`, 'damage');
   }
-  
+
+  // V11 能量漩涡：未使用能量转伤害
+  if (hasRelic('energyVortex') && gameState.energy > 0) {
+    const bonusDamage = gameState.energy;
+    gameState.enemyHp -= bonusDamage;
+    addLog(`能量漩涡触发！未使用的${gameState.energy}能量造成${bonusDamage}点伤害`, 'damage');
+    gameState.energy = 0;
+  }
+
   processDebuffs('player');
   
   gameState.discardPile.push(...gameState.hand);
@@ -2690,7 +3297,11 @@ function processDebuffs(target) {
   
   debuffs.forEach(debuff => {
     if (debuff.type === 'poison' || debuff.type === 'burn') {
-      const damage = debuff.stacks * (debuff.type === 'burn' ? 2 : 3);
+      let damage = debuff.stacks * (debuff.type === 'burn' ? 2 : 3);
+      // V11 燃烧之魂：中毒伤害翻倍
+      if (debuff.type === 'poison' && hasRelic('burningSoul')) {
+        damage *= 2;
+      }
       if (target === 'player') {
         dealDamageToPlayer(damage, false);
         addLog(`中毒造成 ${damage} 点伤害`, 'damage');
@@ -2984,9 +3595,22 @@ function dealDamageToPlayer(damage, isEnemyAttack = true) {
   
   if (damage > 0) {
     gameState.playerHp -= damage;
+    flashPlayer();
+    screenShake();
+    showDamageNumber(damage, 'damage', 'player-area');
+    audioManager.play('enemyAttack');
     addLog(`受到 ${damage} 点伤害`, 'damage');
   }
-  
+
+  // V11 守护者之角：每场战斗第一次受到致命伤害时存活1HP
+  if (hasRelic('guardianHorn') && !gameState.guardianHornUsed) {
+    if (gameState.playerHp <= 0) {
+      gameState.playerHp = 1;
+      gameState.guardianHornUsed = true;
+      addLog('守护者之角触发！你存活了1HP！', 'buff');
+    }
+  }
+
   // 暗影斗篷：致命伤害时25%几率存活1点生命
   if (gameState.playerHp <= 0) {
     const shadowCloakRelic = gameState.relics.find(r => r.id === 'shadowCloak');
@@ -3070,6 +3694,12 @@ function checkEnemyDeath() {
     
     // 战斗胜利
     addLog(`${gameState.enemy.name} 被击败！`, 'info');
+    // V11 生命之泉：击杀敌人恢复3HP
+    if (hasRelic('lifeSpring')) {
+      const healAmount = 3;
+      gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + healAmount);
+      addLog(`生命之泉触发！恢复${healAmount}HP`, 'heal');
+    }
     completeNode(gameState.currentNode);
     gameState.totalBattlesWon++;
     // V9 成就统计更新
@@ -3276,6 +3906,7 @@ function showRewardSelection() {
 }
 
 function showGameOver() {
+  audioManager.play('defeat');
   // V9 检查成就
   checkAchievements();
   
@@ -3287,6 +3918,7 @@ function showGameOver() {
 }
 
 function showVictory() {
+  audioManager.play('victory');
   // V9 胜利相关成就
   gameState.totalVictories = (gameState.totalVictories || 0) + 1;
   
@@ -3334,6 +3966,7 @@ function renderHand() {
     const div = document.createElement('div');
     div.className = `card ${card.type}`;
     if (gameState.energy < card.cost) div.classList.add('disabled');
+    else div.classList.add('playable');
     if (card.upgraded) div.classList.add(card.upgradeLevel >= 2 ? 'upgraded-2' : 'upgraded');
     
     div.innerHTML = `
@@ -3344,11 +3977,16 @@ function renderHand() {
     `;
     
     if (gameState.energy >= card.cost && !gameState.gameOver) {
-      div.onclick = () => playCard(card, index);
+      div.onclick = () => {
+        audioManager.play('click');
+        playCard(card, index);
+      };
     }
     
     container.appendChild(div);
   });
+  
+  updateHandPlayableState();
 }
 
 function renderEnemy() {
@@ -3430,6 +4068,9 @@ function renderLog() {
 
 // ===== 初始化游戏 =====
 function initGame() {
+  // 初始化音效系统
+  audioManager.init();
+  
   // 初始牌组
   const startingDeck = [
     CARDS.strike, CARDS.strike, CARDS.strike, CARDS.strike,
