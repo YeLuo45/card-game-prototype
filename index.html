@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DBG卡牌游戏 V4</title>
+  <title>DBG卡牌游戏 V5</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -412,10 +412,10 @@
 <body>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V4</h1>
+  <h1>🃏 DBG卡牌游戏 V5</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
-  <p>诅咒牌与特殊牌系统 - 通关3层楼，击败最终Boss！</p>
+  <p>V5 战斗奖励卡牌选择系统 - 可跳过奖励</p>
   <button id="start-btn">开始游戏</button>
 </div>
 
@@ -432,7 +432,7 @@
 </div>
 
 <div id="game-container" style="display:none">
-  <h1>⚔️ DBG卡牌游戏 V4 - 诅咒与特殊牌系统</h1>
+  <h1>⚔️ DBG卡牌游戏 V5 - 战斗奖励选择系统</h1>
 
   <!-- 地图界面 -->
   <div id="map-container">
@@ -498,8 +498,10 @@
 
 <!-- 奖励选牌遮罩 -->
 <div id="overlay">
-  <div id="overlay-title">🎉 战斗胜利！选择一张卡牌</div>
+  <div id="overlay-title">🎉 战斗胜利！选择一张卡牌作为奖励</div>
+  <div id="overlay-subtitle" style="color: #aaa; margin-bottom: 15px; font-size: 14px;">选择卡牌加入你的牌组，或跳过奖励</div>
   <div id="reward-cards"></div>
+  <button id="skip-reward-btn" style="margin-top: 20px; padding: 10px 30px; font-size: 16px; background: #555; border: none; border-radius: 20px; color: #fff; cursor: pointer;">跳过奖励</button>
 </div>
 
 <!-- 商店遮罩 -->
@@ -563,6 +565,36 @@ const NEW_CARDS_POOL = [
   CARDS.deadlyPrecision,
   CARDS.vampiricTouch,
 ];
+
+// ===== V5 奖励池数据 =====
+// 普通奖励池
+const COMMON_REWARD_POOL = [
+  CARDS.consecutiveStrike,
+  CARDS.ironWall,
+  CARDS.firstAid,
+];
+
+// 稀有奖励池
+const RARE_REWARD_POOL = [
+  CARDS.painfulStrike,
+  CARDS.behead,
+  CARDS.warCry,
+  CARDS.counterStance,
+  CARDS.spikeShell,
+  CARDS.burningFist,
+  CARDS.demonContract,
+  CARDS.lightningReflex,
+  CARDS.meditation,
+  CARDS.deadlyPrecision,
+  CARDS.vampiricTouch,
+];
+
+// 完整奖励池（普通+稀有）
+const REWARD_POOLS = {
+  common: COMMON_REWARD_POOL,
+  rare: RARE_REWARD_POOL,
+  all: [...COMMON_REWARD_POOL, ...RARE_REWARD_POOL]
+};
 
 const CURSE_CARDS_POOL = [
   CARDS.painCurse,
@@ -1664,14 +1696,18 @@ function checkPlayerDeath() {
   return false;
 }
 
-function showRewardSelection() {
-  const rewards = shuffle(NEW_CARDS_POOL).slice(0, 3);
+// ===== V5 战斗奖励卡牌选择系统 =====
+// V5: 增强的奖励选择界面，使用新的奖励池系统
+
+function showRewardScreen(rewards) {
   const container = document.getElementById('reward-cards');
   container.innerHTML = '';
   
-  rewards.forEach(card => {
+  // 渲染奖励卡牌
+  rewards.forEach((card, index) => {
     const div = document.createElement('div');
     div.className = `reward-card ${card.type}`;
+    div.dataset.index = index;
     div.innerHTML = `
       <div class="card-cost">${card.cost}</div>
       <div class="card-name">${card.name}</div>
@@ -1682,15 +1718,54 @@ function showRewardSelection() {
     container.appendChild(div);
   });
   
+  // 绑定跳过奖励按钮
+  const skipBtn = document.getElementById('skip-reward-btn');
+  skipBtn.onclick = () => skipReward();
+  
   document.getElementById('overlay').classList.add('show');
 }
 
+// V5: 选择奖励卡牌
 function selectReward(card) {
   gameState.deck.push({ ...card });
   document.getElementById('overlay').classList.remove('show');
   addLog(`获得新卡: ${card.name}`, 'info');
-  
   returnToMap();
+}
+
+// V5: 跳过奖励
+function skipReward() {
+  document.getElementById('overlay').classList.remove('show');
+  addLog('跳过了卡牌奖励', 'info');
+  returnToMap();
+}
+
+// V5: 生成奖励（兼容原有接口）
+function showRewardSelection() {
+  const isElite = gameState.currentNode && (
+    getNodeById(gameState.currentNode)?.type === 'elite' ||
+    getNodeById(gameState.currentNode)?.type === 'boss'
+  );
+  
+  // 精英/Boss战斗提供更好的奖励池
+  const pool = isElite ? REWARD_POOLS.rare : REWARD_POOLS.common;
+  const shuffledPool = shuffle([...pool]);
+  
+  // 普通战斗2张，精英/Boss战斗3张
+  const rewardCount = isElite ? 3 : 2;
+  const rewards = shuffledPool.slice(0, Math.min(rewardCount, shuffledPool.length));
+  
+  // 如果奖励数量不足，从完整池补充
+  while (rewards.length < 2 && REWARD_POOLS.all.length > rewards.length) {
+    const remaining = shuffle(REWARD_POOLS.all).filter(c => !rewards.includes(c));
+    if (remaining.length > 0) {
+      rewards.push(remaining[0]);
+    } else {
+      break;
+    }
+  }
+  
+  showRewardScreen(rewards);
 }
 
 function showGameOver() {
