@@ -588,8 +588,77 @@
       color: #fff;
       cursor: pointer;
       font-weight: bold;
+    #skip-upgrade-btn { margin-top: 15px; padding: 10px 30px; font-size: 16px; background: #555; border: none; border-radius: 20px; color: #fff; cursor: pointer; }
+    #skip-upgrade-btn:hover { background: #666; }
+
+    /* 成就系统 V9 */
+    #achievements-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 150;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      overflow-y: auto;
     }
-    .start-btn:hover { transform: scale(1.05); }
+    #achievements-overlay.show { display: flex; }
+    #achievements-title { font-size: 32px; color: #ffd700; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+    #achievements-subtitle { color: #aaa; margin-bottom: 25px; font-size: 14px; }
+    #achievements-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 15px;
+      max-width: 900px;
+      width: 90%;
+      padding: 10px;
+    }
+    .achievement-card {
+      background: rgba(30,30,50,0.9);
+      border-radius: 12px;
+      padding: 15px;
+      border: 2px solid #444;
+      transition: transform 0.2s, border-color 0.3s;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .achievement-card.unlocked { border-color: #ffd700; background: rgba(50,45,30,0.95); }
+    .achievement-card.locked { opacity: 0.6; }
+    .achievement-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      background: linear-gradient(145deg, #333, #222);
+      border: 2px solid #666;
+      flex-shrink: 0;
+    }
+    .achievement-card.unlocked .achievement-icon {
+      background: linear-gradient(145deg, #b8860b, #daa520);
+      border-color: #ffd700;
+    }
+    .achievement-info { flex: 1; }
+    .achievement-name { font-size: 15px; color: #fff; font-weight: bold; margin-bottom: 4px; }
+    .achievement-desc { font-size: 12px; color: #aaa; }
+    .achievement-card.unlocked .achievement-name { color: #ffd700; }
+    .achievement-unlock-time { font-size: 10px; color: #888; margin-top: 4px; }
+    #close-achievements-btn {
+      margin-top: 20px;
+      padding: 12px 40px;
+      font-size: 16px;
+      background: linear-gradient(145deg, #444, #333);
+      border: 2px solid #666;
+      border-radius: 25px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #close-achievements-btn:hover { border-color: #ffd700; transform: scale(1.05); }
 
     @media (max-width: 768px) {
       #log-panel { position: static; width: 100%; margin-top: 10px; transform: none; max-height: 120px; }
@@ -600,11 +669,12 @@
 <body>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V7</h1>
+  <h1>🃏 DBG卡牌游戏 V9</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
-  <p>V7 敌人扩充 - 新增7个敌人与Boss</p>
+  <p>V9 成就系统 - 解锁全部成就挑战！</p>
   <button id="start-btn">开始游戏</button>
+  <button id="achievements-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#9b59b6,#8e44ad);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">🏆 成就</button>
 </div>
 
 <div id="game-over-screen">
@@ -629,6 +699,7 @@
       <span class="hp">❤️ <span id="map-hp">80</span>/<span id="map-max-hp">80</span></span>
       <span class="energy">💰 <span id="map-gold">0</span></span>
       <span id="relics-header" style="color:#ffd700;font-size:14px;">🎁 遗物: <span id="relics-count">0</span></span>
+      <span id="achievements-header" style="color:#9b59b6;font-size:14px;cursor:pointer;" onclick="showAchievements()">🏆 成就: <span id="achievements-count">0</span></span>
     </div>
     <canvas id="map-canvas" width="800" height="400"></canvas>
     <div id="node-preview">
@@ -716,6 +787,14 @@
   <div id="upgrade-subtitle">选择一张手牌进行升级，或跳过</div>
   <div id="upgrade-cards"></div>
   <button id="skip-upgrade-btn">跳过升级</button>
+</div>
+
+<!-- 成就系统遮罩 V9 -->
+<div id="achievements-overlay">
+  <div id="achievements-title">🏆 成就系统</div>
+  <div id="achievements-subtitle">已解锁: <span id="achievements-unlocked-count">0</span> / <span id="achievements-total-count">0</span></div>
+  <div id="achievements-grid"></div>
+  <button id="close-achievements-btn">关闭</button>
 </div>
 
 <script>
@@ -1008,6 +1087,120 @@ const AVAILABLE_RELICS = [
   ...RELIC_POOLS.legendary,
 ];
 
+// ===== V9 成就系统 =====
+const ACHIEVEMENTS = {
+  // 战斗成就
+  firstBlood: {
+    id: 'firstBlood',
+    name: '初战告捷',
+    description: '赢得第一场战斗',
+    icon: '⚔️',
+    category: 'battle',
+    condition: (state) => state.totalBattlesWon >= 1,
+  },
+  battleMaster: {
+    id: 'battleMaster',
+    name: '战斗大师',
+    description: '赢得10场战斗',
+    icon: '🏅',
+    category: 'battle',
+    condition: (state) => state.totalBattlesWon >= 10,
+  },
+  slayer: {
+    id: 'slayer',
+    name: '怪物杀手',
+    description: '击败100个敌人',
+    icon: '💀',
+    category: 'battle',
+    condition: (state) => state.totalEnemiesDefeated >= 100,
+  },
+  // Boss成就
+  bossSlayer: {
+    id: 'bossSlayer',
+    name: 'Boss杀手',
+    description: '击败3个Boss',
+    icon: '👹',
+    category: 'battle',
+    condition: (state) => state.totalBossesDefeated >= 3,
+  },
+  // 通关成就
+  firstVictory: {
+    id: 'firstVictory',
+    name: '首次通关',
+    description: '通关游戏一次',
+    icon: '🏆',
+    category: 'progression',
+    condition: (state) => state.totalVictories >= 1,
+  },
+  champion: {
+    id: 'champion',
+    name: '冠军',
+    description: '通关游戏5次',
+    icon: '👑',
+    category: 'progression',
+    condition: (state) => state.totalVictories >= 5,
+  },
+  // 收集成就
+  cardCollector: {
+    id: 'cardCollector',
+    name: '卡牌收藏家',
+    description: '拥有15张以上卡牌',
+    icon: '🃏',
+    category: 'collection',
+    condition: (state) => state.maxCardsOwned >= 15,
+  },
+  relicHunter: {
+    id: 'relicHunter',
+    name: '遗物猎人',
+    description: '收集5个遗物',
+    icon: '🎁',
+    category: 'collection',
+    condition: (state) => state.maxRelicsOwned >= 5,
+  },
+  // 金币成就
+  wealthy: {
+    id: 'wealthy',
+    name: '腰缠万贯',
+    description: '累计获得500金币',
+    icon: '💰',
+    category: 'economy',
+    condition: (state) => state.totalGoldEarned >= 500,
+  },
+  // 特殊成就
+  flawlessVictory: {
+    id: 'flawlessVictory',
+    name: '完美胜利',
+    description: '以满血状态通关',
+    icon: '✨',
+    category: 'special',
+    condition: (state) => state.flawlessVictories >= 1,
+  },
+  noRelicVictory: {
+    id: 'noRelicVictory',
+    name: '裸装通关',
+    description: '不使用遗物通关',
+    icon: '🚫',
+    category: 'special',
+    condition: (state) => state.noRelicVictories >= 1,
+  },
+  speedrunner: {
+    id: 'speedrunner',
+    name: '速通达人',
+    description: '在5分钟内通关',
+    icon: '⏱️',
+    category: 'special',
+    condition: (state) => state.speedruns >= 1,
+  },
+};
+
+const ACHIEVEMENT_CATEGORIES = {
+  battle: '战斗',
+  progression: '进度',
+  collection: '收藏',
+  economy: '经济',
+  special: '特殊',
+};
+
 // ===== 敌人数据 =====
 const ENEMIES = {
   slime:    { id: 'slime',    name: '史莱姆',     hp: 20,  intents: ['attack', 'defend', 'buff'] },
@@ -1162,6 +1355,17 @@ let gameState = {
   // V6 遗物系统
   relics: [], // 玩家拥有的遗物
   acquiredRelicIds: [], // 已获得的遗物ID（防止重复）
+  // V9 成就系统
+  unlockedAchievements: [], // 已解锁的成就ID列表
+  achievementStats: {
+    totalEnemiesDefeated: 0,
+    totalBossesDefeated: 0,
+    maxCardsOwned: 0,
+    maxRelicsOwned: 0,
+    flawlessVictories: 0,
+    noRelicVictories: 0,
+    speedruns: 0,
+  },
 };
 
 // ===== V6 遗物效果应用 =====
@@ -1272,6 +1476,164 @@ function renderRelicsPanel() {
     div.title = `${relic.name}: ${relic.description}`;
     container.appendChild(div);
   });
+}
+
+// ===== V9 成就系统 =====
+// 解锁成就
+function unlockAchievement(achievementId) {
+  if (gameState.unlockedAchievements.includes(achievementId)) return false;
+  
+  const achievement = ACHIEVEMENTS[achievementId];
+  if (!achievement) return false;
+  
+  gameState.unlockedAchievements.push(achievementId);
+  addLog(`🏆 成就解锁: ${achievement.name}`, 'info');
+  saveAchievements();
+  
+  // 显示成就解锁提示
+  showAchievementPopup(achievement);
+  
+  return true;
+}
+
+// 显示成就解锁弹窗
+function showAchievementPopup(achievement) {
+  const popup = document.createElement('div');
+  popup.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(145deg, #b8860b, #daa520);
+    color: #000;
+    padding: 15px 25px;
+    border-radius: 10px;
+    font-weight: bold;
+    z-index: 300;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(255,215,0,0.5);
+    animation: achievementPopup 3s ease-out forwards;
+  `;
+  popup.innerHTML = `
+    <div style="font-size:14px;">🏆 成就解锁</div>
+    <div style="font-size:18px;margin-top:5px;">${achievement.icon} ${achievement.name}</div>
+    <div style="font-size:12px;margin-top:3px;">${achievement.description}</div>
+  `;
+  
+  // 添加动画样式
+  if (!document.getElementById('achievement-popup-style')) {
+    const style = document.createElement('style');
+    style.id = 'achievement-popup-style';
+    style.textContent = `
+      @keyframes achievementPopup {
+        0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        80% { opacity: 1; transform: translateX(-50%) translateY(0); }
+        100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  document.body.appendChild(popup);
+  setTimeout(() => popup.remove(), 3000);
+}
+
+// 检查成就
+function checkAchievements() {
+  for (const [id, achievement] of Object.entries(ACHIEVEMENTS)) {
+    if (!gameState.unlockedAchievements.includes(id)) {
+      if (achievement.condition(gameState)) {
+        unlockAchievement(id);
+      }
+    }
+  }
+}
+
+// 显示成就界面
+function showAchievements() {
+  const grid = document.getElementById('achievements-grid');
+  const unlockedCount = document.getElementById('achievements-unlocked-count');
+  const totalCount = document.getElementById('achievements-total-count');
+  
+  const achievements = Object.values(ACHIEVEMENTS);
+  unlockedCount.textContent = gameState.unlockedAchievements.length;
+  totalCount.textContent = achievements.length;
+  
+  grid.innerHTML = '';
+  
+  // 按分类显示
+  const categoryOrder = ['battle', 'progression', 'collection', 'economy', 'special'];
+  categoryOrder.forEach(category => {
+    const categoryAchievements = achievements.filter(a => a.category === category);
+    if (categoryAchievements.length === 0) return;
+    
+    // 分类标题
+    const header = document.createElement('div');
+    header.style.cssText = 'grid-column: 1/-1;font-size:16px;color:#ffd700;padding:10px 0 5px 0;border-bottom:1px solid #444;margin-bottom:5px;';
+    header.textContent = `📁 ${ACHIEVEMENT_CATEGORIES[category] || category}`;
+    grid.appendChild(header);
+    
+    categoryAchievements.forEach(achievement => {
+      const isUnlocked = gameState.unlockedAchievements.includes(achievement.id);
+      const unlockedData = gameState.unlockedAchievements.includes(achievement.id) 
+        ? getAchievementUnlockData(achievement.id) 
+        : null;
+      
+      const card = document.createElement('div');
+      card.className = `achievement-card ${isUnlocked ? 'unlocked' : 'locked'}`;
+      card.innerHTML = `
+        <div class="achievement-icon">${achievement.icon}</div>
+        <div class="achievement-info">
+          <div class="achievement-name">${achievement.name}</div>
+          <div class="achievement-desc">${achievement.description}</div>
+          ${isUnlocked && unlockedData ? `<div class="achievement-unlock-time">解锁于: ${unlockedData.date}</div>` : ''}
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  });
+  
+  document.getElementById('achievements-overlay').classList.add('show');
+}
+
+// 获取成就解锁数据
+function getAchievementUnlockData(achievementId) {
+  const data = localStorage.getItem('achievementData');
+  if (!data) return null;
+  try {
+    const parsed = JSON.parse(data);
+    return parsed[achievementId] || null;
+  } catch {
+    return null;
+  }
+}
+
+// 保存成就数据
+function saveAchievements() {
+  const data = {};
+  gameState.unlockedAchievements.forEach(id => {
+    data[id] = { date: new Date().toLocaleString('zh-CN') };
+  });
+  // 保留之前解锁的数据
+  const existing = localStorage.getItem('achievementData');
+  if (existing) {
+    try {
+      const parsed = JSON.parse(existing);
+      Object.assign(data, parsed);
+    } catch {}
+  }
+  localStorage.setItem('achievementData', JSON.stringify(data));
+}
+
+// 加载成就数据
+function loadAchievements() {
+  const data = localStorage.getItem('achievementData');
+  if (!data) return;
+  try {
+    const parsed = JSON.parse(data);
+    gameState.unlockedAchievements = Object.keys(parsed);
+  } catch {}
 }
 
 // ===== 工具函数 =====
@@ -1447,6 +1809,7 @@ function renderMap() {
   document.getElementById('map-max-hp').textContent = gameState.playerMaxHp;
   document.getElementById('map-gold').textContent = gameState.gold;
   document.getElementById('relics-count').textContent = gameState.relics.length;
+  document.getElementById('achievements-count').textContent = gameState.unlockedAchievements.length;
   renderRelicsPanel();
 }
 
@@ -1647,10 +2010,16 @@ function buyCard(card, price, element) {
 
   gameState.gold -= price;
   gameState.deck.push({ ...card });
+  // V9 更新最大卡牌数
+  if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
+    gameState.achievementStats.maxCardsOwned = gameState.deck.length;
+  }
   element.classList.add('bought');
   element.style.cursor = 'not-allowed';
   document.getElementById('shop-current-gold').textContent = gameState.gold;
   addLog(`购买卡牌: ${card.name}`, 'info');
+  // V9 检查成就
+  checkAchievements();
 }
 
 function leaveShop() {
@@ -2358,6 +2727,7 @@ function checkEnemyDeath() {
       addLog('🏆 击败Boss！', 'info');
       completeNode(gameState.currentNode);
       gameState.totalBattlesWon++;
+      gameState.achievementStats.totalBossesDefeated++;
       // V6 遗物效果: 战斗胜利
       applyRelicEffect('onVictory');
       
@@ -2407,8 +2777,18 @@ function checkEnemyDeath() {
     addLog(`${gameState.enemy.name} 被击败！`, 'info');
     completeNode(gameState.currentNode);
     gameState.totalBattlesWon++;
+    // V9 成就统计更新
+    gameState.achievementStats.totalEnemiesDefeated++;
+    if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
+      gameState.achievementStats.maxCardsOwned = gameState.deck.length;
+    }
+    if (gameState.relics.length > gameState.achievementStats.maxRelicsOwned) {
+      gameState.achievementStats.maxRelicsOwned = gameState.relics.length;
+    }
     // V6 遗物效果: 战斗胜利
     applyRelicEffect('onVictory');
+    // V9 检查成就
+    checkAchievements();
     
     // 精英战斗奖励金币
     if (isElite) {
@@ -2514,8 +2894,14 @@ function switchRewardType(type) {
 // V6: 选择奖励卡牌
 function selectReward(card) {
   gameState.deck.push({ ...card });
+  // V9 更新最大卡牌数
+  if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
+    gameState.achievementStats.maxCardsOwned = gameState.deck.length;
+  }
   document.getElementById('overlay').classList.remove('show');
   addLog(`获得新卡: ${card.name}`, 'info');
+  // V9 检查成就
+  checkAchievements();
   returnToMap();
 }
 
@@ -2528,6 +2914,11 @@ function selectRelicReward(relic) {
   gameState.relics.push({ ...relic });
   gameState.acquiredRelicIds.push(relic.id);
   
+  // V9 更新最大遗物数
+  if (gameState.relics.length > gameState.achievementStats.maxRelicsOwned) {
+    gameState.achievementStats.maxRelicsOwned = gameState.relics.length;
+  }
+  
   // 应用遗物效果
   if (relic.effect.maxHpBonus) {
     gameState.playerMaxHp += relic.effect.maxHpBonus;
@@ -2539,6 +2930,8 @@ function selectRelicReward(relic) {
   addLog(`获得遗物: ${relic.name}`, 'info');
   renderRelicsPanel();
   renderMap();
+  // V9 检查成就
+  checkAchievements();
   returnToMap();
 }
 
@@ -2588,6 +2981,9 @@ function showRewardSelection() {
 }
 
 function showGameOver() {
+  // V9 检查成就
+  checkAchievements();
+  
   document.getElementById('game-container').style.display = 'none';
   document.getElementById('log-panel').style.display = 'none';
   document.getElementById('game-over-screen').classList.add('show');
@@ -2596,6 +2992,21 @@ function showGameOver() {
 }
 
 function showVictory() {
+  // V9 胜利相关成就
+  gameState.totalVictories = (gameState.totalVictories || 0) + 1;
+  
+  // 完美胜利检查（满血通关）
+  if (gameState.playerHp >= gameState.playerMaxHp) {
+    gameState.achievementStats.flawlessVictories++;
+  }
+  
+  // 裸装通关检查（没有额外遗物，只有初始遗物）
+  if (gameState.relics.length <= 1) {
+    gameState.achievementStats.noRelicVictories++;
+  }
+  
+  checkAchievements();
+  
   document.getElementById('game-container').style.display = 'none';
   document.getElementById('log-panel').style.display = 'none';
   document.getElementById('victory-screen').classList.add('show');
@@ -2784,9 +3195,23 @@ function initGame() {
     // V6 遗物系统
     relics: [],
     acquiredRelicIds: [],
+    // V9 成就系统
+    unlockedAchievements: [],
+    achievementStats: {
+      totalEnemiesDefeated: 0,
+      totalBossesDefeated: 0,
+      maxCardsOwned: 0,
+      maxRelicsOwned: 0,
+      flawlessVictories: 0,
+      noRelicVictories: 0,
+      speedruns: 0,
+    },
+    // V9 新增统计
+    totalVictories: 0,
   };
 
-  // V6 授予初始遗物
+  // V9 加载已解锁的成就
+  loadAchievements();
   grantStartingRelic();
 
   document.getElementById('start-screen').style.display = 'none';
@@ -2812,6 +3237,11 @@ document.getElementById('end-turn').onclick = endTurn;
 document.getElementById('map-canvas').onclick = handleMapClick;
 document.getElementById('node-preview-btn').onclick = enterNode;
 document.getElementById('shop-leave').onclick = leaveShop;
+// V9 成就按钮
+document.getElementById('achievements-btn').onclick = showAchievements;
+document.getElementById('close-achievements-btn').onclick = () => {
+  document.getElementById('achievements-overlay').classList.remove('show');
+};
 </script>
 
 </body>
