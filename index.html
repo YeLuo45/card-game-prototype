@@ -2602,6 +2602,19 @@ function dealDamageToEnemy(damage) {
     addLog(`造成 ${actualDamage} 点伤害`, 'damage');
     // V6 遗物效果: 造成伤害时
     applyRelicEffect('onDamage', { damage: actualDamage });
+
+    // V11 血之誓言: 30%几率双倍伤害
+    if (hasRelic('bloodOath') && Math.random() < 0.3) {
+      gameState.enemyHp -= actualDamage;
+      addLog(`血之誓言触发！造成双倍伤害 ${actualDamage * 2}`, 'critical');
+    }
+
+    // V11 暗影匕首: 15%几率附加3层易伤
+    if (hasRelic('shadowDagger') && Math.random() < 0.15) {
+      applyDebuffToEnemy('vulnerable', 3, 3);
+      addLog('暗影匕首触发！敌人获得3层易伤', 'debuff');
+    }
+
     // V7 暗影刺客反击机制
     if (gameState.enemyThorns > 0) {
       const thornsDmg = gameState.enemyThorns;
@@ -2986,7 +2999,16 @@ function dealDamageToPlayer(damage, isEnemyAttack = true) {
     gameState.playerHp -= damage;
     addLog(`受到 ${damage} 点伤害`, 'damage');
   }
-  
+
+  // V11 守护者之角：每场战斗第一次受到致命伤害时存活1HP
+  if (hasRelic('guardianHorn') && !gameState.guardianHornUsed) {
+    if (gameState.playerHp <= 0) {
+      gameState.playerHp = 1;
+      gameState.guardianHornUsed = true;
+      addLog('守护者之角触发！你存活了1HP！', 'buff');
+    }
+  }
+
   // 暗影斗篷：致命伤害时25%几率存活1点生命
   if (gameState.playerHp <= 0) {
     const shadowCloakRelic = gameState.relics.find(r => r.id === 'shadowCloak');
@@ -3070,6 +3092,12 @@ function checkEnemyDeath() {
     
     // 战斗胜利
     addLog(`${gameState.enemy.name} 被击败！`, 'info');
+    // V11 生命之泉：击杀敌人恢复3HP
+    if (hasRelic('lifeSpring')) {
+      const healAmount = 3;
+      gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + healAmount);
+      addLog(`生命之泉触发！恢复${healAmount}HP`, 'heal');
+    }
     completeNode(gameState.currentNode);
     gameState.totalBattlesWon++;
     // V9 成就统计更新
