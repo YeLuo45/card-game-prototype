@@ -1019,12 +1019,14 @@ function returnToMap() {
   document.getElementById('map-container').style.display = 'block';
   document.getElementById('battle-container').style.display = 'none';
   document.getElementById('log-panel').style.display = 'none';
-  renderMap();
-
+  
   // 检查游戏结束条件
   if (gameState.playerHp <= 0) {
     showGameOver();
+    return;
   }
+  
+  renderMap();
 }
 
 // ===== 战斗相关 =====
@@ -1593,9 +1595,34 @@ function checkEnemyDeath() {
         setTimeout(() => showVictory(), 500);
         return true;
       } else {
-        // 进入下一层
+        // 进入下一层：先递增楼层号，再初始化解锁
         gameState.currentFloor++;
+        // 重置新楼层的战斗状态
+        gameState.energy = 3;
+        gameState.playerShield = 0;
+        gameState.hand = [];
+        gameState.drawPile = [];
+        gameState.discardPile = [];
+        gameState.curses = [];
+        gameState.poisonStacks = 0;
+        gameState.bleedStacks = 0;
+        gameState.enemyHp = 0;
+        gameState.enemyArmor = 0;
+        gameState.enemyIntent = null;
+        gameState.enemyIntentValue = 0;
         gameState.currentNode = null;
+        // 初始化新楼层解锁节点：从当前楼层继承已完成节点，起点节点自动解锁
+        const nextFloor = FLOORS.find(f => f.id === gameState.currentFloor);
+        gameState.unlockedNodes = [];
+        if (nextFloor) {
+          nextFloor.nodes.forEach(node => {
+            // 起点节点：无入边（不在任何边的第二个位置）
+            const hasIncoming = nextFloor.edges.some(([a, b]) => b === node.id);
+            if (!hasIncoming) {
+              unlockNode(node.id);
+            }
+          });
+        }
         setTimeout(() => {
           addLog(`进入第 ${gameState.currentFloor} 层！`, 'info');
           returnToMap();
