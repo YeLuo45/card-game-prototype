@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DBG卡牌游戏 V7</title>
+  <title>DBG卡牌游戏 V8</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -216,6 +216,120 @@
     .card-type { font-size: 10px; opacity: 0.8; }
     .card-effect { font-size: 10px; margin-top: 5px; text-align: center; }
     .card.disabled { opacity: 0.5; cursor: not-allowed; }
+    .card.upgraded::after {
+      content: '★';
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: linear-gradient(145deg, #ffd700, #ff8c00);
+      color: #000;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(255,215,0,0.6);
+    }
+    .card.upgraded-2::after {
+      content: '★★';
+      position: absolute;
+      top: -12px;
+      right: -12px;
+      background: linear-gradient(145deg, #ffd700, #ff8c00);
+      color: #000;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      box-shadow: 0 2px 8px rgba(255,215,0,0.8);
+    }
+
+    /* 升级遮罩 */
+    #upgrade-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 110;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    #upgrade-overlay.show { display: flex; }
+    #upgrade-title { font-size: 28px; color: #ffd700; margin-bottom: 10px; }
+    #upgrade-subtitle { color: #aaa; margin-bottom: 20px; font-size: 14px; }
+    #upgrade-cards {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .upgrade-card {
+      width: 140px;
+      padding: 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      position: relative;
+    }
+    .upgrade-card:hover { transform: scale(1.1); }
+    .upgrade-card.attack { background: linear-gradient(145deg, #8b0000, #cd5c5c); border: 3px solid #ff6347; }
+    .upgrade-card.skill { background: linear-gradient(145deg, #00008b, #4169e1); border: 3px solid #6495ed; }
+    .upgrade-card.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 3px solid #da70d6; }
+    .upgrade-card.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 3px solid #00ff7f; }
+    .upgrade-card.curse { background: linear-gradient(145deg, #2d1b4e, #4a3f6b); border: 3px solid #8b008b; }
+    .upgrade-card .card-cost { top: -10px; left: -10px; }
+    .upgrade-card .upgrade-badge {
+      position: absolute;
+      top: -12px;
+      right: -12px;
+      background: linear-gradient(145deg, #ffd700, #ff8c00);
+      color: #000;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+      box-shadow: 0 2px 8px rgba(255,215,0,0.6);
+    }
+    .upgrade-card .new-badge {
+      position: absolute;
+      top: -12px;
+      left: -12px;
+      background: linear-gradient(145deg, #00ff7f, #00cc66);
+      color: #000;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      box-shadow: 0 2px 8px rgba(0,255,127,0.6);
+    }
+    #skip-upgrade-btn {
+      margin-top: 15px;
+      padding: 10px 30px;
+      font-size: 16px;
+      background: #555;
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      cursor: pointer;
+    }
+    #skip-upgrade-btn:hover { background: #666; }
 
     /* 底部控制 */
     #controls {
@@ -596,6 +710,14 @@
   <button id="shop-leave">离开商店</button>
 </div>
 
+<!-- 升级遮罩 -->
+<div id="upgrade-overlay">
+  <div id="upgrade-title">⬆️ 卡牌升级</div>
+  <div id="upgrade-subtitle">选择一张手牌进行升级，或跳过</div>
+  <div id="upgrade-cards"></div>
+  <button id="skip-upgrade-btn">跳过升级</button>
+</div>
+
 <script>
 // ===== 卡牌数据 =====
 const CARDS = {
@@ -686,6 +808,70 @@ const CURSE_CARDS_POOL = [
   CARDS.darkCurse,
   CARDS.deathCurse,
 ];
+
+// ===== V8 卡牌升级数据 =====
+const CARD_UPGRADES = {
+  // 攻击牌升级
+  strike: { damage: 6, upgradedDamage: 9, description: '造成6点伤害', upgradedDescription: '造成9点伤害' },
+  consecutiveStrike: { damage: 4, hits: 2, upgradedDamage: 6, upgradedHits: 3, description: '造成4点伤害2次', upgradedDescription: '造成6点伤害3次' },
+  painfulStrike: { damage: 8, selfDamage: 3, upgradedDamage: 12, upgradedSelfDamage: 2, description: '造成8点伤害，受到3点伤害', upgradedDescription: '造成12点伤害，受到2点伤害' },
+  behead: { damage: 15, threshold: 12, upgradedDamage: 20, upgradedThreshold: 15, description: '对生命≤12的敌人造成15伤害', upgradedDescription: '对生命≤15的敌人造成20伤害' },
+  burningFist: { damage: 10, burnChance: 30, upgradedDamage: 14, upgradedBurnChance: 50, description: '造成10点伤害，30%灼烧', upgradedDescription: '造成14点伤害，50%灼烧' },
+  // 技能牌升级
+  defend: { block: 5, upgradedBlock: 8, description: '获得5点护甲', upgradedDescription: '获得8点护甲' },
+  harden: { block: 8, draw: 1, upgradedBlock: 12, upgradedDraw: 2, description: '获得8点护甲，抽1张牌', upgradedDescription: '获得12点护甲，抽2张牌' },
+  ironWall: { block: 12, upgradedBlock: 18, description: '获得12点护甲', upgradedDescription: '获得18点护甲' },
+  firstAid: { heal: 8, upgradedHeal: 15, description: '恢复8点生命', upgradedDescription: '恢复15点生命' },
+  warCry: { draw: 2, upgradedDraw: 3, description: '抽2张牌', upgradedDescription: '抽3张牌' },
+  counterStance: { block: 6, damage: 4, upgradedBlock: 10, upgradedDamage: 6, description: '获得6护甲，反击4伤害', upgradedDescription: '获得10护甲，反击6伤害' },
+  spikeShell: { block: 10, thorns: 5, upgradedBlock: 15, upgradedThorns: 8, description: '获得10护甲，5反伤', upgradedDescription: '获得15护甲，8反伤' },
+  meditation: { energy: 2, upgradedEnergy: 3, description: '获得2能量', upgradedDescription: '获得3能量' },
+  // 特殊/V4牌升级
+  demonContract: { damage: 20, cost: 2, upgradedDamage: 28, upgradedCost: 1, description: '消耗2能量，造成20伤害', upgradedDescription: '消耗1能量，造成28伤害' },
+  lightningReflex: { block: 8, draw: 1, upgradedBlock: 12, upgradedDraw: 2, description: '获得8护甲，抽1牌', upgradedDescription: '获得12护甲，抽2牌' },
+  deadlyPrecision: { damage: 12, upgradedDamage: 18, description: '造成12伤害', upgradedDescription: '造成18伤害' },
+  vampiricTouch: { damage: 6, lifesteal: 4, upgradedDamage: 10, upgradedLifesteal: 6, description: '造成6伤害，偷取4生命', upgradedDescription: '造成10伤害，偷取6生命' },
+};
+
+// 升级卡牌的函数
+function upgradeCard(card) {
+  const upgrade = CARD_UPGRADES[card.id];
+  if (!upgrade) return card;
+
+  const upgraded = { ...card, upgraded: true, upgradeLevel: 1 };
+
+  // 根据卡牌类型应用升级
+  if (card.type === 'attack') {
+    if (upgrade.upgradedDamage) upgraded.effect.damage = upgrade.upgradedDamage;
+    if (upgrade.upgradedHits) upgraded.effect.hits = upgrade.upgradedHits;
+    if (upgrade.upgradedSelfDamage !== undefined) upgraded.effect.selfDamage = upgrade.upgradedSelfDamage;
+    if (upgrade.upgradedThreshold) upgraded.effect.threshold = upgrade.upgradedThreshold;
+    if (upgrade.upgradedBurnChance) upgraded.effect.burnChance = upgrade.upgradedBurnChance;
+  } else if (card.type === 'skill') {
+    if (upgrade.upgradedBlock) upgraded.effect.block = upgrade.upgradedBlock;
+    if (upgrade.upgradedDraw) upgraded.effect.draw = upgrade.upgradedDraw;
+    if (upgrade.upgradedHeal) upgraded.effect.heal = upgrade.upgradedHeal;
+    if (upgrade.upgradedThorns) upgraded.effect.thorns = upgrade.upgradedThorns;
+    if (upgrade.upgradedEnergy) { upgraded.effect.energy = upgrade.upgradedEnergy; upgraded.cost = upgrade.upgradedCost; }
+  } else if (card.type === 'special') {
+    if (upgrade.upgradedDamage) upgraded.effect.damage = upgrade.upgradedDamage;
+    if (upgrade.upgradedCost) upgraded.cost = upgrade.upgradedCost;
+    if (upgrade.upgradedLifesteal) upgraded.effect.lifesteal = upgrade.upgradedLifesteal;
+  }
+
+  upgraded.description = upgrade.upgradedDescription;
+  return upgraded;
+}
+
+// 检查卡牌是否有升级
+function hasUpgrade(card) {
+  return card.upgraded === true;
+}
+
+// 获取卡牌升级信息
+function getCardUpgradeInfo(card) {
+  return CARD_UPGRADES[card.id] || null;
+}
 
 // ===== V6 遗物/神器数据 =====
 const RELICS = {
@@ -1338,6 +1524,29 @@ function enterNode() {
 }
 
 function handleRest() {
+  // V8: 显示休息站点选项：休息恢复 或 卡牌升级
+  const hasCardsInHand = gameState.hand && gameState.hand.length > 0;
+  const hasUpgradableCards = hasCardsInHand && gameState.hand.some(card => CARD_UPGRADES[card.id] && !card.upgraded);
+
+  if (hasUpgradableCards) {
+    // 显示升级选项
+    showRestChoice();
+  } else {
+    // 没有可升级的卡牌，直接休息
+    doRest();
+  }
+}
+
+function showRestChoice() {
+  const choice = confirm('休息站点选项:\n\n[确定] 休息恢复 (+15HP)\n[取消] 卡牌升级 (选择手牌升级)\n\n选择"取消"进入升级界面。');
+  if (choice) {
+    doRest();
+  } else {
+    showUpgradeScreen();
+  }
+}
+
+function doRest() {
   const healAmount = 15;
   const actualHeal = Math.min(healAmount, gameState.playerMaxHp - gameState.playerHp);
   gameState.playerHp += actualHeal;
@@ -1345,6 +1554,58 @@ function handleRest() {
   completeNode(gameState.currentNode);
   gameState.currentNode = null;
   returnToMap();
+}
+
+function showUpgradeScreen() {
+  const container = document.getElementById('upgrade-cards');
+  container.innerHTML = '';
+
+  // 只显示可以升级的卡牌
+  const upgradableCards = gameState.hand.filter(card => CARD_UPGRADES[card.id] && !card.upgraded);
+
+  if (upgradableCards.length === 0) {
+    addLog('没有可升级的卡牌', 'info');
+    doRest();
+    return;
+  }
+
+  upgradableCards.forEach((card) => {
+    const upgrade = CARD_UPGRADES[card.id];
+    const div = document.createElement('div');
+    div.className = `upgrade-card ${card.type}`;
+    div.innerHTML = `
+      <div class="card-cost">${card.cost}</div>
+      <div class="card-name">${card.name}</div>
+      <div class="card-type">${getCardTypeName(card.type)}</div>
+      <div class="card-effect">${card.description}</div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.3);font-size:10px;color:#ffd700;">
+        ⬆️ ${upgrade.upgradedDescription}
+      </div>
+    `;
+    div.onclick = () => selectUpgradeCard(card);
+    container.appendChild(div);
+  });
+
+  // 绑定跳过按钮
+  document.getElementById('skip-upgrade-btn').onclick = () => {
+    document.getElementById('upgrade-overlay').classList.remove('show');
+    doRest();
+  };
+
+  document.getElementById('upgrade-overlay').classList.add('show');
+}
+
+function selectUpgradeCard(card) {
+  // 找到手牌中的索引并升级
+  const index = gameState.hand.findIndex(c => c.id === card.id && !c.upgraded);
+  if (index !== -1) {
+    const upgradedCard = upgradeCard(gameState.hand[index]);
+    gameState.hand[index] = upgradedCard;
+    addLog(`升级卡牌: ${upgradedCard.name} - ${upgradedCard.description}`, 'info');
+  }
+
+  document.getElementById('upgrade-overlay').classList.remove('show');
+  doRest();
 }
 
 function handleShop() {
@@ -2367,6 +2628,7 @@ function renderHand() {
     const div = document.createElement('div');
     div.className = `card ${card.type}`;
     if (gameState.energy < card.cost) div.classList.add('disabled');
+    if (card.upgraded) div.classList.add(card.upgradeLevel >= 2 ? 'upgraded-2' : 'upgraded');
     
     div.innerHTML = `
       <div class="card-cost">${card.cost}</div>
