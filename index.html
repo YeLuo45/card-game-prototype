@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DBG卡牌游戏 V6</title>
+  <title>DBG卡牌游戏 V7</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -486,10 +486,10 @@
 <body>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V6</h1>
+  <h1>🃏 DBG卡牌游戏 V7</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
-  <p>V6 遗物系统 - 战斗获得神器加成</p>
+  <p>V7 敌人扩充 - 新增7个敌人与Boss</p>
   <button id="start-btn">开始游戏</button>
 </div>
 
@@ -506,7 +506,7 @@
 </div>
 
 <div id="game-container" style="display:none">
-  <h1>⚔️ DBG卡牌游戏 V6 - 遗物系统</h1>
+  <h1>⚔️ DBG卡牌游戏 V7 - 敌人扩充</h1>
 
   <!-- 地图界面 -->
   <div id="map-container">
@@ -830,6 +830,14 @@ const ENEMIES = {
   fireElf:  { id: 'fireElf',  name: '火焰精灵',  hp: 25,  intents: ['attack', 'debuff', 'buff'] },
   golem:    { id: 'golem',    name: '巨石像',    hp: 50, armor: 10, isBoss: true, intents: ['attack', 'defend', 'heavy'] },
   darkMage: { id: 'darkMage', name: '黑暗法师', hp: 30, intents: ['attack', 'curse', 'buff'] },
+  // ===== V7 新增敌人 =====
+  bat:      { id: 'bat',      name: '蝙蝠',       hp: 15,  intents: ['attack', 'debuff'], special: 'poisonAttack' },
+  skeletonArcher: { id: 'skeletonArcher', name: '骷髅弓箭手', hp: 22, intents: ['attack', 'attack', 'debuff'], special: 'weakAttack' },
+  werewolf: { id: 'werewolf', name: '狼人',       hp: 45, isElite: true, intents: ['attack', 'buff', 'heavy'], special: 'berserk' },
+  shadowAssassin: { id: 'shadowAssassin', name: '暗影刺客', hp: 38, isElite: true, intents: ['attack', 'attack', 'counter'], special: 'counterattack' },
+  ancientDragon:  { id: 'ancientDragon', name: '远古巨龙', hp: 80, isBoss: true, intents: ['attack', 'dragonScale', 'heavy', 'buff'], special: 'dragonScale', dragonScale: 0, maxDragonScale: 25 },
+  darkLord:  { id: 'darkLord', name: '黑暗领主', hp: 70, isBoss: true, intents: ['attack', 'summon', 'curse'], special: 'summon' },
+  slimeKing: { id: 'slimeKing', name: '史莱姆王', hp: 65, isBoss: true, intents: ['attack', 'defend', 'multihit'], special: '分裂' },
 };
 
 const INTENT_WEIGHTS = {
@@ -839,6 +847,14 @@ const INTENT_WEIGHTS = {
   fireElf:  { attack: 40, debuff: 40, buff: 20 },
   golem:    { attack: 40, defend: 30, heavy: 30 },
   darkMage: { attack: 40, curse: 40, buff: 20 },
+  // V7 新增敌人意图权重
+  bat:      { attack: 60, debuff: 40 },
+  skeletonArcher: { attack: 55, debuff: 45 },
+  werewolf: { attack: 45, buff: 25, heavy: 30 },
+  shadowAssassin: { attack: 40, attack: 35, counter: 25 },
+  ancientDragon:  { attack: 30, dragonScale: 30, heavy: 25, buff: 15 },
+  darkLord:  { attack: 35, summon: 35, curse: 30 },
+  slimeKing: { attack: 35, defend: 35, multihit: 30 },
 };
 
 // ===== 地图数据 =====
@@ -944,6 +960,9 @@ let gameState = {
   skipEnemyNextTurn: false, // 敌人跳过下回合
   poisonStacks: 0, // 中毒层数
   bleedStacks: 0, // 流血层数
+  // V7 敌人特殊机制
+  enemyThorns: 0, // 敌人反击伤害
+  summonedMinions: 0, // 黑暗领主召唤的小怪数量
   // V3 地图相关
   currentFloor: 1,
   currentNode: null,
@@ -1402,17 +1421,23 @@ function startCombat(node) {
   document.getElementById('battle-container').style.display = 'block';
   document.getElementById('log-panel').style.display = 'block';
 
-  // 确定敌人
-  let enemyType = node.enemy;
+  // 更新楼层敌人分配
   if (node.type === 'elite') {
     // 精英敌人根据楼层
-    const eliteEnemies = { 1: 'skeleton', 2: 'fireElf', 3: 'skeleton' };
-    enemyType = eliteEnemies[gameState.currentFloor];
+    const eliteEnemies = { 1: ['skeleton', 'werewolf'], 2: ['fireElf', 'shadowAssassin'], 3: ['skeleton', 'werewolf', 'shadowAssassin'] };
+    const pool = eliteEnemies[gameState.currentFloor];
+    enemyType = pool[Math.floor(Math.random() * pool.length)];
   } else if (node.type === 'boss') {
-    enemyType = 'golem';
+    // Boss敌人根据楼层
+    const bossEnemies = { 1: 'golem', 2: 'slimeKing', 3: 'ancientDragon' };
+    enemyType = bossEnemies[gameState.currentFloor];
   } else {
     // 普通战斗敌人
-    const combatEnemies = { 1: ['slime', 'goblin'], 2: ['goblin', 'skeleton'], 3: ['skeleton', 'fireElf', 'darkMage'] };
+    const combatEnemies = { 
+      1: ['slime', 'goblin', 'bat'], 
+      2: ['goblin', 'skeleton', 'bat', 'skeletonArcher'], 
+      3: ['skeleton', 'fireElf', 'darkMage', 'skeletonArcher', 'bat'] 
+    };
     const pool = combatEnemies[gameState.currentFloor];
     enemyType = pool[Math.floor(Math.random() * pool.length)];
   }
@@ -1458,9 +1483,19 @@ function rollEnemyIntent() {
       value = enemy.isBoss ? 12 : (enemy.id === 'goblin' ? 4 : 6);
       if (enemy.id === 'fireElf') value = 5;
       if (enemy.id === 'skeleton') value = 8;
+      if (enemy.id === 'bat') value = 5;
+      if (enemy.id === 'skeletonArcher') value = 6;
+      if (enemy.id === 'werewolf') value = 9;
+      if (enemy.id === 'shadowAssassin') value = 7;
+      if (enemy.id === 'ancientDragon') value = 10;
+      if (enemy.id === 'darkLord') value = 8;
+      if (enemy.id === 'slimeKing') value = 8;
       break;
     case 'defend':
       value = enemy.isBoss ? 15 : (enemy.id === 'skeleton' ? 8 : 4);
+      if (enemy.id === 'werewolf') value = 10;
+      if (enemy.id === 'shadowAssassin') value = 6;
+      if (enemy.id === 'slimeKing') value = 12;
       break;
     case 'buff':
       value = 0;
@@ -1470,6 +1505,23 @@ function rollEnemyIntent() {
       break;
     case 'heavy':
       value = 8;
+      if (enemy.id === 'werewolf') value = 12;
+      if (enemy.id === 'ancientDragon') value = 15;
+      break;
+    case 'curse':
+      value = 0;
+      break;
+    case 'counter':
+      value = enemy.id === 'shadowAssassin' ? 5 : 3;
+      break;
+    case 'dragonScale':
+      value = 8;
+      break;
+    case 'summon':
+      value = 0;
+      break;
+    case 'multihit':
+      value = 4;
       break;
   }
   
@@ -1735,6 +1787,12 @@ function dealDamageToEnemy(damage) {
     addLog(`造成 ${actualDamage} 点伤害`, 'damage');
     // V6 遗物效果: 造成伤害时
     applyRelicEffect('onDamage', { damage: actualDamage });
+    // V7 暗影刺客反击机制
+    if (gameState.enemyThorns > 0) {
+      const thornsDmg = gameState.enemyThorns;
+      gameState.playerHp -= thornsDmg;
+      addLog(`暗影刺客反击！受到 ${thornsDmg} 点伤害`, 'damage');
+    }
   }
 }
 
@@ -1805,6 +1863,8 @@ function endTurn() {
   gameState.turn++;
   gameState.thornsActive = false;
   gameState.enemyArmor = gameState.enemy.armor || 0;
+  // V7 重置敌人特殊状态
+  gameState.enemyThorns = 0;
   
   startPlayerTurn();
 }
@@ -1871,6 +1931,14 @@ function executeEnemyIntent() {
     return;
   }
   
+  // V7 黑暗领主召唤物在回合开始时造成伤害
+  if (gameState.summonedMinions > 0) {
+    const minionDamage = gameState.summonedMinions * 3;
+    dealDamageToPlayer(minionDamage, false);
+    addLog(`黑暗领主的仆从们造成 ${minionDamage} 点伤害！`, 'damage');
+    if (gameState.playerHp <= 0) return;
+  }
+  
   const intent = gameState.enemyIntent;
   const value = gameState.enemyIntentValue;
   const enemy = gameState.enemy;
@@ -1881,6 +1949,16 @@ function executeEnemyIntent() {
     case 'attack':
       intentText = `攻击 ${value}`;
       dealDamageToPlayer(value, true);
+      // V7 蝙蝠特殊：攻击带毒
+      if (enemy.id === 'bat') {
+        applyDebuffToPlayer('poison', 2, 2);
+        addLog('蝙蝠叮咬使你中毒！', 'debuff');
+      }
+      // V7 骷髅弓箭手特殊：攻击带虚弱
+      if (enemy.id === 'skeletonArcher') {
+        applyDebuffToPlayer('weak', 1, 1);
+        addLog('骷髅弓箭手的箭造成虚弱！', 'debuff');
+      }
       break;
     case 'defend':
       intentText = `防御 +${value}`;
@@ -1893,6 +1971,15 @@ function executeEnemyIntent() {
         const debuffType = Math.random() < 0.5 ? 'weak' : 'vulnerable';
         applyDebuffToPlayer(debuffType, 1, 2);
         addLog(`敌人对你施加了${debuffType === 'weak' ? '虚弱' : '易伤'}！`, 'debuff');
+      }
+      // V7 狼人特殊：狂暴强化
+      if (enemy.id === 'werewolf') {
+        gameState.enemyArmor += 5;
+        addLog('狼人进入狂暴状态，获得5护甲！', 'info');
+      }
+      // V7 远古巨龙：强化
+      if (enemy.id === 'ancientDragon') {
+        addLog('远古巨龙蓄势待发！', 'info');
       }
       break;
     case 'debuff':
@@ -1911,11 +1998,47 @@ function executeEnemyIntent() {
       dealDamageToPlayer(value, true);
       addLog('巨石像发动重压攻击！', 'damage');
       break;
+    case 'counter':
+      // V7 暗影刺客：反击
+      intentText = `反击 ${value}`;
+      addLog(`暗影刺客准备反击（受到攻击时反伤${value}）！`, 'info');
+      gameState.enemyThorns = value;
+      break;
+    case 'dragonScale':
+      // V7 远古巨龙：龙鳞护盾
+      intentText = `龙鳞 +${value}`;
+      gameState.enemyArmor += value;
+      enemy.dragonScale = Math.min((enemy.dragonScale || 0) + value, enemy.maxDragonScale);
+      addLog(`远古巨龙披上龙鳞，获得${value}护甲（共${enemy.dragonScale}）！`, 'block');
+      break;
+    case 'summon':
+      // V7 黑暗领主：召唤小怪
+      intentText = '召唤';
+      addLog('黑暗领主从阴影中召唤仆从！', 'info');
+      // 召唤的仆从会在回合结束时造成额外伤害
+      gameState.summonedMinions = (gameState.summonedMinions || 0) + 1;
+      break;
+    case 'multihit':
+      // V7 史莱姆王：分裂攻击
+      intentText = `分裂 ${value}x3`;
+      for (let i = 0; i < 3; i++) {
+        dealDamageToPlayer(value, true);
+      }
+      addLog('史莱姆王分裂成多个发起攻击！', 'damage');
+      break;
   }
   
   if (enemy.isBoss && gameState.turn % 3 === 0) {
     gameState.enemyArmor += 8;
     addLog('巨石像获得 8 护甲', 'block');
+  }
+  
+  // V7 召唤小怪结算：回合结束时召唤物造成伤害
+  if (gameState.summonedMinions > 0) {
+    const minionDamage = gameState.summonedMinions * 3;
+    dealDamageToPlayer(minionDamage, false);
+    addLog(`黑暗领主的仆从们造成 ${minionDamage} 点伤害！`, 'damage');
+    gameState.summonedMinions = 0;
   }
   
   addLog(`敌人意图: ${intentText}`, 'info');
@@ -2279,6 +2402,11 @@ function renderEnemy() {
     buff: '⬆️ 强化',
     debuff: '⬇️ Debuff',
     heavy: `💥 重压 ${gameState.enemyIntentValue}`,
+    curse: '💀 诅咒',
+    counter: `⚡ 反击 ${gameState.enemyIntentValue}`,
+    dragonScale: `🐉 龙鳞 +${gameState.enemyIntentValue}`,
+    summon: '👹 召唤',
+    multihit: `🔪 分裂 ${gameState.enemyIntentValue}x3`,
   };
   document.getElementById('enemy-intent').textContent = `意图: ${intentLabels[gameState.enemyIntent] || gameState.enemyIntent}`;
   
@@ -2380,6 +2508,9 @@ function initGame() {
     skipEnemyNextTurn: false,
     poisonStacks: 0,
     bleedStacks: 0,
+    // V7 敌人特殊机制
+    enemyThorns: 0,
+    summonedMinions: 0,
     currentFloor: 1,
     currentNode: null,
     unlockedNodes: [],
