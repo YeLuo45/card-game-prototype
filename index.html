@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DBG卡牌游戏 V15</title>
+  <title>DBG卡牌游戏 V16</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -823,6 +823,95 @@
     }
     #close-achievements-btn:hover { border-color: #ffd700; transform: scale(1.05); }
 
+    /* V16 卡组预览样式 */
+    #deck-preview-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 120;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    #deck-preview-overlay.show { display: flex; }
+    #deck-preview-title { font-size: 26px; color: #ffd700; margin-bottom: 10px; }
+    #deck-preview-stats { font-size: 14px; color: #aaa; margin-bottom: 15px; }
+    #deck-preview-filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .filter-btn {
+      padding: 6px 14px;
+      font-size: 13px;
+      border: 2px solid #444;
+      border-radius: 15px;
+      background: #333;
+      color: #ccc;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover { border-color: #3498db; }
+    .filter-btn.active { background: #3498db; border-color: #3498db; color: #fff; }
+    .filter-btn.attack.active { background: #c0392b; border-color: #c0392b; }
+    .filter-btn.skill.active { background: #2980b9; border-color: #2980b9; }
+    .filter-btn.power.active { background: #8e44ad; border-color: #8e44ad; }
+    .filter-btn.special.active { background: #27ae60; border-color: #27ae60; }
+    .filter-btn.curse.active { background: #8b008b; border-color: #8b008b; }
+    .filter-btn.status.active { background: #555; border-color: #555; }
+    #deck-preview-grid {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 800px;
+      max-height: 450px;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    .deck-card-item {
+      width: 100px;
+      padding: 8px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 11px;
+      position: relative;
+      cursor: default;
+    }
+    .deck-card-item .card-cost {
+      position: absolute;
+      top: -6px; left: -6px;
+      width: 20px; height: 20px;
+      background: #ffd700;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #000;
+      font-size: 12px;
+    }
+    .deck-card-item .card-name { font-weight: bold; margin: 4px 0 2px 0; font-size: 12px; }
+    .deck-card-item .card-type { font-size: 10px; opacity: 0.8; }
+    .deck-card-item .card-count { font-size: 10px; color: #ffd700; margin-top: 2px; }
+    #close-deck-preview-btn {
+      margin-top: 15px;
+      padding: 10px 30px;
+      font-size: 16px;
+      background: #555;
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      cursor: pointer;
+    }
+    #close-deck-preview-btn:hover { background: #666; }
+
     @media (max-width: 768px) {
       #log-panel { position: static; width: 100%; margin-top: 10px; transform: none; max-height: 120px; }
       .card { width: 90px; padding: 8px; }
@@ -994,7 +1083,7 @@
 <body>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V12</h1>
+  <h1>🃏 DBG卡牌游戏 V16</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
   <p>V9 成就系统 - 解锁全部成就挑战！</p>
@@ -1016,7 +1105,7 @@
 </div>
 
 <div id="game-container" style="display:none">
-  <h1>⚔️ DBG卡牌游戏 V12 - 音效与特效</h1>
+  <h1>⚔️ DBG卡牌游戏 V16 - 卡组辅助系统</h1>
 
   <!-- 地图界面 -->
   <div id="map-container">
@@ -1075,6 +1164,7 @@
     <!-- 控制区 -->
     <div id="controls">
       <span id="deck-info">牌组: <span id="deck-count">13</span> | 弃牌堆: <span id="discard-count">0</span></span>
+      <button id="deck-preview-btn" style="padding:8px 16px;font-size:14px;background:linear-gradient(145deg,#3498db,#2980b9);border:none;border-radius:15px;color:#fff;cursor:pointer;font-weight:bold;">🃏 牌组</button>
       <button id="end-turn">结束回合</button>
     </div>
   </div>
@@ -1134,6 +1224,23 @@
   <div id="achievements-subtitle">已解锁: <span id="achievements-unlocked-count">0</span> / <span id="achievements-total-count">0</span></div>
   <div id="achievements-grid"></div>
   <button id="close-achievements-btn">关闭</button>
+</div>
+
+<!-- V16 卡组预览遮罩 -->
+<div id="deck-preview-overlay">
+  <div id="deck-preview-title">🃏 牌组预览</div>
+  <div id="deck-preview-stats"></div>
+  <div id="deck-preview-filters">
+    <button class="filter-btn active" data-filter="all">全部</button>
+    <button class="filter-btn attack" data-filter="attack">攻击</button>
+    <button class="filter-btn skill" data-filter="skill">技能</button>
+    <button class="filter-btn power" data-filter="power">能力</button>
+    <button class="filter-btn special" data-filter="special">特殊</button>
+    <button class="filter-btn curse" data-filter="curse">诅咒</button>
+    <button class="filter-btn status" data-filter="status">状态</button>
+  </div>
+  <div id="deck-preview-grid"></div>
+  <button id="close-deck-preview-btn">关闭</button>
 </div>
 
 <script>
@@ -2588,6 +2695,91 @@ function showAchievementPopup(achievement) {
   
   document.body.appendChild(popup);
   setTimeout(() => popup.remove(), 3000);
+}
+
+// ===== V16 卡组辅助系统 =====
+// 显示牌组预览
+function showDeckPreview() {
+  const stats = document.getElementById('deck-preview-stats');
+  const deck = gameState.deck || [];
+  const attackCount = deck.filter(c => c.type === 'attack').length;
+  const skillCount = deck.filter(c => c.type === 'skill').length;
+  const powerCount = deck.filter(c => c.type === 'power').length;
+  const specialCount = deck.filter(c => c.type === 'special').length;
+  const curseCount = deck.filter(c => c.type === 'curse').length;
+  const statusCount = deck.filter(c => c.type === 'status').length;
+  
+  stats.textContent = `共${deck.length}张 | 攻击:${attackCount} 技能:${skillCount} 能力:${powerCount} 特殊:${specialCount} 诅咒:${curseCount} 状态:${statusCount}`;
+  
+  // 重置筛选器
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.dataset.filter === 'all') btn.classList.add('active');
+  });
+  
+  renderDeckCards('all');
+  document.getElementById('deck-preview-overlay').classList.add('show');
+}
+
+// 渲染牌组卡牌
+function renderDeckCards(filter) {
+  const grid = document.getElementById('deck-preview-grid');
+  const deck = gameState.deck || [];
+  const filtered = filterDeck(deck, filter);
+  
+  // 统计各卡牌数量
+  const cardCounts = {};
+  filtered.forEach(card => {
+    if (!cardCounts[card.id]) cardCounts[card.id] = 0;
+    cardCounts[card.id]++;
+  });
+  
+  // 去重排序
+  const uniqueCards = [];
+  const seen = new Set();
+  filtered.forEach(card => {
+    if (!seen.has(card.id)) {
+      seen.add(card.id);
+      uniqueCards.push(card);
+    }
+  });
+  
+  // 按类型分组
+  const typeOrder = ['attack', 'skill', 'power', 'special', 'curse', 'status'];
+  uniqueCards.sort((a, b) => typeOrder.indexOf(a.type) - typeOrder.indexOf(b.type));
+  
+  grid.innerHTML = '';
+  uniqueCards.forEach(card => {
+    const div = document.createElement('div');
+    div.className = `deck-card-item ${card.type}`;
+    const bgColors = {
+      attack: 'linear-gradient(145deg, #8b0000, #cd5c5c)',
+      skill: 'linear-gradient(145deg, #00008b, #4169e1)',
+      power: 'linear-gradient(145deg, #4b0082, #9370db)',
+      special: 'linear-gradient(145deg, #1b4e2d, #3f6b4a)',
+      curse: 'linear-gradient(145deg, #2d1b4e, #4a3f6b)',
+      status: 'linear-gradient(145deg, #4e4e4e, #6b6b6b)'
+    };
+    div.style.background = bgColors[card.type] || '#333';
+    div.style.border = '2px solid ' + (div.className.includes('attack') ? '#ff6347' : 
+      div.className.includes('skill') ? '#6495ed' : 
+      div.className.includes('power') ? '#da70d6' : 
+      div.className.includes('special') ? '#00ff7f' : 
+      div.className.includes('curse') ? '#8b008b' : '#a0a0a0');
+    div.innerHTML = `
+      <div class="card-cost">${card.cost}</div>
+      <div class="card-name">${card.name}</div>
+      <div class="card-type">${card.type}</div>
+      <div class="card-count">x${cardCounts[card.id]}</div>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+// 筛选牌组
+function filterDeck(deck, filter) {
+  if (filter === 'all') return deck;
+  return deck.filter(card => card.type === filter);
 }
 
 // 检查成就
@@ -4916,6 +5108,19 @@ document.getElementById('achievements-btn').onclick = showAchievements;
 document.getElementById('close-achievements-btn').onclick = () => {
   document.getElementById('achievements-overlay').classList.remove('show');
 };
+// V16 卡组预览按钮
+document.getElementById('deck-preview-btn').onclick = showDeckPreview;
+document.getElementById('close-deck-preview-btn').onclick = () => {
+  document.getElementById('deck-preview-overlay').classList.remove('show');
+};
+// V16 筛选按钮事件
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderDeckCards(btn.dataset.filter);
+  };
+});
 </script>
 
 </body>
