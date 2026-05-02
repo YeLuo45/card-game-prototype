@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DBG卡牌游戏 V13</title>
+  <title>DBG卡牌游戏 V14</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -469,6 +469,169 @@
       cursor: pointer;
     }
     #shop-leave:hover { background: #666; }
+
+    /* V14 商店重做样式 */
+    #shop-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 600px;
+      margin-bottom: 15px;
+      padding: 0 10px;
+    }
+    #shop-gold {
+      font-size: 18px;
+      color: #ffd700;
+    }
+    .shop-btn {
+      padding: 8px 16px;
+      font-size: 14px;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    .shop-btn:hover:not(:disabled) { transform: scale(1.05); }
+    .shop-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .shop-btn.reroll {
+      background: linear-gradient(145deg, #9b59b6, #8e44ad);
+      color: #fff;
+    }
+    .shop-btn.leave {
+      margin-top: 15px;
+      background: #555;
+      color: #fff;
+    }
+    #shop-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .shop-tab {
+      padding: 8px 20px;
+      font-size: 14px;
+      background: rgba(255,255,255,0.1);
+      border: 2px solid transparent;
+      border-radius: 20px;
+      color: #aaa;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .shop-tab:hover { background: rgba(255,255,255,0.2); color: #fff; }
+    .shop-tab.active {
+      background: rgba(255,215,0,0.2);
+      border-color: #ffd700;
+      color: #ffd700;
+    }
+    .shop-section {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+      min-height: 180px;
+      width: 100%;
+      max-width: 600px;
+    }
+    .shop-relic {
+      width: 120px;
+      padding: 15px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    .shop-relic:hover { transform: scale(1.05); }
+    .shop-relic.starting { background: linear-gradient(145deg, #b8860b, #daa520); border: 3px solid #ffd700; }
+    .shop-relic.common { background: linear-gradient(145deg, #1e90ff, #4169e1); border: 3px solid #95a5a6; }
+    .shop-relic.rare { background: linear-gradient(145deg, #9b59b6, #8e44ad); border: 3px solid #3498db; }
+    .shop-relic.legendary { background: linear-gradient(145deg, #e74c3c, #c0392b); border: 3px solid #f39c12; }
+    .shop-relic .relic-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .shop-relic .relic-name { font-weight: bold; font-size: 12px; margin-bottom: 4px; text-align: center; }
+    .shop-relic .relic-desc { font-size: 10px; opacity: 0.8; text-align: center; color: #ddd; }
+    .shop-relic .price-tag {
+      position: absolute;
+      bottom: -8px;
+      right: -8px;
+      background: #ffd700;
+      color: #000;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    .shop-relic.bought { opacity: 0.3; cursor: not-allowed; }
+    .shop-relic.owned { opacity: 0.4; cursor: not-allowed; }
+    #sell-hint {
+      width: 100%;
+      text-align: center;
+      color: #aaa;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+    #sell-cards {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 600px;
+    }
+    .sell-card {
+      width: 90px;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+    .sell-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.4); }
+    .sell-card.attack { background: linear-gradient(145deg, #8b0000, #cd5c5c); border: 2px solid #ff6347; }
+    .sell-card.skill { background: linear-gradient(145deg, #00008b, #4169e1); border: 2px solid #6495ed; }
+    .sell-card.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 2px solid #da70d6; }
+    .sell-card.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 2px solid #00ff7f; }
+    .sell-card.curse { background: linear-gradient(145deg, #2d1b4e, #4a3f6b); border: 2px solid #8b008b; }
+    .sell-card .card-cost {
+      position: absolute;
+      top: -6px;
+      left: -6px;
+      width: 20px;
+      height: 20px;
+      background: #ffd700;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #000;
+      font-size: 11px;
+    }
+    .sell-card .card-name { font-weight: bold; font-size: 11px; margin: 4px 0; text-align: center; }
+    .sell-card .sell-price {
+      position: absolute;
+      bottom: -6px;
+      right: -6px;
+      background: #2ecc71;
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 10px;
+    }
 
     /* 遗物/神器系统 V6 */
     #relics-panel {
@@ -936,12 +1099,25 @@
   <button id="skip-reward-btn" style="margin-top: 15px; padding: 10px 30px; font-size: 16px; background: #555; border: none; border-radius: 20px; color: #fff; cursor: pointer;">跳过奖励</button>
 </div>
 
-<!-- 商店遮罩 -->
+<!-- 商店遮罩 V14 -->
 <div id="shop-overlay">
   <div id="shop-title">🛒 商店</div>
-  <div id="shop-gold">💰 金币: <span id="shop-current-gold">0</span></div>
-  <div id="shop-cards"></div>
-  <button id="shop-leave">离开商店</button>
+  <div id="shop-header">
+    <div id="shop-gold">💰 金币: <span id="shop-current-gold">0</span></div>
+    <button id="shop-reroll" class="shop-btn reroll">🔄 重投 (<span id="reroll-cost">5</span>💰)</button>
+  </div>
+  <div id="shop-tabs">
+    <button class="shop-tab active" data-tab="cards">🃏 卡牌</button>
+    <button class="shop-tab" data-tab="relics">🎁 遗物</button>
+    <button class="shop-tab" data-tab="sell">💵 出售卡牌</button>
+  </div>
+  <div id="shop-cards" class="shop-section"></div>
+  <div id="shop-relics" class="shop-section" style="display:none"></div>
+  <div id="shop-sell" class="shop-section" style="display:none">
+    <div id="sell-hint">点击你的卡牌进行出售（售价为购买价的30%）</div>
+    <div id="sell-cards"></div>
+  </div>
+  <button id="shop-leave" class="shop-btn leave">离开商店</button>
 </div>
 
 <!-- 升级遮罩 -->
@@ -1013,6 +1189,36 @@ const NEW_CARDS_POOL = [
   CARDS.deadlyPrecision,
   CARDS.vampiricTouch,
 ];
+
+// ===== V14 商店卡牌池 =====
+const SHOP_CARD_POOL = [
+  // 攻击牌
+  { ...CARDS.consecutiveStrike, price: 15 },
+  { ...CARDS.painfulStrike, price: 22 },
+  { ...CARDS.behead, price: 30 },
+  { ...CARDS.burningFist, price: 25 },
+  // 技能牌
+  { ...CARDS.ironWall, price: 18 },
+  { ...CARDS.firstAid, price: 25 },
+  { ...CARDS.warCry, price: 20 },
+  { ...CARDS.harden, price: 15 },
+  // 能力牌
+  { ...CARDS.counterStance, price: 28 },
+  { ...CARDS.spikeShell, price: 30 },
+  { ...CARDS.meditation, price: 35 },
+  { ...CARDS.deadlyPrecision, price: 32 },
+  // 特殊牌
+  { ...CARDS.demonContract, price: 40 },
+  { ...CARDS.lightningReflex, price: 25 },
+  { ...CARDS.vampiricTouch, price: 30 },
+];
+
+// 遗物商店价格表
+const RELIC_SHOP_PRICES = {
+  common: 50,
+  rare: 80,
+  legendary: 150,
+};
 
 // ===== V13 牌组构建核心 =====
 // 扩展卡牌奖励池 - 包含更多卡牌类型
@@ -2754,21 +2960,62 @@ function selectUpgradeCard(card) {
 }
 
 function handleShop() {
-  // 设置商店金币
-  gameState.gold = gameState.currentFloor * 10;
+  // V14: 设置商店金币为楼层*10 + 已有金币
+  gameState.gold = (gameState.gold || 0) + gameState.currentFloor * 10;
   document.getElementById('shop-current-gold').textContent = gameState.gold;
-  
-  // 生成商店卡牌
-  const shopCards = shuffle(NEW_CARDS_POOL).slice(0, 3);
+  document.getElementById('reroll-cost').textContent = 5;
+
+  // 初始化商店库存
+  gameState.shopCards = [];
+  gameState.shopRelics = [];
+  gameState.shopRerollCost = 5;
+
+  // 绑定标签切换
+  document.querySelectorAll('.shop-tab').forEach(tab => {
+    tab.onclick = () => switchShopTab(tab.dataset.tab);
+  });
+
+  // 绑定重投按钮
+  document.getElementById('shop-reroll').onclick = rerollShop;
+
+  // 显示卡牌标签页
+  switchShopTab('cards');
+
+  document.getElementById('shop-overlay').classList.add('show');
+}
+
+function switchShopTab(tab) {
+  // 更新标签状态
+  document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.shop-tab[data-tab="${tab}"]`).classList.add('active');
+
+  // 切换内容
+  document.getElementById('shop-cards').style.display = tab === 'cards' ? 'flex' : 'none';
+  document.getElementById('shop-relics').style.display = tab === 'relics' ? 'flex' : 'none';
+  document.getElementById('shop-sell').style.display = tab === 'sell' ? 'block' : 'none';
+
+  if (tab === 'cards' && gameState.shopCards.length === 0) {
+    showShop();
+  } else if (tab === 'relics' && gameState.shopRelics.length === 0) {
+    showShopRelics();
+  } else if (tab === 'sell') {
+    showSellCards();
+  }
+}
+
+// V14: 显示商店（生成卡牌和遗物）
+function showShop() {
+  gameState.shopCards = shuffle([...SHOP_CARD_POOL]).slice(0, 3);
+  gameState.boughtCardIndices = [];
+
   const container = document.getElementById('shop-cards');
   container.innerHTML = '';
 
-  shopCards.forEach((card, index) => {
-    const price = card.type === 'attack' ? 15 + Math.floor(Math.random() * 11) : 20 + Math.floor(Math.random() * 11);
+  gameState.shopCards.forEach((card, index) => {
+    const price = card.price;
     const div = document.createElement('div');
     div.className = `shop-card ${card.type}`;
     div.dataset.index = index;
-    div.dataset.price = price;
     div.innerHTML = `
       <div class="card-cost">${card.cost}</div>
       <div class="card-name">${card.name}</div>
@@ -2776,32 +3023,190 @@ function handleShop() {
       <div class="card-effect">${card.description}</div>
       <div class="price-tag">💰 ${price}</div>
     `;
-    div.onclick = () => buyCard(card, price, div);
+    div.onclick = () => buyShopCard(index);
     container.appendChild(div);
   });
-
-  document.getElementById('shop-overlay').classList.add('show');
 }
 
-function buyCard(card, price, element) {
+// V14: 显示商店遗物
+function showShopRelics() {
+  // 生成商店遗物：1普通+1稀有+1传说
+  const commonRelics = shuffle([...RELIC_POOLS.common]).slice(0, 1);
+  const rareRelics = shuffle([...RELIC_POOLS.rare]).slice(0, 1);
+  const legendaryRelics = shuffle([...RELIC_POOLS.legendary]).slice(0, 1);
+
+  gameState.shopRelics = [
+    ...commonRelics.map(r => ({ ...r, shopPrice: RELIC_SHOP_PRICES.common })),
+    ...rareRelics.map(r => ({ ...r, shopPrice: RELIC_SHOP_PRICES.rare })),
+    ...legendaryRelics.map(r => ({ ...r, shopPrice: RELIC_SHOP_PRICES.legendary })),
+  ];
+  gameState.boughtRelicIndices = [];
+
+  const container = document.getElementById('shop-relics');
+  container.innerHTML = '';
+
+  gameState.shopRelics.forEach((relic, index) => {
+    const owned = gameState.acquiredRelicIds.includes(relic.id);
+    const div = document.createElement('div');
+    div.className = `shop-relic ${relic.rarity}${owned ? ' owned' : ''}`;
+    div.innerHTML = `
+      <div class="relic-icon">${relic.icon}</div>
+      <div class="relic-name">${relic.name}</div>
+      <div class="relic-desc">${relic.description}</div>
+      <div class="price-tag">💰 ${relic.shopPrice}</div>
+    `;
+    if (!owned) {
+      div.onclick = () => buyShopRelic(index);
+    }
+    container.appendChild(div);
+  });
+}
+
+// V14: 显示出售卡牌
+function showSellCards() {
+  const container = document.getElementById('sell-cards');
+  container.innerHTML = '';
+
+  // 获取玩家套牌中的所有可出售卡牌（排除初始牌组）
+  const sellableCards = gameState.deck.filter((card, idx) => {
+    // 初始套牌是: strike x5, defend x5 - 这些不能出售
+    const isStarter = card.id === 'strike' || card.id === 'defend';
+    return !isStarter;
+  });
+
+  if (sellableCards.length === 0) {
+    container.innerHTML = '<div style="color:#aaa;text-align:center;padding:20px;">套牌中没有可出售的卡牌</div>';
+    return;
+  }
+
+  sellableCards.forEach((card, sellIdx) => {
+    const deckIndex = gameState.deck.indexOf(card);
+    // 估算原始购买价格
+    let basePrice = 15;
+    if (card.type === 'power') basePrice = 30;
+    else if (card.type === 'special') basePrice = 25;
+    else if (card.type === 'skill') basePrice = 20;
+    const sellPrice = Math.floor(basePrice * 0.3);
+
+    const div = document.createElement('div');
+    div.className = `sell-card ${card.type}`;
+    div.innerHTML = `
+      <div class="card-cost">${card.cost}</div>
+      <div class="card-name">${card.name}</div>
+      <div class="sell-price">+${sellPrice}💰</div>
+    `;
+    div.onclick = () => sellCard(deckIndex, sellPrice);
+    container.appendChild(div);
+  });
+}
+
+// V14: 购买卡牌
+function buyShopCard(index) {
+  if (gameState.boughtCardIndices.includes(index)) return;
+
+  const card = gameState.shopCards[index];
+  const price = card.price;
+
   if (gameState.gold < price) {
     addLog('金币不足！', 'debuff');
     return;
   }
-  if (element.classList.contains('bought')) return;
 
   gameState.gold -= price;
   gameState.deck.push({ ...card });
-  // V9 更新最大卡牌数
+  gameState.boughtCardIndices.push(index);
+
+  // 更新最大卡牌数
   if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
     gameState.achievementStats.maxCardsOwned = gameState.deck.length;
   }
-  element.classList.add('bought');
-  element.style.cursor = 'not-allowed';
+
+  // 标记为已购买
+  const cardElements = document.querySelectorAll('#shop-cards .shop-card');
+  if (cardElements[index]) {
+    cardElements[index].classList.add('bought');
+    cardElements[index].style.cursor = 'not-allowed';
+  }
+
   document.getElementById('shop-current-gold').textContent = gameState.gold;
   addLog(`购买卡牌: ${card.name}`, 'info');
-  // V9 检查成就
   checkAchievements();
+}
+
+// V14: 购买遗物
+function buyShopRelic(index) {
+  if (gameState.boughtRelicIndices.includes(index)) return;
+
+  const relic = gameState.shopRelics[index];
+  const price = relic.shopPrice;
+
+  if (gameState.gold < price) {
+    addLog('金币不足！', 'debuff');
+    return;
+  }
+
+  if (gameState.acquiredRelicIds.includes(relic.id)) {
+    addLog('已拥有此遗物！', 'debuff');
+    return;
+  }
+
+  gameState.gold -= price;
+  gameState.relics.push({ ...relic });
+  gameState.acquiredRelicIds.push(relic.id);
+  gameState.boughtRelicIndices.push(index);
+
+  // 更新最大遗物数
+  if (gameState.relics.length > gameState.achievementStats.maxRelicsOwned) {
+    gameState.achievementStats.maxRelicsOwned = gameState.relics.length;
+  }
+
+  // 标记为已购买
+  const relicElements = document.querySelectorAll('#shop-relics .shop-relic');
+  if (relicElements[index]) {
+    relicElements[index].classList.add('bought');
+    relicElements[index].style.cursor = 'not-allowed';
+  }
+
+  document.getElementById('shop-current-gold').textContent = gameState.gold;
+  addLog(`购买遗物: ${relic.name}`, 'info');
+  updateRelicsDisplay();
+  checkAchievements();
+}
+
+// V14: 出售卡牌
+function sellCard(deckIndex, sellPrice) {
+  const card = gameState.deck[deckIndex];
+  if (!card) return;
+
+  gameState.gold += sellPrice;
+  gameState.deck.splice(deckIndex, 1);
+
+  addLog(`出售卡牌: ${card.name}，获得 ${sellPrice} 金币`, 'info');
+  document.getElementById('shop-current-gold').textContent = gameState.gold;
+  showSellCards(); // 刷新出售列表
+}
+
+// V14: 重投商店
+function rerollShop() {
+  if (gameState.gold < gameState.shopRerollCost) {
+    addLog('金币不足！', 'debuff');
+    return;
+  }
+
+  gameState.gold -= gameState.shopRerollCost;
+  gameState.shopRerollCost = Math.min(gameState.shopRerollCost + 2, 15); // 重投费用递增，上限15
+
+  document.getElementById('shop-current-gold').textContent = gameState.gold;
+  document.getElementById('reroll-cost').textContent = gameState.shopRerollCost;
+
+  const currentTab = document.querySelector('.shop-tab.active').dataset.tab;
+  if (currentTab === 'cards') {
+    showShop();
+  } else if (currentTab === 'relics') {
+    showShopRelics();
+  }
+
+  addLog(`重投商店，花费 ${gameState.shopRerollCost - 2} 金币`, 'info');
 }
 
 function leaveShop() {
