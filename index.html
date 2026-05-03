@@ -899,17 +899,39 @@
     #start-btn:hover { transform: scale(1.1); }
 
     /* 游戏结束 */
-    #game-over-screen, #victory-screen {
+    #game-over-screen, #victory-screen, #endgame-screen {
       display: none;
       flex-direction: column;
       align-items: center;
       gap: 20px;
       padding: 40px;
     }
-    #game-over-screen.show, #victory-screen.show { display: flex; }
+    #game-over-screen.show, #victory-screen.show, #endgame-screen.show { display: flex; }
     #game-over-title { font-size: 36px; color: #ff0000; }
     #victory-title { font-size: 36px; color: #ffd700; }
     .stats-text { font-size: 16px; color: #ccc; }
+    #endgame-title { font-size: 36px; color: #ffd700; text-shadow: 0 0 20px #ffd700, 0 0 40px #ffd700; }
+    #endgame-screen { background: linear-gradient(135deg, rgba(26,26,46,0.98) 0%, rgba(22,33,62,0.98) 100%); }
+    .endgame-section { background: rgba(0,0,0,0.4); padding: 15px 25px; border-radius: 12px; margin: 10px 0; width: 100%; max-width: 500px; }
+    .endgame-section h3 { color: #ffd700; margin-bottom: 10px; font-size: 18px; }
+    .endgame-stat { display: flex; justify-content: space-between; padding: 5px 0; color: #ccc; font-size: 14px; }
+    .endgame-stat-value { color: #4ecdc4; font-weight: bold; }
+    .endgame-deck-type { font-size: 20px; color: #ff6b6b; font-weight: bold; margin: 10px 0; }
+    .endgame-hidden-endings { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .endgame-ending-badge { background: linear-gradient(145deg, #9b59b6, #8e44ad); padding: 5px 12px; border-radius: 15px; font-size: 12px; }
+    .endgame-buttons { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+    .endgame-btn { padding: 12px 30px; font-size: 16px; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; transition: transform 0.2s; }
+    .endgame-btn:hover { transform: scale(1.05); }
+    .endgame-btn-ngplus { background: linear-gradient(145deg, #e74c3c, #c0392b); color: #fff; }
+    .endgame-btn-menu { background: linear-gradient(145deg, #27ae60, #2ecc71); color: #fff; }
+    .endgame-btn-stats { background: linear-gradient(145deg, #3498db, #2980b9); color: #fff; }
+    .endgame-btn-difficulty { background: linear-gradient(145deg, #f39c12, #e67e22); color: #fff; }
+    .ngplus-badge { background: linear-gradient(145deg, #e74c3c, #c0392b); padding: 3px 10px; border-radius: 10px; font-size: 12px; margin-left: 10px; }
+    .difficulty-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; margin-left: 10px; }
+    .difficulty-normal { background: #27ae60; }
+    .difficulty-hard { background: #f39c12; }
+    .difficulty-hell { background: #e74c3c; }
+    .difficulty-extreme { background: #9b59b6; }
     .start-btn {
       padding: 15px 40px;
       font-size: 18px;
@@ -1497,12 +1519,12 @@
 </div>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V26</h1>
+  <h1>🃏 DBG卡牌游戏 V28</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
   <p>V9 成就系统 - 18个成就等你解锁！</p>
   <p style="color:#ffd700;">V19 存档系统 - 3槽位存档</p>
-  <p style="color:#4ecdc4;">V21 移动端适配 - 触屏支持</p>
+  <p style="color:#4ecdc4;">V28 终局内容 + 周目系统</p>
   <button id="start-btn">开始游戏</button>
   <button id="load-save-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#27ae60,#2ecc71);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">📂 继续游戏</button>
   <button id="achievements-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#9b59b6,#8e44ad);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">🏆 成就</button>
@@ -1531,6 +1553,18 @@
   <p class="stats-text" id="victory-stats"></p>
   <p class="stats-text">你击败了所有敌人，成为真正的卡牌大师！</p>
   <button id="start-btn-next" class="start-btn">再来一局</button>
+</div>
+
+<!-- V28 终局结算界面 -->
+<div id="endgame-screen">
+  <h1 id="endgame-title">🏆 终局结算</h1>
+  <div id="endgame-content"></div>
+  <div class="endgame-buttons">
+    <button class="endgame-btn endgame-btn-ngplus" id="ngplus-btn">⚔️ 新游戏+</button>
+    <button class="endgame-btn endgame-btn-difficulty" id="difficulty-btn">🎯 难度选择</button>
+    <button class="endgame-btn endgame-btn-stats" id="stats-btn">📊 本局统计</button>
+    <button class="endgame-btn endgame-btn-menu" id="menu-btn">🏠 返回主菜单</button>
+  </div>
 </div>
 
 <div id="game-container" style="display:none">
@@ -3873,6 +3907,38 @@ let gameState = {
   // V25 宠物系统
   pets: [], // 玩家拥有的宠物列表 { id, equipped }
   ownedPetIds: [], // 已购买的宠物ID列表（防止重复购买）
+  // V28 终局与周目系统
+  ngPlus: 0,                    // 周目：0=首次通关，1=新游戏+，以此类推
+  difficulty: 'normal',          // normal / hard / hell / extreme
+  hiddenEndings: {},             // { perfect: false, charity: false, ... }
+  statistics: {                  // V28 全程统计
+    totalDamage: 0,
+    totalHealing: 0,
+    maxSingleDamage: 0,
+    maxCombo: 0,
+    enemiesDefeated: 0,
+    cardsGained: 0,
+    cardsSkipped: 0,
+    goldSpent: 0,
+    goldEarned: 0,
+    timePlayed: 0,               // 秒
+    bossesDefeated: 0,
+    elitesDefeated: 0
+  },
+  unlockedDifficulties: ['normal'],  // 已解锁难度
+  petRetained: null,            // 新游戏+保留的宠物ID
+  relicsRetained: [],            // 新游戏+保留的遗物ID
+  gameStartTime: null,           // 本局开始时间戳
+  runCardSkipCount: 0,           // 本局跳过卡牌次数（统计）
+  runShopPurchaseCount: 0,       // 本局商店购买次数（统计）
+  runMaxHpLost: 0,               // 本局累计失去生命值
+  runStartHp: 0,                 // 本局初始生命值
+  // V28 图鉴系统
+  guidebook: {
+    enemies: {},    // { enemyId: { discovered: true, defeatCount: 0 } }
+    cards: {},      // { cardId: { discovered: true, timesPlayed: 0 } }
+    relics: {}      // { relicId: { discovered: true } }
+  }
 };
 
 // ===== V25 宠物效果应用 =====
@@ -6355,6 +6421,13 @@ function dealDamageToEnemy(damage) {
       addLog(`💥 暴击！伤害翻倍！`, 'damage');
     }
     gameState.enemyHp -= actualDamage;
+    // V28 统计：记录伤害
+    if (gameState.statistics) {
+      gameState.statistics.totalDamage += actualDamage;
+      if (actualDamage > gameState.statistics.maxSingleDamage) {
+        gameState.statistics.maxSingleDamage = actualDamage;
+      }
+    }
     flashEnemy();
     showDamageNumber(actualDamage, isCritical ? 'critical' : 'damage', 'enemy-area');
     addLog(`造成 ${actualDamage} 点伤害`, 'damage');
@@ -6952,6 +7025,10 @@ function dealDamageToPlayer(damage, isEnemyAttack = true) {
   }
   
   if (damage > 0) {
+    // V28 统计：记录HP损失
+    if (gameState.statistics) {
+      gameState.runMaxHpLost += damage;
+    }
     gameState.playerHp -= damage;
     flashPlayer();
     screenShake();
@@ -7360,11 +7437,383 @@ function showVictory() {
   // V19 隐藏快速存档按钮
   document.getElementById('quick-save-btn').classList.remove('show');
 
+  // V28 更新游戏时长统计
+  if (gameState.gameStartTime) {
+    gameState.statistics.timePlayed += Math.floor((Date.now() - gameState.gameStartTime) / 1000);
+  }
+
+  // V28 检查隐藏结局
+  checkHiddenEndings();
+  
+  // V28 解锁下一个难度
+  unlockNextDifficulty();
+  
+  // V28 显示终局结算界面
+  showEndgameScreen();
+}
+
+// V28 终局结算界面
+function showEndgameScreen() {
+  const stats = gameState.statistics;
+  const deckType = evaluateDeckType();
+  const endings = checkHiddenEndings();
+  const ngPlusText = gameState.ngPlus > 0 ? `<span class="ngplus-badge">第${gameState.ngPlus + 1}周目</span>` : '';
+  const difficultyClass = 'difficulty-' + gameState.difficulty;
+  const difficultyText = gameState.difficulty === 'normal' ? '普通' : 
+                         gameState.difficulty === 'hard' ? '困难' : 
+                         gameState.difficulty === 'hell' ? '地狱' : '极难';
+  
+  // 格式化时间
+  const minutes = Math.floor(stats.timePlayed / 60);
+  const seconds = stats.timePlayed % 60;
+  const timeStr = `${minutes}分${seconds}秒`;
+  
+  // 生成隐藏结局徽章
+  let endingsHtml = '';
+  for (const [key, ending] of Object.entries(endings)) {
+    if (ending.achieved) {
+      endingsHtml += `<span class="endgame-ending-badge">${ending.name}: ${ending.message}</span>`;
+    }
+  }
+  if (!endingsHtml) endingsHtml = '<span style="color:#666;">暂无隐藏结局达成</span>';
+  
+  const content = `
+    <div class="endgame-section">
+      <h3>📜 通关报告 ${ngPlusText}</h3>
+      <div class="endgame-stat"><span>难度:</span><span class="endgame-stat-value"><span class="difficulty-badge ${difficultyClass}">${difficultyText}</span></span></div>
+      <div class="endgame-stat"><span>用时:</span><span class="endgame-stat-value">${timeStr}</span></div>
+      <div class="endgame-stat"><span>卡组评价:</span><span class="endgame-deck-type">${deckType}</span></div>
+    </div>
+    <div class="endgame-section">
+      <h3>⚔️ 战斗统计</h3>
+      <div class="endgame-stat"><span>总伤害:</span><span class="endgame-stat-value">${stats.totalDamage}</span></div>
+      <div class="endgame-stat"><span>总治疗:</span><span class="endgame-stat-value">${stats.totalHealing}</span></div>
+      <div class="endgame-stat"><span>最高单次伤害:</span><span class="endgame-stat-value">${stats.maxSingleDamage}</span></div>
+      <div class="endgame-stat"><span>最高连击:</span><span class="endgame-stat-value">${stats.maxCombo}</span></div>
+      <div class="endgame-stat"><span>击败敌人:</span><span class="endgame-stat-value">${stats.enemiesDefeated}</span></div>
+      <div class="endgame-stat"><span>击败Boss:</span><span class="endgame-stat-value">${stats.bossesDefeated}</span></div>
+      <div class="endgame-stat"><span>击败精英:</span><span class="endgame-stat-value">${stats.elitesDefeated}</span></div>
+    </div>
+    <div class="endgame-section">
+      <h3>🃏 卡组收集</h3>
+      <div class="endgame-stat"><span>获得卡牌:</span><span class="endgame-stat-value">${stats.cardsGained}</span></div>
+      <div class="endgame-stat"><span>跳过卡牌:</span><span class="endgame-stat-value">${stats.cardsSkipped}</span></div>
+      <div class="endgame-stat"><span>当前卡组:</span><span class="endgame-stat-value">${gameState.deck.length}张</span></div>
+    </div>
+    <div class="endgame-section">
+      <h3>💰 经济统计</h3>
+      <div class="endgame-stat"><span>金币花费:</span><span class="endgame-stat-value">${stats.goldSpent}</span></div>
+      <div class="endgame-stat"><span>金币获得:</span><span class="endgame-stat-value">${stats.goldEarned}</span></div>
+    </div>
+    <div class="endgame-section">
+      <h3>🌟 隐藏结局</h3>
+      <div class="endgame-hidden-endings">${endingsHtml}</div>
+    </div>
+  `;
+  
+  document.getElementById('endgame-content').innerHTML = content;
   document.getElementById('game-container').style.display = 'none';
   document.getElementById('log-panel').style.display = 'none';
-  document.getElementById('victory-screen').classList.add('show');
-  document.getElementById('victory-stats').textContent = 
-    `总战斗胜利: ${gameState.totalBattlesWon} | 总获得金币: ${gameState.totalGoldEarned}`;
+  document.getElementById('victory-screen').classList.remove('show');
+  document.getElementById('endgame-screen').classList.add('show');
+}
+
+// V28 评估卡组类型
+function evaluateDeckType() {
+  const attackCards = gameState.deck.filter(c => c.type === 'attack').length;
+  const skillCards = gameState.deck.filter(c => c.type === 'skill').length;
+  const powerCards = gameState.deck.filter(c => c.type === 'power').length;
+  const totalCards = gameState.deck.length;
+  
+  if (totalCards === 0) return '均衡发展型';
+  
+  const attackRatio = attackCards / totalCards;
+  const skillRatio = skillCards / totalCards;
+  const powerRatio = powerCards / totalCards;
+  
+  if (attackRatio > 0.6) return '🔥 暴力输出型';
+  if (skillRatio > 0.5) return '🛡️ 防守反击型';
+  if (powerRatio > 0.3) return '⚡ 能力爆发型';
+  return '⚖️ 均衡发展型';
+}
+
+// V28 隐藏结局检测
+const HIDDEN_ENDING_CONDITIONS = {
+  perfect: {
+    name: '完美主义',
+    check: () => gameState.runCardSkipCount === 0,
+    message: '你接受了每一份力量'
+  },
+  charity: {
+    name: '慈善家',
+    check: () => gameState.runShopPurchaseCount === 0,
+    message: '你分文未动'
+  },
+  immortal: {
+    name: '极限生存',
+    check: () => gameState.runMaxHpLost === 0,
+    message: '完美的生命流转'
+  },
+  speedrun: {
+    name: '速战速决',
+    check: () => gameState.statistics.timePlayed < 15 * 60,
+    message: '闪电终结'
+  },
+  f2p: {
+    name: '零氪通关',
+    check: () => gameState.statistics.goldSpent === 0,
+    message: '纯粹的卡牌构筑'
+  },
+  solo: {
+    name: '孤独旅程',
+    check: () => gameState.relics.length <= 1 && gameState.pets.filter(p => p.equipped).length === 0,
+    message: '独自前行'
+  }
+};
+
+function checkHiddenEndings() {
+  const results = {};
+  for (const [key, condition] of Object.entries(HIDDEN_ENDING_CONDITIONS)) {
+    const achieved = condition.check();
+    results[key] = {
+      name: condition.name,
+      message: condition.message,
+      achieved: achieved
+    };
+    if (achieved) {
+      gameState.hiddenEndings[key] = true;
+      // 解锁对应隐藏成就
+      const achievementId = 'hidden_' + key;
+      if (!gameState.unlockedAchievements.includes(achievementId)) {
+        gameState.unlockedAchievements.push(achievementId);
+      }
+    }
+  }
+  return results;
+}
+
+// V28 解锁下一个难度
+const DIFFICULTY_MULTIPLIERS = {
+  normal:  { hp: 1.0, atk: 1.0 },
+  hard:    { hp: 1.3, atk: 1.15 },
+  hell:    { hp: 1.6, atk: 1.35 },
+  extreme: { hp: 2.0, atk: 1.60 }
+};
+
+function unlockNextDifficulty() {
+  const difficultyOrder = ['normal', 'hard', 'hell', 'extreme'];
+  const currentIdx = difficultyOrder.indexOf(gameState.difficulty);
+  if (currentIdx < difficultyOrder.length - 1) {
+    const next = difficultyOrder[currentIdx + 1];
+    if (!gameState.unlockedDifficulties.includes(next)) {
+      gameState.unlockedDifficulties.push(next);
+      showNotification(`🎉 解锁新难度: ${next === 'hard' ? '困难' : next === 'hell' ? '地狱' : '极难'}!`);
+    }
+  }
+}
+
+// V28 开始新游戏+
+function startNGPlus() {
+  // 保存宠物和遗物选择状态
+  gameState.petRetained = getEquippedPets()[0]?.id || null;
+  gameState.relicsRetained = gameState.relics.map(r => r.id);
+  
+  // 增加周目数
+  gameState.ngPlus++;
+  
+  // 重置游戏状态但保留宠物和遗物
+  resetGameStateForNGPlus();
+  
+  // 关闭结算界面，显示游戏
+  document.getElementById('endgame-screen').classList.remove('show');
+  document.getElementById('game-container').style.display = 'block';
+  document.getElementById('map-container').style.display = 'block';
+  
+  initMap();
+  renderMap();
+  showNotification(`⚔️ 开始第${gameState.ngPlus + 1}周目!`);
+}
+
+// V28 重置游戏状态
+function resetGameStateForNGPlus() {
+  const startingDeck = [
+    CARDS.strike, CARDS.strike, CARDS.strike, CARDS.strike,
+    CARDS.defend, CARDS.defend, CARDS.defend, CARDS.defend,
+    CARDS.harden, CARDS.harden,
+    CARDS.consecutiveStrike, CARDS.consecutiveStrike,
+    CARDS.painfulStrike,
+  ];
+  
+  gameState.playerHp = 80;
+  gameState.playerMaxHp = 80;
+  gameState.playerShield = 0;
+  gameState.gold = 0;
+  gameState.deck = startingDeck.map(c => ({ ...c }));
+  gameState.hand = [];
+  gameState.drawPile = [];
+  gameState.discardPile = [];
+  gameState.energy = 3;
+  gameState.maxEnergy = 3;
+  gameState.turn = 1;
+  gameState.enemy = null;
+  gameState.enemyHp = 0;
+  gameState.enemyMaxHp = 0;
+  gameState.enemyArmor = 0;
+  gameState.enemyIntent = null;
+  gameState.enemyIntentValue = 0;
+  gameState.playerDebuffs = [];
+  gameState.enemyDebuffs = [];
+  gameState.burnStacks = 0;
+  gameState.comboActive = false;
+  gameState.nextTurnBlockBonus = 0;
+  gameState.auraBurnActive = false;
+  gameState.lifestealAuraActive = false;
+  gameState.thornsAuraActive = false;
+  gameState.thornsAuraValue = 0;
+  gameState.blockAuraValue = 0;
+  gameState.quickeningActive = false;
+  gameState.burnReflectActive = false;
+  gameState.burnReflectValue = 0;
+  gameState.reflectAuraActive = false;
+  gameState.reflectAuraValue = 0;
+  gameState.fortifyAuraActive = false;
+  gameState.fortifyAuraValue = 0;
+  gameState.evasionAuraActive = false;
+  gameState.evasionChance = 0;
+  gameState.weakenAuraActive = false;
+  gameState.weakenRate = 0;
+  gameState.enrageAuraActive = false;
+  gameState.enrageThreshold = 0.5;
+  gameState.enrageBonus = 0;
+  gameState.enemySilenceTurns = 0;
+  gameState.currentFloor = 1;
+  gameState.currentNode = null;
+  gameState.unlockedNodes = [];
+  gameState.completedNodes = [];
+  gameState.inMap = true;
+  gameState.selectedNode = null;
+  gameState.totalBattlesWon = 0;
+  gameState.totalGoldEarned = 0;
+  // 保留宠物和遗物
+  gameState.relics = gameState.relicsRetained.map(id => RELICS[id]).filter(Boolean);
+  gameState.acquiredRelicIds = [...gameState.relicsRetained];
+  // 重新装备宠物
+  if (gameState.petRetained && gameState.pets.find(p => p.id === gameState.petRetained)) {
+    gameState.pets.forEach(p => p.equipped = p.id === gameState.petRetained);
+  }
+  // V28 统计重置
+  gameState.statistics = {
+    totalDamage: 0,
+    totalHealing: 0,
+    maxSingleDamage: 0,
+    maxCombo: 0,
+    enemiesDefeated: 0,
+    cardsGained: 0,
+    cardsSkipped: 0,
+    goldSpent: 0,
+    goldEarned: 0,
+    timePlayed: 0,
+    bossesDefeated: 0,
+    elitesDefeated: 0
+  };
+  gameState.gameStartTime = Date.now();
+  gameState.runCardSkipCount = 0;
+  gameState.runShopPurchaseCount = 0;
+  gameState.runMaxHpLost = 0;
+  gameState.runStartHp = 80;
+}
+
+// V28 难度选择
+function showDifficultySelection() {
+  const difficulties = ['normal', 'hard', 'hell', 'extreme'];
+  const difficultyNames = { normal: '普通', hard: '困难', hell: '地狱', extreme: '极难' };
+  const difficultyDesc = {
+    normal: '100% HP / 100% ATK',
+    hard: '130% HP / 115% ATK',
+    hell: '160% HP / 135% ATK',
+    extreme: '200% HP / 160% ATK'
+  };
+  
+  let html = '<div style="text-align:center;padding:20px;"><h2 style="color:#ffd700;">🎯 选择难度</h2>';
+  
+  for (const diff of difficulties) {
+    const unlocked = gameState.unlockedDifficulties.includes(diff);
+    const current = gameState.difficulty === diff;
+    const lockedClass = unlocked ? '' : 'opacity:0.5;';
+    const currentClass = current ? 'border:3px solid #ffd700;' : '';
+    
+    if (unlocked) {
+      html += `<div class="endgame-section" style="${lockedClass}${currentClass}cursor:pointer;" onclick="selectDifficulty('${diff}')">
+        <h3 style="color:${diff === 'normal' ? '#27ae60' : diff === 'hard' ? '#f39c12' : diff === 'hell' ? '#e74c3c' : '#9b59b6'};">${difficultyNames[diff]} ${current ? '✓ 当前' : ''}</h3>
+        <p style="color:#ccc;font-size:14px;">${difficultyDesc[diff]}</p>
+        ${!current ? '<p style="color:#4ecdc4;font-size:12px;">点击选择</p>' : ''}
+      </div>`;
+    } else {
+      html += `<div class="endgame-section" style="${lockedClass}">
+        <h3 style="color:#666;">🔒 ${difficultyNames[diff]}</h3>
+        <p style="color:#666;font-size:14px;">通关上一个难度解锁</p>
+      </div>`;
+    }
+  }
+  
+  html += '<button class="endgame-btn endgame-btn-menu" onclick="closeDifficultySelection()" style="margin-top:20px;">返回</button></div>';
+  
+  document.getElementById('endgame-content').innerHTML = html;
+}
+
+function selectDifficulty(diff) {
+  gameState.difficulty = diff;
+  showNotification(`难度已切换为: ${diff === 'normal' ? '普通' : diff === 'hard' ? '困难' : diff === 'hell' ? '地狱' : '极难'}`);
+  showDifficultySelection();
+}
+
+function closeDifficultySelection() {
+  showEndgameScreen();
+}
+
+// V28 显示统计面板
+function showStatisticsPanel() {
+  const stats = gameState.statistics;
+  const minutes = Math.floor(stats.timePlayed / 60);
+  const seconds = stats.timePlayed % 60;
+  
+  const html = `
+    <div style="text-align:center;padding:20px;">
+      <h2 style="color:#ffd700;margin-bottom:20px;">📊 本局统计</h2>
+      <div class="endgame-section">
+        <h3>⏱️ 时间统计</h3>
+        <div class="endgame-stat"><span>总用时:</span><span class="endgame-stat-value">${minutes}分${seconds}秒</span></div>
+      </div>
+      <div class="endgame-section">
+        <h3>⚔️ 战斗统计</h3>
+        <div class="endgame-stat"><span>总伤害:</span><span class="endgame-stat-value">${stats.totalDamage}</span></div>
+        <div class="endgame-stat"><span>总治疗:</span><span class="endgame-stat-value">${stats.totalHealing}</span></div>
+        <div class="endgame-stat"><span>最高单次伤害:</span><span class="endgame-stat-value">${stats.maxSingleDamage}</span></div>
+        <div class="endgame-stat"><span>最高连击:</span><span class="endgame-stat-value">${stats.maxCombo}</span></div>
+        <div class="endgame-stat"><span>击败敌人:</span><span class="endgame-stat-value">${stats.enemiesDefeated}</span></div>
+        <div class="endgame-stat"><span>击败Boss:</span><span class="endgame-stat-value">${stats.bossesDefeated}</span></div>
+        <div class="endgame-stat"><span>击败精英:</span><span class="endgame-stat-value">${stats.elitesDefeated}</span></div>
+      </div>
+      <div class="endgame-section">
+        <h3>🃏 卡组统计</h3>
+        <div class="endgame-stat"><span>获得卡牌:</span><span class="endgame-stat-value">${stats.cardsGained}</span></div>
+        <div class="endgame-stat"><span>跳过卡牌:</span><span class="endgame-stat-value">${stats.cardsSkipped}</span></div>
+        <div class="endgame-stat"><span>当前卡组:</span><span class="endgame-stat-value">${gameState.deck.length}张</span></div>
+      </div>
+      <div class="endgame-section">
+        <h3>💰 经济统计</h3>
+        <div class="endgame-stat"><span>金币花费:</span><span class="endgame-stat-value">${stats.goldSpent}</span></div>
+        <div class="endgame-stat"><span>金币获得:</span><span class="endgame-stat-value">${stats.goldEarned}</span></div>
+      </div>
+      <button class="endgame-btn endgame-btn-menu" onclick="closeStatisticsPanel()" style="margin-top:20px;">返回</button>
+    </div>
+  `;
+  
+  document.getElementById('endgame-content').innerHTML = html;
+}
+
+function closeStatisticsPanel() {
+  showEndgameScreen();
 }
 
 // ===== UI 渲染 =====
@@ -7601,6 +8050,37 @@ function initGame() {
     // V9 新增统计
     totalVictories: 0,
     totalChaptersCompleted: 0,
+    // V28 终局与周目系统
+    ngPlus: 0,
+    difficulty: 'normal',
+    hiddenEndings: {},
+    statistics: {
+      totalDamage: 0,
+      totalHealing: 0,
+      maxSingleDamage: 0,
+      maxCombo: 0,
+      enemiesDefeated: 0,
+      cardsGained: 0,
+      cardsSkipped: 0,
+      goldSpent: 0,
+      goldEarned: 0,
+      timePlayed: 0,
+      bossesDefeated: 0,
+      elitesDefeated: 0
+    },
+    unlockedDifficulties: ['normal'],
+    petRetained: null,
+    relicsRetained: [],
+    gameStartTime: Date.now(),
+    runCardSkipCount: 0,
+    runShopPurchaseCount: 0,
+    runMaxHpLost: 0,
+    runStartHp: 80,
+    guidebook: {
+      enemies: {},
+      cards: {},
+      relics: {}
+    }
   };
 
   // V9 加载已解锁的成就
@@ -7630,6 +8110,11 @@ const SAVE_SLOTS = 3;
 
 function saveGame(slot) {
   const saveKey = `dbg_save_${slot}`;
+  // V28 更新游戏时长
+  if (gameState.gameStartTime) {
+    gameState.statistics.timePlayed += Math.floor((Date.now() - gameState.gameStartTime) / 1000);
+    gameState.gameStartTime = Date.now();
+  }
   const saveData = {
     timestamp: Date.now(),
     floor: gameState.currentFloor,
@@ -7648,6 +8133,13 @@ function saveGame(slot) {
     // V25 宠物系统
     pets: gameState.pets,
     ownedPetIds: gameState.ownedPetIds,
+    // V28 终局与周目系统
+    ngPlus: gameState.ngPlus,
+    difficulty: gameState.difficulty,
+    hiddenEndings: gameState.hiddenEndings,
+    statistics: gameState.statistics,
+    unlockedDifficulties: gameState.unlockedDifficulties,
+    guidebook: gameState.guidebook,
   };
   try {
     localStorage.setItem(saveKey, JSON.stringify(saveData));
@@ -7754,6 +8246,24 @@ function loadGame(slot) {
       // V25 宠物系统
       pets: saveData.pets || [],
       ownedPetIds: saveData.ownedPetIds || [],
+      // V28 终局与周目系统
+      ngPlus: saveData.ngPlus || 0,
+      difficulty: saveData.difficulty || 'normal',
+      hiddenEndings: saveData.hiddenEndings || {},
+      statistics: saveData.statistics || {
+        totalDamage: 0, totalHealing: 0, maxSingleDamage: 0, maxCombo: 0,
+        enemiesDefeated: 0, cardsGained: 0, cardsSkipped: 0, goldSpent: 0,
+        goldEarned: 0, timePlayed: 0, bossesDefeated: 0, elitesDefeated: 0
+      },
+      unlockedDifficulties: saveData.unlockedDifficulties || ['normal'],
+      petRetained: saveData.petRetained || null,
+      relicsRetained: saveData.relicsRetained || [],
+      gameStartTime: Date.now(),
+      runCardSkipCount: 0,
+      runShopPurchaseCount: 0,
+      runMaxHpLost: 0,
+      runStartHp: saveData.maxHp || 80,
+      guidebook: saveData.guidebook || { enemies: {}, cards: {}, relics: {} },
     };
 
     loadAchievements();
@@ -8047,6 +8557,14 @@ document.getElementById('shop-leave').onclick = leaveShop;
 document.getElementById('achievements-btn').onclick = showAchievements;
 document.getElementById('close-achievements-btn').onclick = () => {
   document.getElementById('achievements-overlay').classList.remove('show');
+};
+// V28 终局结算按钮
+document.getElementById('ngplus-btn').onclick = startNGPlus;
+document.getElementById('difficulty-btn').onclick = showDifficultySelection;
+document.getElementById('stats-btn').onclick = showStatisticsPanel;
+document.getElementById('menu-btn').onclick = () => {
+  document.getElementById('endgame-screen').classList.remove('show');
+  document.getElementById('start-screen').style.display = 'flex';
 };
 // V19 存档系统按钮
 document.getElementById('load-save-btn').onclick = showSaveSlots;
