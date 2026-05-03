@@ -1734,6 +1734,127 @@
       color: #4ecdc4;
       min-height: 20px;
     }
+
+    /* V36 新手教程系统 */
+    #tutorial-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 800;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      pointer-events: auto;
+    }
+    #tutorial-overlay.show { display: flex; }
+    #tutorial-box {
+      background: linear-gradient(145deg, #1a1a2e, #16213e);
+      border: 3px solid #ffd700;
+      border-radius: 16px;
+      padding: 30px 40px;
+      max-width: 500px;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(255,215,0,0.3);
+      position: relative;
+    }
+    #tutorial-step-indicator {
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(145deg, #ffd700, #ff8c00);
+      color: #000;
+      padding: 5px 20px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    #tutorial-title {
+      font-size: 24px;
+      color: #ffd700;
+      margin-bottom: 15px;
+      margin-top: 10px;
+    }
+    #tutorial-content {
+      font-size: 16px;
+      color: #fff;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    #tutorial-tip {
+      background: rgba(255,215,0,0.15);
+      border: 1px solid rgba(255,215,0,0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #ffd700;
+    }
+    #tutorial-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+    }
+    #tutorial-next-btn {
+      padding: 12px 35px;
+      font-size: 16px;
+      background: linear-gradient(145deg, #2ecc71, #27ae60);
+      border: none;
+      border-radius: 25px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.2s;
+    }
+    #tutorial-next-btn:hover { transform: scale(1.05); }
+    #tutorial-skip-btn {
+      padding: 12px 25px;
+      font-size: 14px;
+      background: rgba(255,255,255,0.1);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 25px;
+      color: #aaa;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #tutorial-skip-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
+    #tutorial-close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 24px;
+      cursor: pointer;
+    }
+    #tutorial-close-btn:hover { color: #fff; }
+
+    /* 教程高亮遮罩 */
+    #tutorial-highlight {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 810;
+      pointer-events: none;
+    }
+    #tutorial-highlight.show { display: block; }
+    #tutorial-highlight .highlight-hole {
+      position: absolute;
+      border: 3px solid #ffd700;
+      border-radius: 12px;
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.6);
+      pointer-events: auto;
+    }
+    #tutorial-highlight .highlight-hole.clickable {
+      cursor: pointer;
+      animation: pulse-border 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.6), 0 0 10px #ffd700; }
+      50% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.6), 0 0 20px #ffd700; }
+    }
   </style>
 </head>
 <body>
@@ -1893,6 +2014,24 @@
   <h3>📜 战斗日志</h3>
   <div id="log-entries"></div>
 </div>
+
+<!-- V36 新手教程遮罩 -->
+<div id="tutorial-overlay">
+  <div id="tutorial-box">
+    <button id="tutorial-close-btn" onclick="skipTutorial()">✕</button>
+    <div id="tutorial-step-indicator"></div>
+    <div id="tutorial-title"></div>
+    <div id="tutorial-content"></div>
+    <div id="tutorial-tip"></div>
+    <div id="tutorial-buttons">
+      <button id="tutorial-skip-btn" onclick="skipTutorial()">跳过教程</button>
+      <button id="tutorial-next-btn" onclick="nextTutorialStep()">下一步</button>
+    </div>
+  </div>
+</div>
+
+<!-- V36 教程高亮遮罩 -->
+<div id="tutorial-highlight"></div>
 
 <!-- 奖励选牌遮罩 -->
 <div id="overlay">
@@ -3560,6 +3699,7 @@ function generateSeededRun(seed) {
   gameState.statistics = {
     totalDamage: 0, totalHealing: 0, maxSingleDamage: 0, maxCombo: 0,
     enemiesDefeated: 0, cardsGained: 0, cardsSkipped: 0,
+    cardsPlayed: 0, cardsDiscarded: 0, cardUsageByType: { attack: 0, defense: 0, skill: 0, power: 0, curse: 0, fate: 0, special: 0, status: 0 },
     goldSpent: 0, goldEarned: 0, timePlayed: 0, bossesDefeated: 0, elitesDefeated: 0
   };
   
@@ -5070,6 +5210,9 @@ let gameState = {
     enemiesDefeated: 0,
     cardsGained: 0,
     cardsSkipped: 0,
+    cardsPlayed: 0,           // V35 卡牌使用追踪
+    cardsDiscarded: 0,        // V35 卡牌弃置追踪
+    cardUsageByType: { attack: 0, defense: 0, skill: 0, power: 0, curse: 0, fate: 0, special: 0, status: 0 }, // V35 按类型统计
     goldSpent: 0,
     goldEarned: 0,
     timePlayed: 0,               // 秒
@@ -5087,7 +5230,7 @@ let gameState = {
   // V28 图鉴系统
   guidebook: {
     enemies: {},    // { enemyId: { discovered: true, defeatCount: 0 } }
-    cards: {},      // { cardId: { discovered: true, timesPlayed: 0 } }
+    cards: {},      // { cardId: { discovered: true, timesPlayed: 0, timesDiscarded: 0, timesDrawn: 0 } }
     relics: {}      // { relicId: { discovered: true } }
   },
   // V29 Roguelike变体
@@ -5101,6 +5244,19 @@ let gameState = {
   dailyAttempts: 0,          // 尝试次数
   dailyLastPlayed: null,    // UTC日期字符串
   isDailyChallenge: false, // 是否为每日挑战模式
+  // V36 新手教程系统
+  tutorial: {
+    enabled: true,           // 教程总开关
+    completed: false,        // 教程是否已完成
+    skipped: false,          // 教程是否被跳过
+    currentStep: 0,           // 当前步骤索引
+    // 教程状态: 'none' | 't1_battle' | 't2_reward' | 't3_relic' | 'complete'
+    phase: 'none',
+    // 各阶段完成记录
+    battleTutorialDone: false,  // T1战斗教程完成
+    rewardTutorialDone: false,  // T2奖励教程完成
+    relicTutorialDone: false,   // T3遗物教程完成
+  },
 };
 
 // ===== V25 宠物效果应用 =====
@@ -5498,8 +5654,13 @@ function showStarterRelicSelection() {
     div.onclick = () => selectStarterRelic(relic);
     container.appendChild(div);
   });
-  
+
   document.getElementById('relic-selection-overlay').classList.add('show');
+
+  // V36 新手教程触发：遗物选择
+  if (checkTutorialTrigger('relicShow')) {
+    showTutorial('t3_relic');
+  }
 }
 
 function selectStarterRelic(relic) {
@@ -5581,6 +5742,7 @@ function startDailyChallenge() {
   gameState.statistics = {
     totalDamage: 0, totalHealing: 0, maxSingleDamage: 0, maxCombo: 0,
     enemiesDefeated: 0, cardsGained: 0, cardsSkipped: 0,
+    cardsPlayed: 0, cardsDiscarded: 0, cardUsageByType: { attack: 0, defense: 0, skill: 0, power: 0, curse: 0, fate: 0, special: 0, status: 0 },
     goldSpent: 0, goldEarned: 0, timePlayed: 0, bossesDefeated: 0, elitesDefeated: 0
   };
   
@@ -7051,6 +7213,11 @@ function startCombat(node) {
   gameState.archetypeState.killTriggered = false;
   applyArchetypeEffects('battleStart');
 
+  // V36 新手教程触发：战斗开始
+  if (checkTutorialTrigger('battleStart')) {
+    showTutorial('t1_battle');
+  }
+
   addLog(`遭遇 ${enemy.name}！`, 'info');
   rollEnemyIntent();
   renderEnemy();
@@ -7674,6 +7841,17 @@ function playCard(card, index) {
   audioManager.play('energy');
   gameState.hand.splice(index, 1);
   gameState.discardPile.push(card);
+
+  // V35 卡牌使用追踪: 使用时记录
+  const cardType = card.type || 'special';
+  gameState.statistics.cardsPlayed++;
+  gameState.statistics.cardUsageByType[cardType] = (gameState.statistics.cardUsageByType[cardType] || 0) + 1;
+  // guidebook追踪
+  if (!gameState.guidebook.cards[card.id]) {
+    gameState.guidebook.cards[card.id] = { discovered: true, timesPlayed: 0, timesDiscarded: 0, timesDrawn: 0 };
+  }
+  gameState.guidebook.cards[card.id].timesPlayed++;
+  gameState.guidebook.cards[card.id].discovered = true;
 
   const effect = card.effect || card;
 
@@ -8379,6 +8557,14 @@ function endTurn() {
 
   processDebuffs('player');
   
+  // V35 卡牌弃置追踪: 回合结束弃置手牌
+  gameState.hand.forEach(card => {
+    gameState.statistics.cardsDiscarded++;
+    if (!gameState.guidebook.cards[card.id]) {
+      gameState.guidebook.cards[card.id] = { discovered: true, timesPlayed: 0, timesDiscarded: 0, timesDrawn: 0 };
+    }
+    gameState.guidebook.cards[card.id].timesDiscarded++;
+  });
   gameState.discardPile.push(...gameState.hand);
   gameState.hand = [];
   
@@ -9257,6 +9443,11 @@ function showRewardScreen() {
   }
 
   document.getElementById('overlay').classList.add('show');
+
+  // V36 新手教程触发：奖励选择
+  if (checkTutorialTrigger('rewardSelect')) {
+    showTutorial('t2_reward');
+  }
 }
 
 // V31: 切换奖励标签页
@@ -9848,6 +10039,9 @@ function resetGameStateForNGPlus() {
     enemiesDefeated: 0,
     cardsGained: 0,
     cardsSkipped: 0,
+    cardsPlayed: 0,
+    cardsDiscarded: 0,
+    cardUsageByType: { attack: 0, defense: 0, skill: 0, power: 0, curse: 0, fate: 0, special: 0, status: 0 },
     goldSpent: 0,
     goldEarned: 0,
     timePlayed: 0,
@@ -10304,6 +10498,9 @@ function initGame() {
       enemiesDefeated: 0,
       cardsGained: 0,
       cardsSkipped: 0,
+      cardsPlayed: 0,           // V35 卡牌使用追踪
+      cardsDiscarded: 0,        // V35 卡牌弃置追踪
+      cardUsageByType: { attack: 0, defense: 0, skill: 0, power: 0, curse: 0, fate: 0, special: 0, status: 0 }, // V35 按类型统计
       goldSpent: 0,
       goldEarned: 0,
       timePlayed: 0,
@@ -10514,8 +10711,9 @@ function loadGame(slot) {
       hiddenEndings: saveData.hiddenEndings || {},
       statistics: saveData.statistics || {
         totalDamage: 0, totalHealing: 0, maxSingleDamage: 0, maxCombo: 0,
-        enemiesDefeated: 0, cardsGained: 0, cardsSkipped: 0, goldSpent: 0,
-        goldEarned: 0, timePlayed: 0, bossesDefeated: 0, elitesDefeated: 0
+        enemiesDefeated: 0, cardsGained: 0, cardsSkipped: 0,
+        cardsPlayed: 0, cardsDiscarded: 0, cardUsageByType: { attack: 0, defense: 0, skill: 0, power: 0, curse: 0, fate: 0, special: 0, status: 0 },
+        goldSpent: 0, goldEarned: 0, timePlayed: 0, bossesDefeated: 0, elitesDefeated: 0
       },
       unlockedDifficulties: saveData.unlockedDifficulties || ['normal'],
       petRetained: saveData.petRetained || null,
@@ -10804,6 +11002,265 @@ function initMobileSupport() {
   
   // 初始canvas缩放
   setTimeout(resizeCanvas, 100);
+}
+
+// ===== V36 新手教程系统 =====
+// 教程内容定义
+const TUTORIAL_DATA = {
+  t1_battle: {
+    steps: [
+      {
+        title: "⚔️ 战斗教程",
+        content: "欢迎来到DBG卡牌游戏！在这场战斗中，你需要击败面前的敌人。",
+        tip: "每回合你会有3点能量，使用卡牌需要消耗能量。",
+        highlight: null,
+        buttonText: "开始战斗"
+      },
+      {
+        title: "🃏 使用卡牌",
+        content: "点击手牌中的攻击卡牌可以对敌人造成伤害。攻击卡牌消耗能量。",
+        tip: "点击一张攻击卡，然后点击'出牌'按钮使用它。",
+        highlight: { selector: "#hand", text: "这里是你的手牌" },
+        buttonText: "知道了"
+      },
+      {
+        title: "🛡️ 防御",
+        content: "使用防御卡牌可以获得护甲，护甲可以抵挡敌人的攻击。",
+        tip: "护甲在每回合开始时清零，记得及时补充！",
+        highlight: { selector: "#hand", text: "防御卡牌" },
+        buttonText: "明白了"
+      },
+      {
+        title: "⚡ 结束回合",
+        content: "当能量耗尽或没有想打的牌时，点击'结束回合'按钮让敌人行动。",
+        tip: "敌人会显示他们的意图：攻击(红色)、防御(蓝色)或准备技能(紫色)。",
+        highlight: { selector: "#end-turn", text: "结束回合" },
+        buttonText: "好"
+      },
+      {
+        title: "💡 战斗技巧",
+        content: "击败敌人后，你将获得选择卡牌作为奖励。合理搭配攻击、防守和技能卡牌是取胜的关键！",
+        tip: "注意保留能量用于关键卡牌，有时等待也是策略。",
+        highlight: null,
+        buttonText: "开始战斗！"
+      }
+    ],
+    trigger: "battleStart",
+    doneFlag: "battleTutorialDone"
+  },
+  t2_reward: {
+    steps: [
+      {
+        title: "🎁 选择奖励",
+        content: "漂亮！你赢得了战斗，现在可以选择一张卡牌加入你的牌组。",
+        tip: "选择对你最有利的卡牌来增强你的套牌。",
+        highlight: { selector: "#overlay", text: "奖励选择" },
+        buttonText: "继续"
+      },
+      {
+        title: "📋 卡牌类型",
+        content: "攻击牌造成伤害，技能牌提供护甲或特殊效果，力量牌提供永久增益。",
+        tip: "均衡发展很重要，但也可以专注某种流派获得更强效果。",
+        highlight: null,
+        buttonText: "了解"
+      },
+      {
+        title: "✨ 稀有度",
+        content: "卡牌有不同稀有度：普通(白)、稀有(蓝)、史诗(紫)、传说(橙)。稀有度越高越强大！",
+        tip: "但不一定最稀有的就是最好的，适合你的才是最好的。",
+        highlight: null,
+        buttonText: "继续选择"
+      },
+      {
+        title: "🚪 跳过选项",
+        content: "如果奖励的卡牌都不需要，你可以选择跳过，不获取任何卡牌。",
+        tip: "有时跳过也是一种策略，避免牌组变得过大难以管理。",
+        highlight: { selector: "#skip-reward-btn", text: "跳过" },
+        buttonText: "明白了"
+      }
+    ],
+    trigger: "rewardSelect",
+    doneFlag: "rewardTutorialDone"
+  },
+  t3_relic: {
+    steps: [
+      {
+        title: "🏆 遗物系统",
+        content: "恭喜你完成了第一场战斗！遗物是强大的特殊物品，可以给你各种增益效果。",
+        tip: "每个遗物都有独特的能力，妥善利用它们可以让你更轻松地获胜。",
+        highlight: { selector: "#relics-panel", text: "遗物" },
+        buttonText: "继续"
+      },
+      {
+        title: "🎴 初始牌组",
+        content: "你有一个基础牌组，包含基本的攻击和防御卡牌。随着游戏进行，你可以添加更多卡牌。",
+        tip: "卡组不是越大越好，过多的卡牌会让你难以抽到想要的牌。",
+        highlight: null,
+        buttonText: "知道了"
+      },
+      {
+        title: "🗺️ 地图探索",
+        content: "接下来你可以选择下一个节点。战斗节点会遭遇敌人，精英节点会遇到更强的对手但奖励更丰厚！",
+        tip: "注意规划路线，确保持续变强。",
+        highlight: { selector: "#map-canvas", text: "地图" },
+        buttonText: "开始探索"
+      },
+      {
+        title: "🎯 游戏目标",
+        content: "你的目标是击败所有章节的BOSS并生存下来！随着周目增加，难度也会提升。",
+        tip: "尝试不同的卡牌组合和遗物搭配，发现属于你的胜利之道！",
+        highlight: null,
+        buttonText: "祝我好运！"
+      }
+    ],
+    trigger: "relicShow",
+    doneFlag: "relicTutorialDone"
+  }
+};
+
+// 检查教程是否应该触发
+function checkTutorialTrigger(trigger) {
+  if (!gameState.tutorial.enabled || gameState.tutorial.completed || gameState.tutorial.skipped) {
+    return false;
+  }
+  
+  // 根据触发条件检查对应的教程阶段
+  if (trigger === 'battleStart' && !gameState.tutorial.battleTutorialDone) {
+    gameState.tutorial.phase = 't1_battle';
+    return true;
+  }
+  if (trigger === 'rewardSelect' && !gameState.tutorial.rewardTutorialDone) {
+    gameState.tutorial.phase = 't2_reward';
+    return true;
+  }
+  if (trigger === 'relicShow' && !gameState.tutorial.relicTutorialDone) {
+    gameState.tutorial.phase = 't3_relic';
+    return true;
+  }
+  return false;
+}
+
+// 显示教程
+function showTutorial(phase) {
+  const tutorial = TUTORIAL_DATA[phase];
+  if (!tutorial) return;
+  
+  gameState.tutorial.currentStep = 0;
+  updateTutorialUI();
+  
+  document.getElementById('tutorial-overlay').classList.add('show');
+  updateTutorialHighlight();
+}
+
+// 更新教程UI
+function updateTutorialUI() {
+  const phase = gameState.tutorial.phase;
+  const tutorial = TUTORIAL_DATA[phase];
+  if (!tutorial) return;
+  
+  const step = tutorial.steps[gameState.tutorial.currentStep];
+  const totalSteps = tutorial.steps.length;
+  const currentStep = gameState.tutorial.currentStep + 1;
+  
+  document.getElementById('tutorial-step-indicator').textContent = `步骤 ${currentStep}/${totalSteps}`;
+  document.getElementById('tutorial-title').textContent = step.title;
+  document.getElementById('tutorial-content').textContent = step.content;
+  document.getElementById('tutorial-tip').innerHTML = step.tip;
+  document.getElementById('tutorial-next-btn').textContent = step.buttonText;
+  
+  // 最后一步隐藏跳过按钮
+  const skipBtn = document.getElementById('tutorial-skip-btn');
+  if (gameState.tutorial.currentStep === totalSteps - 1) {
+    skipBtn.style.display = 'none';
+  } else {
+    skipBtn.style.display = 'inline-block';
+  }
+}
+
+// 更新教程高亮
+function updateTutorialHighlight() {
+  const phase = gameState.tutorial.phase;
+  const tutorial = TUTORIAL_DATA[phase];
+  if (!tutorial) return;
+  
+  const step = tutorial.steps[gameState.tutorial.currentStep];
+  const highlightEl = document.getElementById('tutorial-highlight');
+  
+  if (!step.highlight) {
+    highlightEl.classList.remove('show');
+    highlightEl.innerHTML = '';
+    return;
+  }
+  
+  const targetEl = document.querySelector(step.highlight.selector);
+  if (!targetEl) {
+    highlightEl.classList.remove('show');
+    highlightEl.innerHTML = '';
+    return;
+  }
+  
+  const rect = targetEl.getBoundingClientRect();
+  highlightEl.classList.add('show');
+  highlightEl.innerHTML = `
+    <div class="highlight-hole clickable" style="
+      left: ${rect.left - 10}px;
+      top: ${rect.top - 10}px;
+      width: ${rect.width + 20}px;
+      height: ${rect.height + 20}px;
+    "></div>
+  `;
+}
+
+// 下一步教程
+function nextTutorialStep() {
+  const phase = gameState.tutorial.phase;
+  const tutorial = TUTORIAL_DATA[phase];
+  if (!tutorial) return;
+  
+  gameState.tutorial.currentStep++;
+  
+  if (gameState.tutorial.currentStep >= tutorial.steps.length) {
+    // 教程完成
+    completeTutorialPhase(phase);
+  } else {
+    updateTutorialUI();
+    updateTutorialHighlight();
+  }
+}
+
+// 完成教程阶段
+function completeTutorialPhase(phase) {
+  const tutorial = TUTORIAL_DATA[phase];
+  if (tutorial && tutorial.doneFlag) {
+    gameState.tutorial[tutorial.doneFlag] = true;
+  }
+  
+  hideTutorial();
+  
+  // 检查是否所有教程都完成
+  if (gameState.tutorial.battleTutorialDone && 
+      gameState.tutorial.rewardTutorialDone && 
+      gameState.tutorial.relicTutorialDone) {
+    gameState.tutorial.completed = true;
+    gameState.tutorial.phase = 'complete';
+  } else {
+    gameState.tutorial.phase = 'none';
+  }
+}
+
+// 跳过教程
+function skipTutorial() {
+  gameState.tutorial.skipped = true;
+  gameState.tutorial.completed = true;
+  gameState.tutorial.phase = 'complete';
+  hideTutorial();
+}
+
+// 隐藏教程
+function hideTutorial() {
+  document.getElementById('tutorial-overlay').classList.remove('show');
+  document.getElementById('tutorial-highlight').classList.remove('show');
+  document.getElementById('tutorial-highlight').innerHTML = '';
 }
 
 // ===== 事件绑定 =====
