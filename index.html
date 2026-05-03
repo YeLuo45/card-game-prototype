@@ -2303,6 +2303,7 @@ function applyArchetypeEffects(trigger, context = {}) {
         const heal = Math.min(bonuses.killHeal, gameState.playerMaxHp - gameState.playerHp);
         if (heal > 0) {
           gameState.playerHp += heal;
+          showDamageNumber(heal, 'heal', 'player-area');
           addLog(`饮血精通：击杀回复${heal}点生命`, 'heal');
         }
       }
@@ -7619,6 +7620,8 @@ function startPlayerTurn() {
   if (gameState.poisonStacks > 0) {
     const poisonDmg = gameState.poisonStacks * 3;
     gameState.playerHp -= poisonDmg;
+    flashPlayer();
+    showDamageNumber(poisonDmg, 'poison', 'player-area');
     addLog(`中毒发作！受到 ${poisonDmg} 点伤害（${gameState.poisonStacks}层）`, 'debuff');
     gameState.poisonStacks = Math.max(0, gameState.poisonStacks - 1);
   }
@@ -7627,6 +7630,8 @@ function startPlayerTurn() {
   if (gameState.bleedStacks > 0) {
     const bleedDmg = gameState.bleedStacks * 2;
     gameState.playerHp -= bleedDmg;
+    flashPlayer();
+    showDamageNumber(bleedDmg, 'damage', 'player-area');
     addLog(`流血发作！受到 ${bleedDmg} 点伤害（${gameState.bleedStacks}层）`, 'debuff');
     gameState.bleedStacks = Math.max(0, gameState.bleedStacks - 1);
   }
@@ -7888,6 +7893,8 @@ function playCard(card, index) {
     if (effect.sacrificeHp && effect.draw) {
       const sacrifice = Math.min(effect.sacrificeHp, gameState.playerHp - 1);
       gameState.playerHp -= sacrifice;
+      showDamageNumber(sacrifice, 'damage', 'player-area');
+      flashPlayer();
       addLog(`血契: 失去 ${sacrifice} 点生命`, 'damage');
       drawCards(effect.draw);
       addLog(`抽 ${effect.draw} 张牌`, 'info');
@@ -8463,6 +8470,8 @@ function executeEnemyIntent() {
   if (gameState.poisonStacks > 0) {
     const poisonDmg = gameState.poisonStacks * 3;
     gameState.enemyHp -= poisonDmg;
+    flashEnemy();
+    showDamageNumber(poisonDmg, 'poison', 'enemy-area');
     addLog(`敌人中毒发作！受到 ${poisonDmg} 点伤害（${gameState.poisonStacks}层）`, 'debuff');
     gameState.poisonStacks = Math.max(0, gameState.poisonStacks - 1);
     if (gameState.enemyHp <= 0) {
@@ -8475,6 +8484,8 @@ function executeEnemyIntent() {
   if (gameState.bleedStacks > 0) {
     const bleedDmg = gameState.bleedStacks * 2;
     gameState.enemyHp -= bleedDmg;
+    flashEnemy();
+    showDamageNumber(bleedDmg, 'damage', 'enemy-area');
     addLog(`敌人流血发作！受到 ${bleedDmg} 点伤害（${gameState.bleedStacks}层）`, 'debuff');
     gameState.bleedStacks = Math.max(0, gameState.bleedStacks - 1);
     if (gameState.enemyHp <= 0) {
