@@ -2165,11 +2165,13 @@ function applyArchetypeEffects(trigger, context = {}) {
         addLog('钢铁壁垒：战斗开始获得5点永久护甲', 'block');
       }
       if (trigger === 'cardPlay' && context.card) {
-        // 铁壁学: 护甲多10%
-        if (bonuses.blockBonusPercent && context.effect?.block) {
-          const orig = context.effect.block;
-          const bonus = Math.floor(orig * bonuses.blockBonusPercent / 100);
-          context.effect.block = orig + bonus;
+        // 铁壁学: 护甲多10%（支持有effect wrapper和无effect wrapper的卡）
+        const blockValue = context.effect?.block ?? context.card.block;
+        if (bonuses.blockBonusPercent && blockValue) {
+          const bonus = Math.floor(blockValue * bonuses.blockBonusPercent / 100);
+          // 注入到实际被读取的位置
+          if (context.effect?.block !== undefined) context.effect.block += bonus;
+          else context.card.block += bonus;
           addLog(`铁壁学效果：护甲+${bonus}`, 'buff');
         }
         // 护甲精通: 护甲转化1%为攻击（在攻击结算时从护甲池扣除并加伤）
@@ -6982,7 +6984,7 @@ function playCard(card, index) {
   gameState.hand.splice(index, 1);
   gameState.discardPile.push(card);
 
-  const effect = card.effect;
+  const effect = card.effect || card;
 
   // V32 流派效果: 在卡牌效果结算前触发，允许流派修改卡牌效果
   applyArchetypeEffects('cardPlay', { card, effect });
@@ -7145,17 +7147,18 @@ function playCard(card, index) {
 
   if (card.type === 'skill') {
     audioManager.play('skill');
-    if (effect.block) {
-      gameState.playerShield += effect.block;
+    const blockValue = effect.block ?? card.block;
+    if (blockValue) {
+      gameState.playerShield += blockValue;
       // V32 护甲精通: 1%护甲转化为攻击（下次攻击时追加伤害）
       if (gameState.archetypeState.blockToAttack > 0) {
-        const convertDmg = Math.max(1, Math.floor(effect.block * gameState.archetypeState.blockToAttack / 100));
+        const convertDmg = Math.max(1, Math.floor(blockValue * gameState.archetypeState.blockToAttack / 100));
         gameState.archetypeState.blockToAttackDamage = (gameState.archetypeState.blockToAttackDamage || 0) + convertDmg;
         addLog(`护甲精通：${convertDmg}点护甲转化为攻击伤害`, 'damage');
       }
       animateShieldGain();
-      showDamageNumber(effect.block, 'shield', 'player-area');
-      addLog(`获得 ${effect.block} 点护甲`, 'block');
+      showDamageNumber(blockValue, 'shield', 'player-area');
+      addLog(`获得 ${blockValue} 点护甲`, 'block');
     }
     // V15 thorns on skill (ironGuard)
     if (effect.thorns) {
@@ -7390,7 +7393,7 @@ function playCard(card, index) {
   // V30 命运系卡牌处理
   if (card.type === 'fate') {
     audioManager.play('fate');
-    const effect = card.effect;
+    const effect = card.effect || card;
     
     if (effect.fateDamageMin && effect.fateDamageMax) {
       // 命运打击：随机伤害
