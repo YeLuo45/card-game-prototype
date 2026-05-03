@@ -1437,6 +1437,7 @@
       <span class="energy">⚡ 能量: <span id="energy">3</span>/3</span>
       <span class="shield">🛡️ 护甲: <span id="shield">0</span></span>
       <span class="turn">🔄 回合: <span id="turn">1</span></span>
+      <button id="mute-btn" style="padding:4px 10px;font-size:12px;background:#555;border:none;border-radius:10px;color:#fff;cursor:pointer;margin-left:10px;">🔊 音效</button>
     </div>
 
     <!-- 敌人区域 -->
@@ -1978,7 +1979,100 @@ class AudioManager {
       case 'poison': this.playPoison(now); break;
       case 'buff': this.playBuff(now); break;
       case 'click': this.playClick(now); break;
+      case 'enemyDeath': this.playEnemyDeath(now); break;
+      case 'bossAppear': this.playBossAppear(now); break;
+      case 'chestOpen': this.playChestOpen(now); break;
+      case 'purchase': this.playPurchase(now); break;
+      case 'upgrade': this.playUpgrade(now); break;
     }
+  }
+
+  // 敌人死亡音效 - 低沉的消失声
+  playEnemyDeath(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(150, time);
+    osc.frequency.exponentialRampToValueAtTime(30, time + 0.3);
+    gain.gain.setValueAtTime(this.masterVolume * 0.4, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.3);
+    osc.start(time);
+    osc.stop(time + 0.3);
+  }
+
+  // Boss登场音效 - 沉重的号角声
+  playBossAppear(time) {
+    const notes = [200, 250, 200, 150];
+    notes.forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.frequency.setValueAtTime(freq, time + i * 0.25);
+      gain.gain.setValueAtTime(this.masterVolume * 0.35, time + i * 0.25);
+      gain.gain.exponentialRampToValueAtTime(0.01, time + i * 0.25 + 0.25);
+      osc.start(time + i * 0.25);
+      osc.stop(time + i * 0.25 + 0.25);
+    });
+  }
+
+  // 宝箱开启音效 - 清脆的金属声
+  playChestOpen(time) {
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc1.type = 'sine';
+    osc2.type = 'triangle';
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc1.frequency.setValueAtTime(800, time);
+    osc1.frequency.setValueAtTime(1000, time + 0.05);
+    osc1.frequency.setValueAtTime(1200, time + 0.1);
+    osc2.frequency.setValueAtTime(400, time);
+    osc2.frequency.setValueAtTime(600, time + 0.08);
+    gain.gain.setValueAtTime(this.masterVolume * 0.25, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+    osc1.start(time);
+    osc1.stop(time + 0.2);
+    osc2.start(time);
+    osc2.stop(time + 0.2);
+  }
+
+  // 购买音效 - 叮当声
+  playPurchase(time) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(600, time);
+    osc.frequency.setValueAtTime(900, time + 0.05);
+    osc.frequency.setValueAtTime(1200, time + 0.1);
+    gain.gain.setValueAtTime(this.masterVolume * 0.2, time);
+    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+    osc.start(time);
+    osc.stop(time + 0.15);
+  }
+
+  // 升级音效 - 上升的光效音
+  playUpgrade(time) {
+    const notes = [400, 500, 600, 800];
+    notes.forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.frequency.setValueAtTime(freq, time + i * 0.08);
+      gain.gain.setValueAtTime(this.masterVolume * 0.2, time + i * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.01, time + i * 0.08 + 0.12);
+      osc.start(time + i * 0.08);
+      osc.stop(time + i * 0.08 + 0.12);
+    });
   }
 
   // 攻击音效 - 短促的打击声
@@ -2232,6 +2326,14 @@ class AudioManager {
 }
 
 const audioManager = new AudioManager();
+
+// ===== V22 静音开关 =====
+function toggleMute() {
+  const btn = document.getElementById('mute-btn');
+  const enabled = audioManager.toggle();
+  btn.textContent = enabled ? '🔊 音效' : '🔇 静音';
+  btn.style.background = enabled ? '#555' : '#e74c3c';
+}
 
 // ===== V12 特效函数 =====
 
@@ -4131,6 +4233,7 @@ function selectUpgradeCard(card) {
     const upgradedCard = upgradeCard(gameState.hand[index]);
     gameState.hand[index] = upgradedCard;
     addLog(`升级卡牌: ${upgradedCard.name} - ${upgradedCard.description}`, 'info');
+    audioManager.play('upgrade');
   }
 
   document.getElementById('upgrade-overlay').classList.remove('show');
@@ -4462,6 +4565,7 @@ function buyShopCard(index) {
 
   document.getElementById('shop-current-gold').textContent = gameState.gold;
   addLog(`购买卡牌: ${card.name}`, 'info');
+  audioManager.play('purchase');
   checkAchievements();
 }
 
@@ -4501,6 +4605,7 @@ function buyShopRelic(index) {
 
   document.getElementById('shop-current-gold').textContent = gameState.gold;
   addLog(`购买遗物: ${relic.name}`, 'info');
+  audioManager.play('purchase');
   updateRelicsDisplay();
   checkAchievements();
 }
@@ -4588,6 +4693,7 @@ function startCombat(node) {
     const pool = eliteEnemies[gameState.currentFloor];
     enemyType = pool[Math.floor(Math.random() * pool.length)];
   } else if (node.type === 'boss') {
+    audioManager.play('bossAppear');
     // Boss敌人根据楼层
     const bossEnemies = { 1: 'slimeKing', 2: 'darkLord', 3: 'ancientDragon', 4: 'voidLord', 5: 'deckMaster', 6: 'abyssLord', 7: 'lordOfNothingness' };
     enemyType = bossEnemies[gameState.currentFloor];
@@ -6015,6 +6121,7 @@ function checkEnemyDeath() {
     const isBoss = node && node.type === 'boss';
     
     if (isBoss) {
+      audioManager.play('enemyDeath');
       addLog('🏆 击败Boss！', 'info');
       completeNode(gameState.currentNode);
       gameState.totalBattlesWon++;
@@ -6053,6 +6160,7 @@ function checkEnemyDeath() {
     
     // 战斗胜利
     addLog(`${gameState.enemy.name} 被击败！`, 'info');
+    audioManager.play('enemyDeath');
     // V11 生命之泉：击杀敌人恢复3HP
     if (hasRelic('lifeSpring')) {
       const healAmount = 3;
@@ -6272,6 +6380,7 @@ function showCardReward(rewards) {
 // V13: 选择奖励卡牌
 function selectRewardCard(card) {
   gameState.deck.push({ ...card });
+  audioManager.play('chestOpen');
   // V9 更新最大卡牌数
   if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
     gameState.achievementStats.maxCardsOwned = gameState.deck.length;
@@ -7008,6 +7117,7 @@ document.getElementById('start-btn').onclick = initGame;
 document.getElementById('start-btn-retry').onclick = initGame;
 document.getElementById('start-btn-next').onclick = initGame;
 document.getElementById('end-turn').onclick = endTurn;
+document.getElementById('mute-btn').onclick = toggleMute;
 document.getElementById('map-canvas').onclick = handleMapClick;
 document.getElementById('node-preview-btn').onclick = enterNode;
 document.getElementById('shop-leave').onclick = leaveShop;
