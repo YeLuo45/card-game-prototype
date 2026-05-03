@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V24 — 成就系统</title>
+  <title>DBG卡牌游戏 V26 — 更多卡牌设计</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -1497,7 +1497,7 @@
 </div>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V24</h1>
+  <h1>🃏 DBG卡牌游戏 V26</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
   <p>V9 成就系统 - 18个成就等你解锁！</p>
@@ -1767,6 +1767,40 @@ const CARDS = {
   armoredSoul:      { id: 'armoredSoul',      name: '护甲灵魂', cost: 1, type: 'power', rarity: 'rare', effect: { thornsAura: 4, blockAura: 3 }, description: '回合结束获得3护甲和4点荆棘' },
   quickening:       { id: 'quickening',       name: '加速',     cost: 1, type: 'power', rarity: 'rare', effect: { startOfTurnDraw: 1 }, description: '每回合开始时抽1张牌' },
   vampiricAura:     { id: 'vampiricAura',     name: '吸血光环', cost: 2, type: 'power', rarity: 'rare', effect: { vampiricAura: 0.3 }, description: '攻击时30%几率偷取敌人生命' },
+  // ===== V26 新增卡牌 =====
+  // --- 攻击牌 (5张) ---
+  // 1. 斩杀打击 - execute效果：敌人血量低于30%时直接斩杀
+  executeStrike:    { id: 'executeStrike',    name: '斩杀打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 10, executeThreshold: 0.3 }, description: '造成10点伤害，若敌人≤30%血量则斩杀' },
+  // 2. 狂暴打击 - enrage效果：自身HP低时伤害增加
+  enrageStrike:    { id: 'enrageStrike',    name: '狂暴打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 8, enrageMult: 1.8 }, description: '造成8点伤害，若HP≤50%则伤害+80%' },
+  // 3. 反击打击 - reflect效果：造成伤害同时获得荆棘
+  reflectStrike:   { id: 'reflectStrike',   name: '反击打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 9, reflectGain: 4 }, description: '造成9点伤害，获得4点荆棘' },
+  // 4. 连环打击 - chain效果：伤害在敌人间传递
+  chainStrike:     { id: 'chainStrike',     name: '连环打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 6, chainHits: 3, chainMult: 0.7 }, description: '造成6点伤害，70%连锁至下一敌人' },
+  // 5. 背水一战 - lastStand效果：HP越低伤害越高
+  lastStandStrike: { id: 'lastStandStrike', name: '背水一战', cost: 1, type: 'attack', rarity: 'rare', effect: { damage: 5, lastStandBonus: true }, description: '基础5点伤害，每损失10%HP+3伤害' },
+  // --- 技能牌 (5张) ---
+  // 6. 强化防御 - fortify效果：获得大量护甲
+  fortifyDefense:  { id: 'fortifyDefense',  name: '强化防御', cost: 2, type: 'skill', rarity: 'rare', effect: { block: 15, fortifyBonus: true }, description: '获得15点护甲，下回合护甲+50%' },
+  // 7. 闪避姿态 - evasion效果：完全闪避下次攻击
+  evasionStance:   { id: 'evasionStance',   name: '闪避姿态', cost: 1, type: 'skill', rarity: 'rare', effect: { evasion: 1, draw: 1 }, description: '闪避下次攻击,抽1张牌' },
+  // 8. 虚弱之触 - weaken效果：降低敌人攻击力
+  weakenTouch:     { id: 'weakenTouch',     name: '虚弱之触', cost: 1, type: 'skill', rarity: 'rare', effect: { damage: 3, weakenStacks: 2, weakenDuration: 3 }, description: '造成3点伤害，敌人攻击力-50%持续3回合' },
+  // 9. 沉默印记 - silence效果：阻止敌人使用特殊能力
+  silenceMark:     { id: 'silenceMark',     name: '沉默印记', cost: 2, type: 'skill', rarity: 'rare', effect: { silence: 2, damage: 5 }, description: '造成5点伤害，沉默敌人2回合' },
+  // 10. 灼热护盾 - burn效果：护甲附带灼烧
+  burningShield:   { id: 'burningShield',   name: '灼热护盾', cost: 2, type: 'skill', rarity: 'rare', effect: { block: 10, burnReflect: 2 }, description: '获得10点护甲，受攻击时敌人受2层灼烧' },
+  // --- 能力牌 (5张) ---
+  // 11. 激怒光环 - enrage光环：HP低时攻击增强
+  enrageAura:      { id: 'enrageAura',      name: '激怒光环', cost: 2, type: 'power', rarity: 'rare', effect: { enrageAura: true, enrageThreshold: 0.5, enrageBonus: 0.5 }, description: 'HP≤50%时，攻击伤害+50%' },
+  // 12. 荆棘光环 - reflect光环：受到攻击时反弹伤害
+  reflectAura:     { id: 'reflectAura',     name: '荆棘光环', cost: 2, type: 'power', rarity: 'rare', effect: { reflectAura: 6 }, description: '受到攻击时反弹6点伤害' },
+  // 13. 钢化光环 - fortify光环：每回合护甲增加
+  fortifyAura:     { id: 'fortifyAura',     name: '钢化光环', cost: 2, type: 'power', rarity: 'rare', effect: { fortifyAura: 3, fortifyDuration: 99 }, description: '每回合开始获得3点护甲' },
+  // 14. 疾风光环 - evasion光环：提高闪避率
+  evasionAura:     { id: 'evasionAura',     name: '疾风光环', cost: 1, type: 'power', rarity: 'rare', effect: { evasionChance: 0.25 }, description: '25%几率闪避敌人攻击' },
+  // 15. 衰弱光环 - weaken光环：降低敌人属性
+  weakenAura:      { id: 'weakenAura',      name: '衰弱光环', cost: 2, type: 'power', rarity: 'rare', effect: { weakenAura: true, weakenRate: 1 }, description: '每回合敌人攻击力-30%' },
 };
 
 const NEW_CARDS_POOL = [
@@ -1820,6 +1854,22 @@ const SHOP_CARD_POOL = [
   { ...CARDS.blazingAura, price: 30 },
   { ...CARDS.bloodRage, price: 35 },
   { ...CARDS.quickening, price: 28 },
+  // V26 新增卡牌
+  { ...CARDS.executeStrike, price: 26 },
+  { ...CARDS.enrageStrike, price: 24 },
+  { ...CARDS.reflectStrike, price: 22 },
+  { ...CARDS.chainStrike, price: 28 },
+  { ...CARDS.lastStandStrike, price: 18 },
+  { ...CARDS.fortifyDefense, price: 24 },
+  { ...CARDS.evasionStance, price: 20 },
+  { ...CARDS.weakenTouch, price: 18 },
+  { ...CARDS.silenceMark, price: 26 },
+  { ...CARDS.burningShield, price: 24 },
+  { ...CARDS.enrageAura, price: 30 },
+  { ...CARDS.reflectAura, price: 28 },
+  { ...CARDS.fortifyAura, price: 30 },
+  { ...CARDS.evasionAura, price: 26 },
+  { ...CARDS.weakenAura, price: 28 },
 ];
 
 // 遗物商店价格表
@@ -1904,6 +1954,22 @@ const REWARD_CARD_POOL = [
   CARDS.armoredSoul,
   CARDS.quickening,
   CARDS.vampiricAura,
+  // V26 新增卡牌
+  CARDS.executeStrike,
+  CARDS.enrageStrike,
+  CARDS.reflectStrike,
+  CARDS.chainStrike,
+  CARDS.lastStandStrike,
+  CARDS.fortifyDefense,
+  CARDS.evasionStance,
+  CARDS.weakenTouch,
+  CARDS.silenceMark,
+  CARDS.burningShield,
+  CARDS.enrageAura,
+  CARDS.reflectAura,
+  CARDS.fortifyAura,
+  CARDS.evasionAura,
+  CARDS.weakenAura,
 ];
 
 // ===== V5 奖励池数据 =====
@@ -1927,6 +1993,22 @@ const RARE_REWARD_POOL = [
   CARDS.meditation,
   CARDS.deadlyPrecision,
   CARDS.vampiricTouch,
+  // V26 新增稀有卡牌
+  CARDS.executeStrike,
+  CARDS.enrageStrike,
+  CARDS.reflectStrike,
+  CARDS.chainStrike,
+  CARDS.lastStandStrike,
+  CARDS.fortifyDefense,
+  CARDS.evasionStance,
+  CARDS.weakenTouch,
+  CARDS.silenceMark,
+  CARDS.burningShield,
+  CARDS.enrageAura,
+  CARDS.reflectAura,
+  CARDS.fortifyAura,
+  CARDS.evasionAura,
+  CARDS.weakenAura,
 ];
 
 // 完整奖励池（普通+稀有）
@@ -3618,6 +3700,21 @@ let gameState = {
   nextTurnBlockBonus: 0, // 下回合额外护甲
   auraBurnActive: false, // 光环灼烧是否激活
   lifestealAuraActive: false, // 吸血光环是否激活
+  // V26 新增状态
+  burnReflectActive: false, // 灼热护盾是否激活
+  burnReflectValue: 0, // 灼热护盾值
+  reflectAuraActive: false, // 荆棘光环是否激活
+  reflectAuraValue: 0, // 荆棘光环值
+  fortifyAuraActive: false, // 钢化光环是否激活
+  fortifyAuraValue: 0, // 钢化光环值
+  evasionAuraActive: false, // 疾风光环是否激活
+  evasionChance: 0, // 疾风光环闪避几率
+  weakenAuraActive: false, // 衰弱光环是否激活
+  weakenRate: 0, // 衰弱光环降低比率
+  enrageAuraActive: false, // 激怒光环是否激活
+  enrageThreshold: 0.5, // 激怒阈值
+  enrageBonus: 0, // 激怒加成
+  enemySilenceTurns: 0, // 敌人沉默回合数
   // V3 地图相关
   currentFloor: 1,
   currentChapter: 1, // V20 章节系统
@@ -5766,6 +5863,39 @@ function playCard(card, index) {
       applyDebuffToEnemy('burn', gameState.burnDamage, gameState.burnDuration);
       addLog('敌人被灼热！', 'debuff');
     }
+
+    // V26 enrageStrike: HP低时伤害增加
+    if (effect.enrageMult && gameState.playerHp <= gameState.playerMaxHp * 0.5) {
+      const bonusDmg = Math.floor(effect.damage * (effect.enrageMult - 1));
+      gameState.enemyHp = Math.max(0, gameState.enemyHp - bonusDmg);
+      addLog(`狂暴打击触发！额外造成 ${bonusDmg} 点伤害`, 'damage');
+    }
+
+    // V26 reflectStrike: 造成伤害时获得荆棘
+    if (effect.reflectGain && damage > 0) {
+      gameState.thorns += effect.reflectGain;
+      addLog(`反击打击获得 ${effect.reflectGain} 点荆棘`, 'info');
+    }
+
+    // V26 chainStrike: 伤害连锁
+    if (effect.chainHits && effect.chainMult && damage > 0) {
+      let chainDamage = Math.floor(damage * effect.chainMult);
+      for (let i = 1; i < effect.chainHits; i++) {
+        dealDamageToEnemy(chainDamage);
+        addLog(`连环打击第${i+1}次连锁！造成 ${chainDamage} 点伤害`, 'damage');
+        chainDamage = Math.floor(chainDamage * effect.chainMult);
+      }
+    }
+
+    // V26 lastStandStrike: HP越低伤害越高
+    if (effect.lastStandBonus) {
+      const hpLossPercent = (gameState.playerMaxHp - gameState.playerHp) / gameState.playerMaxHp;
+      const bonusDamage = Math.floor(hpLossPercent * 3) * 3; // 每10%HP损失+3伤害
+      if (bonusDamage > 0) {
+        gameState.enemyHp = Math.max(0, gameState.enemyHp - bonusDamage);
+        addLog(`背水一战触发！额外造成 ${bonusDamage} 点伤害`, 'damage');
+      }
+    }
   }
 
   if (card.type === 'skill') {
@@ -5824,6 +5954,32 @@ function playCard(card, index) {
       gameState.nextAttackMult = effect.nextAttackMult;
       addLog(`下次攻击伤害+${Math.round((effect.nextAttackMult - 1) * 100)}%`, 'info');
     }
+    // V26 fortifyDefense: 下回合护甲+50%
+    if (effect.fortifyBonus) {
+      gameState.nextTurnBlockBonus = Math.floor((effect.block || 0) * 0.5);
+      addLog(`强化防御: 下回合护甲+50%`, 'info');
+    }
+    // V26 evasionStance: 闪避
+    if (effect.evasion) {
+      gameState.dodgeNext += effect.evasion;
+      addLog(`闪避姿态: 闪避 ${effect.evasion} 次`, 'info');
+    }
+    // V26 weakenTouch: 伤害+虚弱
+    if (effect.weakenStacks && effect.weakenDuration) {
+      applyDebuffToEnemy('weak', effect.weakenStacks, effect.weakenDuration);
+      addLog(`敌人攻击力-50%持续${effect.weakenDuration}回合`, 'debuff');
+    }
+    // V26 silenceMark: 沉默
+    if (effect.silence) {
+      gameState.enemySilenceTurns = effect.silence;
+      addLog(`敌人被沉默 ${effect.silence} 回合`, 'debuff');
+    }
+    // V26 burningShield: 护甲附带灼烧
+    if (effect.burnReflect) {
+      gameState.burnReflectActive = true;
+      gameState.burnReflectValue = effect.burnReflect;
+      addLog(`灼热护盾: 受攻击时敌人受${effect.burnReflect}层灼烧`, 'info');
+    }
   }
 
   if (card.type === 'power') {
@@ -5871,6 +6027,37 @@ function playCard(card, index) {
     if (effect.vampiricAura) {
       gameState.lifestealAuraActive = true;
       addLog(`吸血光环: 攻击时30%偷取生命`, 'info');
+    }
+    // V26 enrageAura: HP低时攻击增强
+    if (effect.enrageAura) {
+      gameState.enrageAuraActive = true;
+      gameState.enrageThreshold = effect.enrageThreshold || 0.5;
+      gameState.enrageBonus = effect.enrageBonus || 0.5;
+      addLog(`激怒光环: HP≤${Math.round(gameState.enrageThreshold*100)}%时攻击+${Math.round(gameState.enrageBonus*100)}%`, 'info');
+    }
+    // V26 reflectAura: 反弹伤害
+    if (effect.reflectAura) {
+      gameState.reflectAuraActive = true;
+      gameState.reflectAuraValue = effect.reflectAura;
+      addLog(`荆棘光环: 反弹${effect.reflectAura}点伤害`, 'info');
+    }
+    // V26 fortifyAura: 每回合护甲增加
+    if (effect.fortifyAura) {
+      gameState.fortifyAuraActive = true;
+      gameState.fortifyAuraValue = effect.fortifyAura;
+      addLog(`钢化光环: 每回合获得${effect.fortifyAura}护甲`, 'info');
+    }
+    // V26 evasionAura: 闪避几率
+    if (effect.evasionChance) {
+      gameState.evasionAuraActive = true;
+      gameState.evasionChance = effect.evasionChance;
+      addLog(`疾风光环: ${Math.round(effect.evasionChance*100)}%几率闪避攻击`, 'info');
+    }
+    // V26 weakenAura: 降低敌人攻击力
+    if (effect.weakenAura) {
+      gameState.weakenAuraActive = true;
+      gameState.weakenRate = effect.weakenRate || 0.3;
+      addLog(`衰弱光环: 敌人攻击力-30%`, 'info');
     }
   }
 
@@ -7186,6 +7373,21 @@ function initGame() {
     thornsAuraValue: 0,
     blockAuraValue: 0,
     quickeningActive: false,
+    // V26 新增状态
+    burnReflectActive: false,
+    burnReflectValue: 0,
+    reflectAuraActive: false,
+    reflectAuraValue: 0,
+    fortifyAuraActive: false,
+    fortifyAuraValue: 0,
+    evasionAuraActive: false,
+    evasionChance: 0,
+    weakenAuraActive: false,
+    weakenRate: 0,
+    enrageAuraActive: false,
+    enrageThreshold: 0.5,
+    enrageBonus: 0,
+    enemySilenceTurns: 0,
     currentFloor: 1,
     currentNode: null,
     unlockedNodes: [],
