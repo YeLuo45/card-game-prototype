@@ -10021,22 +10021,65 @@ function renderEnemy() {
   
   document.getElementById('enemy-armor').textContent = gameState.enemyArmor > 0 ? `🛡️ ${gameState.enemyArmor}` : '';
   
+  // ===== V37 敌人意图图标化 =====
   const intentLabels = {
-    attack: `⚔️ 攻击 ${gameState.enemyIntentValue}`,
-    defend: `🛡️ 防御 +${gameState.enemyIntentValue}`,
-    buff: '⬆️ 强化',
-    debuff: '⬇️ Debuff',
-    heavy: `💥 重压 ${gameState.enemyIntentValue}`,
-    curse: '💀 诅咒',
-    counter: `⚡ 反击 ${gameState.enemyIntentValue}`,
-    dragonScale: `🐉 龙鳞 +${gameState.enemyIntentValue}`,
-    summon: '👹 召唤',
-    multihit: `🔪 分裂 ${gameState.enemyIntentValue}x3`,
-    // V33 敌人意图丰富化
-    multi_attack: `⚔️×${gameState.enemyIntentExtra || 2} ${gameState.enemyIntentValue}`,
-    buff_stack: `↑×${gameState.enemyIntentExtra || 1} +${gameState.enemyIntentValue}`,
-    defend_revenge: `🛡️${gameState.enemyIntentValue} →⚔️${gameState.enemyIntentExtra || 0}`,
-    aoe: `💥AOE ${gameState.enemyIntentValue}`,
+    // === 基础意图 ===
+    attack:    `⚔️ 攻击 ${gameState.enemyIntentValue}`,
+    defend:    `🛡️ 防御 +${gameState.enemyIntentValue}`,
+    buff:      `✨ 强化`,
+    debuff:    `💀 减益`,
+    heavy:     `💥 重击 ${gameState.enemyIntentValue}`,
+    curse:     `☠️ 诅咒`,
+    counter:   `⚡ 反击 ${gameState.enemyIntentValue}`,
+    summon:    `👹 召唤`,
+    multihit:  `🔪 分裂 ${gameState.enemyIntentValue}×3`,
+    aoe:       `💥 范围 ${gameState.enemyIntentValue}`,
+    // === V33 扩展意图 ===
+    multi_attack:    `⚔️×${gameState.enemyIntentExtra || 2} 攻击 ${gameState.enemyIntentValue}`,
+    buff_stack:      `⬆️×${gameState.enemyIntentExtra || 1} +${gameState.enemyIntentValue}`,
+    defend_revenge:  `🛡️${gameState.enemyIntentValue} →⚔️${gameState.enemyIntentExtra || 0}`,
+    // === 特殊效果 ===
+    dragonScale:    `🐉 龙鳞 +${gameState.enemyIntentValue}`,
+    poisonAttack:   `🟣 中毒 ${gameState.enemyIntentValue}`,
+    weakAttack:     `💨 弱化攻击 ${gameState.enemyIntentValue}`,
+    berserk:        `😈 狂暴`,
+    counterattack:  `⚡ 反击 ${gameState.enemyIntentValue}`,
+    // === 生命偷取/治疗 ===
+    drain:       `🩸 吸血 ${gameState.enemyIntentValue}`,
+    lifesteal:   `🩸 生命偷取 ${gameState.enemyIntentValue}`,
+    heal:        `💚 治疗 ${gameState.enemyIntentValue}`,
+    soulDrain:   `💀 灵魂虹吸 ${gameState.enemyIntentValue}`,
+    radiant:     `🌟 神圣之光 ${gameState.enemyIntentValue}`,
+    divineShield:`🛡️ 神盾 +${gameState.enemyIntentValue}`,
+    holyStrike:  `⚜️ 神圣打击 ${gameState.enemyIntentValue}`,
+    holyNova:    `✝️ 神圣新星 ${gameState.enemyIntentValue}`,
+    divineJudgment:`⚖️ 神圣审判 ${gameState.enemyIntentValue}`,
+    celestialBlitz:`☁️ 天界闪电 ${gameState.enemyIntentValue}`,
+    // === 特殊攻击 ===
+    voidBlast:   `🌀 虚空冲击 ${gameState.enemyIntentValue}`,
+    crushingBlow:`💀 粉碎打击 ${gameState.enemyIntentValue}`,
+    charge:      `🦬 冲锋 ${gameState.enemyIntentValue}`,
+    inferno:     `🔥 地狱火 ${gameState.enemyIntentValue}`,
+    demonFire:   `🔥 恶魔火焰 ${gameState.enemyIntentValue}`,
+    chaosBolt:   `🌀 混沌之矢 ${gameState.enemyIntentValue}`,
+    // === 召唤/分身 ===
+    reanimate:   `💀 复活死灵`,
+    shadowSummon:`👤 暗影召唤`,
+    // === 防御/特殊 ===
+    evade:       `💨 闪避`,
+    phaseShift:  `👻 虚影`,
+    constrict:   `🦑 绞缠 ${gameState.enemyIntentValue}`,
+    packHunt:    `🐺 围猎 ${gameState.enemyIntentValue}`,
+    realityDistort:`🌀 现实扭曲`,
+    annihilate:  `💥 湮灭 ${gameState.enemyIntentValue}`,
+    // === Boss 阶段技能 ===
+    darkAura:      `👁️ 黑暗光环 ${gameState.enemyIntentValue || ''}`,
+    soulSiphon:    `💀 灵魂虹吸 ${gameState.enemyIntentValue || ''}`,
+    abyssalStrike: `⚔️ 深渊打击 ${gameState.enemyIntentValue || ''}`,
+    voidDomain:    `🌀 虚无领域`,
+    annihilation:  `💀 湮灭`,
+    // === 遗忘猎犬 ===
+    // === 其他 ===
   };
   document.getElementById('enemy-intent').textContent = `意图: ${intentLabels[gameState.enemyIntent] || gameState.enemyIntent}`;
   
