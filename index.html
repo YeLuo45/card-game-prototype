@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V34 — 卡牌池扩充/遗物系统完善</title>
+  <title>DBG卡牌游戏 V39 — Combo系统/宠物技能集成</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -5365,6 +5365,20 @@ function buyPet(petId) {
   return true;
 }
 
+function usePetSkill(petId) {
+  const pet = gameState.pets.find(p => p.id === petId && p.equipped);
+  const petData = PETS[petId];
+  if (!pet || !petData || !petData.activeSkill) return;
+  const skill = petData.activeSkill;
+  const cd = gameState.petSkillCooldowns[petId] || 0;
+  if (cd > 0) { addLog(`宠物技能仍在冷却中！`, 'debuff'); return; }
+  if (gameState.energy < skill.cost) { addLog(`能量不足！`, 'debuff'); return; }
+  gameState.energy -= skill.cost;
+  gameState.petSkillCooldowns[petId] = skill.cooldown;
+  skill.execute(petId);
+  renderUI();
+}
+
 // 装备宠物
 function equipPet(petId) {
   const pet = gameState.pets.find(p => p.id === petId);
@@ -7742,6 +7756,13 @@ function startPlayerTurn() {
   // V25 宠物效果: 回合开始时
   applyPetEffect('startOfTurn');
 
+  // V39 宠物技能冷却减少
+  Object.keys(gameState.petSkillCooldowns).forEach(petId => {
+    if (gameState.petSkillCooldowns[petId] > 0) {
+      gameState.petSkillCooldowns[petId]--;
+    }
+  });
+
   // V11 冰霜之心: 10%几率获得1能量
   if (hasRelic('frostHeart') && Math.random() < 0.1) {
     gameState.energy += 1;
@@ -8390,6 +8411,16 @@ function playCard(card, index) {
     }
   }
 
+  // V39 Combo系统埋点
+  const cardTypeForCombo = card.type || 'special';
+  comboPlayedCards.push(cardTypeForCombo);
+  const triggeredCombo = checkCombo();
+  if (triggeredCombo) {
+    lastComboTriggered = triggeredCombo.id;
+    applyComboEffect(triggeredCombo);
+    showComboNotification(triggeredCombo);
+  }
+
   renderUI();
   checkEnemyDeath();
 }
@@ -8584,6 +8615,9 @@ function endTurn() {
   gameState.enemyThorns = 0;
   // V15 重置连击状态
   gameState.comboActive = false;
+  
+  // V39 重置Combo追踪
+  comboPlayedCards = [];
   
   // V15 护甲灵魂: 回合结束获得护甲和荆棘
   if (gameState.powerCardsPlayedThisCombat['armoredSoul']) {
