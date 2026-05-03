@@ -7548,11 +7548,11 @@ function executeEnemyIntent() {
     case 'voidSiphon':
       // V10 虚空领主：虚空虹吸
       intentText = '虚空虹吸';
-      const siphonDmg = 8 + (enemy.voidPhase || 0) * 0.5;
-      dealDamageToPlayer(Math.floor(siphonDmg), true);
+      const voidSiphonDmg = 8 + (enemy.voidPhase || 0) * 0.5;
+      dealDamageToPlayer(Math.floor(voidSiphonDmg), true);
       // 治疗虚空领主
       gameState.enemyHp = Math.min(gameState.enemyHp + 10, gameState.enemyMaxHp);
-      addLog(`虚空领主吸取你的能量！受到${Math.floor(siphonDmg)}伤害，虚空领主回复10HP`, 'damage');
+      addLog(`虚空领主吸取你的能量！受到${Math.floor(voidSiphonDmg)}伤害，虚空领主回复10HP`, 'damage');
       renderEnemy();
       break;
     case 'drain':
