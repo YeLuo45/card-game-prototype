@@ -1821,6 +1821,9 @@
       <button id="mute-btn" style="padding:4px 10px;font-size:12px;background:#555;border:none;border-radius:10px;color:#fff;cursor:pointer;margin-left:10px;">🔊 音效</button>
     </div>
 
+    <!-- 遗物显示（战斗界面左上角） -->
+    <div id="battle-relics-display" style="position:absolute;top:10px;left:10px;display:flex;gap:5px;z-index:50;"></div>
+
     <!-- 敌人区域 -->
     <div id="enemy-area">
       <div id="enemy-name">史莱姆</div>
@@ -2238,7 +2241,9 @@ function applyArchetypeEffects(trigger, context = {}) {
         }
         // 护甲精通: 护甲转化1%为攻击（在攻击结算时从护甲池扣除并加伤）
         if (bonuses.blockToAttack) {
-          gameState.archetypeState.blockToAttack = bonuses.blockToAttack;
+          // V34 铁壁徽章：护甲精通效果+50%
+          const relicBonus = getRelicBonus('blockToAttackBonus');
+          gameState.archetypeState.blockToAttack = bonuses.blockToAttack * (1 + relicBonus / 100);
         }
       }
     }
@@ -2489,27 +2494,67 @@ function getChapterTransitionData(chapter) {
   };
 }
 
-// V33 奖励卡池（V33核心循环补全：10张指定卡牌）
-const V33_REWARD_CARD_POOL = [
-  // 攻击系3张
-  { id: 'heavyStrike', name: '重击', cost: 2, type: 'attack', rarity: 'common', effect: { damage: 12 }, description: '造成12点伤害' },
-  { id: 'doubleStrike', name: '连击', cost: 1, type: 'attack', rarity: 'common', effect: { damage: 4, hits: 2 }, description: '造成4点伤害2次' },
-  { id: 'shieldStrike', name: '盾击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 8, shieldPierce: true }, description: '造成8点伤害，无视护甲' },
-  // 技能系3张
-  { id: 'ironWallSkill', name: '铁壁', cost: 2, type: 'skill', rarity: 'common', effect: { block: 15 }, description: '获得15点护甲' },
-  { id: 'firstAidSkill', name: '急救', cost: 1, type: 'skill', rarity: 'common', effect: { block: 5, heal: 8 }, description: '获得5点护甲，治疗8点' },
-  { id: 'warCrySkill', name: '战吼', cost: 1, type: 'skill', rarity: 'rare', effect: { nextAttackMult: 1.5, draw: 1 }, description: '下次攻击+50%，抽1张' },
-  // 诅咒系2张
-  { id: 'weakenCurse', name: '虚弱', cost: 1, type: 'curse', rarity: 'common', effect: { weakenStacks: 2, weakenDuration: 3 }, description: '敌人攻击力-50%持续3回合' },
-  { id: 'poisonCurseSkill', name: '中毒', cost: 1, type: 'curse', rarity: 'rare', effect: { poisonStacks: 5, poisonDuration: 4 }, description: '敌人中毒5层持续4回合' },
-  // 命运系2张
-  { id: 'fateStrike', name: '命运打击', cost: 1, type: 'fate', rarity: 'common', effect: { fateDamageMin: 5, fateDamageMax: 20 }, description: '造成5-20点随机伤害' },
-  { id: 'chaoticShieldSkill', name: '混沌护盾', cost: 1, type: 'fate', rarity: 'rare', effect: { fateShieldMin: 8, fateShieldMax: 20 }, description: '获得8-20点随机护甲' }
+// V34 奖励卡池（卡牌池扩充：30张）
+const V34_REWARD_CARD_POOL = [
+  // ===== 攻击系（10张）=====
+  // 普通
+  { id: '猛击', name: '猛击', cost: 1, type: 'attack', rarity: 'common', effect: { damage: 8 }, description: '造成8点伤害', archetype: null },
+  { id: '重击', name: '重击', cost: 2, type: 'attack', rarity: 'common', effect: { damage: 14 }, description: '造成14点伤害', archetype: null },
+  // 稀有
+  { id: '连击', name: '连击', cost: 1, type: 'attack', rarity: 'rare', effect: { damage: 5, hits: 2 }, description: '造成5点伤害×2', archetype: 'attackFever' },
+  { id: '盾击', name: '盾击', cost: 2, type: 'attack', rarity: 'common', effect: { damage: 10, blockEqualDamage: true }, description: '造成10点伤害，获得等额护甲', archetype: 'steelWall' },
+  { id: '碎甲', name: '碎甲', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 12, pierce: true }, description: '造成12点伤害，无视护甲', archetype: null },
+  // 史诗
+  { id: '旋风斩', name: '旋风斩', cost: 3, type: 'attack', rarity: 'epic', effect: { damage: 6, hits: 3 }, description: '造成6点伤害×3', archetype: null },
+  // 稀有
+  { id: '猛虎下山', name: '猛虎下山', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 9, nextAttackMultBonus: 0.3 }, description: '造成9点伤害，下回合攻击+30%', archetype: 'attackFever' },
+  // 史诗
+  { id: '背刺', name: '背刺', cost: 1, type: 'attack', rarity: 'epic', effect: { damage: 15, requireNoDamageTaken: true }, description: '造成15点伤害（本回合未受伤）', archetype: 'attackFever' },
+  { id: '雷霆一击', name: '雷霆一击', cost: 3, type: 'attack', rarity: 'epic', effect: { damage: 20, stunChance: 0.2 }, description: '造成20点伤害，20%几率眩晕', archetype: null },
+  // 稀有
+  { id: '必杀一击', name: '必杀一击', cost: 4, type: 'attack', rarity: 'rare', effect: { damage: 50, failChance: 0.5 }, description: '造成50点伤害，50%几率失败', archetype: 'attackFever' },
+
+  // ===== 技能系（10张）=====
+  // 普通
+  { id: '铁壁', name: '铁壁', cost: 1, type: 'skill', rarity: 'common', effect: { block: 6 }, description: '获得6点护甲', archetype: null },
+  { id: '急救', name: '急救', cost: 2, type: 'skill', rarity: 'common', effect: { heal: 10 }, description: '恢复10点HP', archetype: null },
+  { id: '战吼', name: '战吼', cost: 1, type: 'skill', rarity: 'common', effect: { nextAttackMult: 1.5 }, description: '下回合攻击+50%', archetype: null },
+  // 稀有
+  { id: '盾墙', name: '盾墙', cost: 2, type: 'skill', rarity: 'rare', effect: { block: 12, blockLastsNextTurn: true }, description: '获得12点护甲（持续到下回合）', archetype: 'steelWall' },
+  { id: '反击', name: '反击', cost: 2, type: 'skill', rarity: 'rare', effect: { block: 8, thorns: 5 }, description: '获得8点护甲，攻击者受5点反弹', archetype: 'steelWall' },
+  { id: '铁布衫', name: '铁布衫', cost: 1, type: 'skill', rarity: 'rare', effect: { block: 4, damageReduction: 2 }, description: '获得4点护甲，本回合受伤-2', archetype: 'steelWall' },
+  // 史诗
+  { id: '能量回复', name: '能量回复', cost: 0, type: 'skill', rarity: 'epic', effect: { energyGain: 2 }, description: '获得2点能量', archetype: null },
+  { id: '战地急救', name: '战地急救', cost: 3, type: 'skill', rarity: 'epic', effect: { heal: 20, block: 10 }, description: '恢复20点HP，获得10点护甲', archetype: null },
+  // 稀有
+  { id: '稳固防守', name: '稳固防守', cost: 2, type: 'skill', rarity: 'rare', effect: { blockMult: 1.5, blockMultDuration: 1 }, description: '护甲+50%持续1回合', archetype: 'steelWall' },
+  { id: '越战越勇', name: '越战越勇', cost: 1, type: 'skill', rarity: 'rare', effect: { perAttackBonus: 3 }, description: '本回合每次攻击+3', archetype: 'attackFever' },
+
+  // ===== 诅咒系（5张）=====
+  // 普通
+  { id: '虚弱', name: '虚弱', cost: 1, type: 'curse', rarity: 'common', effect: { weakenEnemyDamage: 3, weakenDuration: 2 }, description: '敌人攻击-3持续2回合', archetype: null },
+  { id: '中毒', name: '中毒', cost: 1, type: 'curse', rarity: 'common', effect: { poisonStacks: 3, poisonDuration: 3 }, description: '敌人每回合3伤持续3回合', archetype: null },
+  // 稀有
+  { id: '黑暗诅咒', name: '黑暗诅咒', cost: 2, type: 'curse', rarity: 'rare', effect: { weakenEnemyPercent: 0.5, weakenPercentDuration: 1 }, description: '敌人攻击-50%持续1回合', archetype: null },
+  // 史诗
+  { id: '死亡诅咒', name: '死亡诅咒', cost: 3, type: 'curse', rarity: 'epic', effect: { poisonStacks: 8, poisonDuration: 2 }, description: '敌人每回合8伤持续2回合', archetype: null },
+  // 稀有
+  { id: '痛苦转移', name: '痛苦转移', cost: 2, type: 'curse', rarity: 'rare', effect: { selfDamage: 5, enemyDamage: 10 }, description: '受到5点伤害，敌人受10点伤害', archetype: null },
+
+  // ===== 命运系（5张）=====
+  // 普通
+  { id: '命运打击', name: '命运打击', cost: 2, type: 'fate', rarity: 'common', effect: { fateDamageMin: 8, fateDamageMax: 18 }, description: '造成8-18点随机伤害', archetype: null },
+  { id: '混沌护盾', name: '混沌护盾', cost: 2, type: 'fate', rarity: 'common', effect: { fateBlockMin: 5, fateBlockMax: 12 }, description: '获得5-12点随机护甲', archetype: null },
+  // 稀有
+  { id: '孤注一掷', name: '孤注一掷', cost: 1, type: 'fate', rarity: 'rare', effect: { fateGamble: true, fateGambleDamage: 20, fateGambleSelfDamage: 10 }, description: '50%造成20伤害/50%受到10伤害', archetype: null },
+  { id: '命运骰子', name: '命运骰子', cost: 1, type: 'fate', rarity: 'rare', effect: { fateRandom: true }, description: '随机:攻+2/攻-2/护甲+3/HP+5', archetype: null },
+  // 史诗
+  { id: '蛮横冲撞', name: '蛮横冲撞', cost: 3, type: 'fate', rarity: 'epic', effect: { damage: 15, maxDamage: 30, clearEnemyArmor: true }, description: '造成15-30点伤害，护甲清零', archetype: null },
 ];
 
-// V33 根据稀有度概率获取奖励卡牌
-function getV33RewardCards(count = 3) {
-  const availableCards = V33_REWARD_CARD_POOL.filter(card => {
+// V34 根据稀有度概率获取奖励卡牌
+function getV34RewardCards(count = 3) {
+  const availableCards = V34_REWARD_CARD_POOL.filter(card => {
     // 检查同名牌组最多3张限制
     const sameNameCount = gameState.deck.filter(c => c.name === card.name).length;
     return sameNameCount < 3;
@@ -2519,10 +2564,10 @@ function getV33RewardCards(count = 3) {
   
   const rewards = [];
   for (let i = 0; i < count && availableCards.length > 0; i++) {
-    // 稀有度概率：普通60%、稀有30%、史诗10%
+    // 稀有度概率：普通55%、稀有35%、史诗10%
     const roll = Math.random();
     let rarityTarget;
-    if (roll < 0.60) rarityTarget = 'common';
+    if (roll < 0.55) rarityTarget = 'common';
     else if (roll < 0.90) rarityTarget = 'rare';
     else rarityTarget = 'epic';
     
@@ -3679,6 +3724,122 @@ const RELICS = {
     rarity: 'legendary',
     description: '回合结束时，未使用的能量转化为伤害',
     effect: { energyToDamage: true },
+  },
+  // ===== V34 新增遗物（14种）=====
+  // 普通遗物（5种）
+  rustyGauntlet: {
+    id: 'rustyGauntlet',
+    name: '锈蚀护腕',
+    icon: '🧤',
+    rarity: 'common',
+    description: '护甲效果+10%',
+    effect: { blockBonusPercent: 10 },
+  },
+  sharpDagger: {
+    id: 'sharpDagger',
+    name: '锋利匕首',
+    icon: '🗡',
+    rarity: 'common',
+    description: '攻击伤害+10%',
+    effect: { damageBonusPercent: 10 },
+  },
+  energyRing: {
+    id: 'energyRing',
+    name: '能量戒指',
+    icon: '💍',
+    rarity: 'common',
+    description: '每回合开始+1能量',
+    effect: { startOfTurnEnergy: 1 },
+  },
+  lifeCharm: {
+    id: 'lifeCharm',
+    name: '生命护符',
+    icon: '💝',
+    rarity: 'common',
+    description: '最大HP+15',
+    effect: { maxHpBonus: 15 },
+  },
+  experienceManual: {
+    id: 'experienceManual',
+    name: '经验手册',
+    icon: '📖',
+    rarity: 'common',
+    description: '战斗开始时抽1张牌',
+    effect: { startOfCombatDraw: 1 },
+  },
+  // 稀有遗物（5种）
+  ironcladBadge: {
+    id: 'ironcladBadge',
+    name: '铁壁徽章',
+    icon: '🏅',
+    rarity: 'rare',
+    description: '护甲精通效果+50%',
+    effect: { blockToAttackBonus: 50 },
+  },
+  attackFeverPendant: {
+    id: 'attackFeverPendant',
+    name: '攻击狂热挂坠',
+    icon: '📿',
+    rarity: 'rare',
+    description: '攻击时15%双倍伤害',
+    effect: { doubleAttackChance: 0.15 },
+  },
+  fateCoin: {
+    id: 'fateCoin',
+    name: '命运硬币',
+    icon: '🪙',
+    rarity: 'rare',
+    description: '命运系卡牌效果+20%',
+    effect: { fateBonusPercent: 20 },
+  },
+  curseBlackBook: {
+    id: 'curseBlackBook',
+    name: '诅咒黑皮书',
+    icon: '📕',
+    rarity: 'rare',
+    description: '诅咒系卡牌持续回合+1',
+    effect: { curseDurationBonus: 1 },
+  },
+  ironHeart: {
+    id: 'ironHeart',
+    name: '钢铁之心',
+    icon: '❤️‍🔥',
+    rarity: 'rare',
+    description: '战斗开始获得8点护甲',
+    effect: { startOfCombatBlock: 8 },
+  },
+  // 史诗遗物（4种）
+  berserkerSoul: {
+    id: 'berserkerSoul',
+    name: '狂暴之魂',
+    icon: '💀',
+    rarity: 'legendary',
+    description: '每次攻击伤害+2（可叠加）',
+    effect: { attackDamageStack: 2 },
+  },
+  fateGoddess: {
+    id: 'fateGoddess',
+    name: '命运三女神',
+    icon: '🔮',
+    rarity: 'legendary',
+    description: '第一次死亡必定触发命运逆转',
+    effect: { fateRevival: true },
+  },
+  infiniteArmor: {
+    id: 'infiniteArmor',
+    name: '无限护甲',
+    icon: '♾️',
+    rarity: 'legendary',
+    description: '护甲不会在回合结束时清零',
+    effect: { armorDoesNotDecay: true },
+  },
+  attackAbsorb: {
+    id: 'attackAbsorb',
+    name: '攻击吸收',
+    icon: '🛡️',
+    rarity: 'legendary',
+    description: '受到伤害的20%转化为攻击力',
+    effect: { damageToAttackPercent: 20 },
   },
 };
 
@@ -5164,6 +5325,11 @@ function applyRelicEffect(trigger, context = {}) {
           gameState.energy += effect.maxEnergyBonus;
           addLog(`遗物 ${relic.name} 最大能量+${effect.maxEnergyBonus}`, 'info');
         }
+        // V34 经验手册：战斗开始时抽1张牌
+        if (effect.startOfCombatDraw) {
+          drawCards(effect.startOfCombatDraw);
+          addLog(`遗物 ${relic.name} 战斗开始抽${effect.startOfCombatDraw}张牌`, 'info');
+        }
         break;
       case 'startOfTurn':
         if (effect.perTurnHeal) {
@@ -5177,10 +5343,29 @@ function applyRelicEffect(trigger, context = {}) {
           gameState.playerShield += effect.startOfTurnBlock;
           addLog(`遗物 ${relic.name} 提供 ${effect.startOfTurnBlock} 护甲`, 'block');
         }
+        // V34 能量戒指：每回合开始+1能量
+        if (effect.startOfTurnEnergy) {
+          gameState.energy += effect.startOfTurnEnergy;
+          addLog(`遗物 ${relic.name} 提供 ${effect.startOfTurnEnergy} 能量`, 'info');
+        }
+        // V34 钢铁之心：战斗开始获得8点护甲（每回合检查）
+        if (effect.startOfCombatBlock && trigger === 'startOfTurn') {
+          // 钢铁之心只在战斗开始时给，所以这个实际上不会在startOfTurn触发
+        }
         break;
       case 'onAttack':
         if (effect.damageBonus) {
           context.bonusDamage = (context.bonusDamage || 0) + effect.damageBonus;
+        }
+        // V34 锋利匕首：攻击伤害+10%
+        if (effect.damageBonusPercent) {
+          const bonusDmg = Math.floor((context.damage || 0) * effect.damageBonusPercent / 100);
+          context.bonusDamage = (context.bonusDamage || 0) + bonusDmg;
+        }
+        // V34 狂暴之魂：每次攻击伤害+2（可叠加）
+        if (effect.attackDamageStack) {
+          context.bonusDamage = (context.bonusDamage || 0) + effect.attackDamageStack;
+          addLog(`遗物 ${relic.name} 攻击+${effect.attackDamageStack}伤害`, 'info');
         }
         // 低血量额外伤害
         if (effect.lowHpDamageBonus) {
@@ -5212,9 +5397,10 @@ function applyRelicEffect(trigger, context = {}) {
           applyDebuffToEnemy('vulnerable', effect.attackVulnerableStacks, 2);
           addLog(`遗物 ${relic.name} 使敌人易伤 ${effect.attackVulnerableStacks} 层`, 'debuff');
         }
+        // V34 攻击狂热挂坠：攻击时15%双倍伤害
         if (effect.doubleAttackChance && Math.random() < effect.doubleAttackChance) {
           context.extraHits = (context.extraHits || 0) + 1;
-          context.extraHitMult = effect.doubleAttackMult;
+          context.extraHitMult = 1.0; // 双倍 = 额外一次同等伤害
           addLog(`遗物 ${relic.name} 触发双重攻击！`, 'info');
         }
         // 攻击吸血
@@ -5232,6 +5418,16 @@ function applyRelicEffect(trigger, context = {}) {
           if (healAmt > 0) {
             gameState.playerHp += healAmt;
             addLog(`遗物 ${relic.name} 吸血回复 ${healAmt} 生命`, 'heal');
+          }
+        }
+        // V34 攻击吸收：受到伤害的20%转化为攻击力
+        if (effect.damageToAttackPercent && context.damage) {
+          const convertDmg = Math.floor(context.damage * effect.damageToAttackPercent / 100);
+          if (convertDmg > 0) {
+            // 存储转化的伤害，在下次攻击时加成
+            gameState.archetypeState = gameState.archetypeState || {};
+            gameState.archetypeState.damageToAttackDamage = (gameState.archetypeState.damageToAttackDamage || 0) + convertDmg;
+            addLog(`遗物 ${relic.name} 将${convertDmg}伤害转化为攻击`, 'info');
           }
         }
         break;
@@ -5463,6 +5659,24 @@ function renderRelicsPanel() {
     div.title = `${relic.name}: ${relic.description}`;
     container.appendChild(div);
   });
+}
+
+// V34 战斗界面遗物显示更新
+function updateBattleRelicsDisplay() {
+  const container = document.getElementById('battle-relics-display');
+  if (!container) return;
+
+  if (gameState.relics.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = gameState.relics.map(r => {
+    const data = RELICS[r.id];
+    if (!data) return '';
+    const rarityClass = data.rarity === 'legendary' ? 'legendary' : data.rarity === 'rare' ? 'rare' : 'common';
+    return `<div class="relic-icon ${rarityClass}" title="${data.name}: ${data.description}" style="width:28px;height:28px;font-size:16px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;border:2px solid gold;">${data.icon || '📿'}</div>`;
+  }).join('');
 }
 
 // ===== V9 成就系统 =====
@@ -6729,6 +6943,8 @@ function startCombat(node) {
   rollEnemyIntent();
   renderEnemy();
   renderUI();
+  // V34 更新战斗界面遗物显示
+  updateBattleRelicsDisplay();
   startPlayerTurn();
 }
 
@@ -6835,6 +7051,43 @@ const CHAPTER_REWARDS = {
     relic: 'chaosOrb', // 混沌宝珠：所有属性+10%
   },
 };
+
+// V34 章节结束遗物奖励（普通50%/稀有35%/史诗15%）
+function grantChapterEndRelicReward() {
+  // 随机选择遗物池
+  const roll = Math.random();
+  let pool;
+  if (roll < 0.50) {
+    pool = RELIC_POOLS.common;
+  } else if (roll < 0.85) {
+    pool = RELIC_POOLS.rare;
+  } else {
+    pool = RELIC_POOLS.legendary;
+  }
+
+  // 过滤掉已拥有的遗物
+  const available = pool.filter(r => !gameState.acquiredRelicIds.includes(r.id));
+
+  if (available.length === 0) {
+    // 如果没有可用遗物，尝试从其他池获取
+    const allAvailable = [...RELIC_POOLS.common, ...RELIC_POOLS.rare, ...RELIC_POOLS.legendary]
+      .filter(r => !gameState.acquiredRelicIds.includes(r.id));
+    if (allAvailable.length === 0) {
+      addLog('遗物池已满，无法获得更多遗物', 'info');
+      return;
+    }
+    const randomRelic = allAvailable[Math.floor(Math.random() * allAvailable.length)];
+    addRelic(randomRelic);
+    addLog(`章节奖励：获得遗物 ${randomRelic.name}！`, 'info');
+  } else {
+    const randomRelic = available[Math.floor(Math.random() * available.length)];
+    addRelic(randomRelic);
+    addLog(`章节奖励：获得遗物 ${randomRelic.name}！`, 'info');
+  }
+
+  // 更新战斗界面遗物显示
+  updateBattleRelicsDisplay();
+}
 
 function showChapterReward(chapter, onClose) {
   const overlay = document.getElementById('overlay');
@@ -7206,7 +7459,7 @@ function startPlayerTurn() {
   
   // V6 遗物效果: 回合开始时
   applyRelicEffect('startOfTurn');
-  
+
   // V25 宠物效果: 回合开始时
   applyPetEffect('startOfTurn');
 
@@ -7469,7 +7722,13 @@ function playCard(card, index) {
 
   if (card.type === 'skill') {
     audioManager.play('skill');
-    const blockValue = effect.block ?? card.block;
+    let blockValue = effect.block ?? card.block;
+
+    // V34 锈蚀护腕：护甲效果+10%
+    if (hasRelic('rustyGauntlet')) {
+      blockValue = Math.floor(blockValue * 1.1);
+    }
+
     if (blockValue) {
       gameState.playerShield += blockValue;
       // V32 护甲精通: 1%护甲转化为攻击（下次攻击时追加伤害）
@@ -7689,7 +7948,8 @@ function playCard(card, index) {
     }
     if (effect.curseVulnerable) {
       // 敌方获得易伤
-      applyDebuffToEnemy('vulnerable', effect.curseVulnerable, 2);
+      const curseDurationBonus = getRelicBonus('curseDurationBonus');
+      applyDebuffToEnemy('vulnerable', effect.curseVulnerable, 2, curseDurationBonus);
       addLog(`${card.name}: 敌人获得${effect.curseVulnerable}层易伤`, 'debuff');
     }
     if (effect.curseLifesteal) {
@@ -7719,7 +7979,9 @@ function playCard(card, index) {
     
     if (effect.fateDamageMin && effect.fateDamageMax) {
       // 命运打击：随机伤害
-      const damage = effect.fateDamageMin + Math.floor(Math.random() * (effect.fateDamageMax - effect.fateDamageMin + 1));
+      const fateBonus = 1 + getRelicBonus('fateBonusPercent') / 100;
+      const baseDamage = effect.fateDamageMin + Math.floor(Math.random() * (effect.fateDamageMax - effect.fateDamageMin + 1));
+      const damage = Math.floor(baseDamage * fateBonus);
       dealDamageToEnemy(damage);
       addLog(`${card.name}: 造成 ${damage} 点随机伤害！`, 'damage');
     }
@@ -7735,9 +7997,11 @@ function playCard(card, index) {
     
     if (effect.fateGambleDamage && effect.fateGambleSelfDamage) {
       // 孤注一掷：50%成功50%失败
+      const fateBonus = 1 + getRelicBonus('fateBonusPercent') / 100;
+      const finalDamage = Math.floor(effect.fateGambleDamage * fateBonus);
       if (Math.random() > 0.5) {
-        dealDamageToEnemy(effect.fateGambleDamage);
-        addLog(`${card.name}: 运气不错！造成 ${effect.fateGambleDamage} 点伤害！`, 'damage');
+        dealDamageToEnemy(finalDamage);
+        addLog(`${card.name}: 运气不错！造成 ${finalDamage} 点伤害！`, 'damage');
       } else {
         dealDamageToPlayer(effect.fateGambleSelfDamage, false);
         addLog(`${card.name}: 运气不佳！受到 ${effect.fateGambleSelfDamage} 点伤害！`, 'damage');
@@ -7775,7 +8039,9 @@ function playCard(card, index) {
     
     if (effect.fateRandomTarget && effect.fateDamageMin && effect.fateDamageMax) {
       // 蛮横挥击：随机目标+随机伤害
-      const damage = effect.fateDamageMin + Math.floor(Math.random() * (effect.fateDamageMax - effect.fateDamageMin + 1));
+      const fateBonus = 1 + getRelicBonus('fateBonusPercent') / 100;
+      const baseDamage = effect.fateDamageMin + Math.floor(Math.random() * (effect.fateDamageMax - effect.fateDamageMin + 1));
+      const damage = Math.floor(baseDamage * fateBonus);
       // 随机目标可以是玩家自己或敌人
       if (Math.random() > 0.5) {
         dealDamageToEnemy(damage);
@@ -7920,7 +8186,7 @@ function dealDamageToEnemy(damage) {
   }
 }
 
-function applyDebuffToEnemy(type, stacks, duration) {
+function applyDebuffToEnemy(type, stacks, duration, durationBonus = 0) {
   const existing = gameState.enemyDebuffs.find(d => d.type === type);
   const debuffInfo = {
     vulnerable: { name: '易伤', icon: '↓', cssClass: 'debuff-vulnerable' },
@@ -7928,16 +8194,28 @@ function applyDebuffToEnemy(type, stacks, duration) {
     poison:     { name: '中毒', icon: '☠', cssClass: 'debuff-poison' },
     burn:       { name: '灼热', icon: '🔥', cssClass: 'debuff-burn' },
   };
-  
+  const finalDuration = duration + durationBonus;
+
   if (existing) {
     if (['poison', 'burn'].includes(type)) {
       existing.stacks += stacks;
     }
-    existing.duration = duration;
+    existing.duration = finalDuration;
   } else {
     const info = debuffInfo[type] || { name: type, icon: '❓', cssClass: '' };
-    gameState.enemyDebuffs.push({ type, stacks: stacks || 1, duration, ...info });
+    gameState.enemyDebuffs.push({ type, stacks: stacks || 1, duration: finalDuration, ...info });
   }
+}
+
+// V34 遗物效果辅助函数
+function getRelicBonus(effectKey) {
+  let bonus = 0;
+  gameState.relics.forEach(relic => {
+    if (relic.effect && relic.effect[effectKey]) {
+      bonus += relic.effect[effectKey];
+    }
+  });
+  return bonus;
 }
 
 function applyDebuffToPlayer(type, stacks, duration) {
@@ -8014,8 +8292,17 @@ function endTurn() {
       addLog(`护甲灵魂触发！获得 ${gameState.thornsAuraValue} 点荆棘`, 'info');
     }
   }
-  
+
+  // V34 无限护甲：保存护甲值，在startPlayerTurn中恢复
+  const savedShield = gameState.playerShield;
+
   startPlayerTurn();
+
+  // V34 无限护甲：回合开始时恢复上回合护甲
+  if (hasRelic('infiniteArmor') && savedShield > 0) {
+    gameState.playerShield = savedShield;
+    addLog(`无限护甲效果：保留 ${savedShield} 点护甲`, 'block');
+  }
 }
 
 function processDebuffs(target) {
@@ -8504,6 +8791,20 @@ function dealDamageToPlayer(damage, isEnemyAttack = true) {
     showDamageNumber(damage, 'damage', 'player-area');
     audioManager.play('enemyAttack');
     addLog(`受到 ${damage} 点伤害`, 'damage');
+
+    // V34 遗物效果：受到伤害时触发（攻击吸收）
+    applyRelicEffect('onDamage', { damage });
+  }
+
+  // V34 命运三女神：第一次死亡必定触发命运逆转
+  const fateGoddessRelic = gameState.relics.find(r => r.id === 'fateGoddess' && !r.used);
+  if (fateGoddessRelic && gameState.playerHp <= 0) {
+    fateGoddessRelic.used = true;
+    gameState.playerHp = Math.floor(gameState.playerMaxHp * 0.25);
+    gameState.playerShield = 10;
+    renderUI();
+    addLog(`命运三女神显灵！保留25%生命并获得10点护甲！`, 'info');
+    return;
   }
 
   // V11 守护者之角：每场战斗第一次受到致命伤害时存活1HP
@@ -8585,15 +8886,16 @@ function checkEnemyDeath() {
       if (currentBattle === 3) {
         // 这是本章的Boss，章节完成
         chapterState.currentBattleInChapter = 0;
-        
+
         if (chapterState.currentChapter >= 3) {
           // 第三章Boss击败 = 通关胜利
           gameState.totalChaptersCompleted++;
           setTimeout(() => showVictory(), 500);
           return true;
         } else {
-          // 进入下一章节
+          // V34 章节结束时随机获得一件遗物（普通50%/稀有35%/史诗15%）
           setTimeout(() => {
+            grantChapterEndRelicReward();
             advanceToNextChapter();
           }, 500);
           return true;
@@ -8688,6 +8990,17 @@ function checkEnemyDeath() {
 
 function checkPlayerDeath() {
   if (gameState.playerHp <= 0) {
+    // V34 命运三女神：第一次死亡必定触发命运逆转
+    const fateGoddessActive = gameState.relics.some(r => r.id === 'fateGoddess' && !r.used);
+    if (fateGoddessActive) {
+      const relic = gameState.relics.find(r => r.id === 'fateGoddess');
+      relic.used = true;
+      gameState.playerHp = Math.floor(gameState.playerMaxHp * 0.25);
+      gameState.playerShield = 10;
+      renderUI();
+      addLog(`命运三女神显灵！保留25%生命并获得10点护甲！`, 'info');
+      return false;
+    }
     gameState.playerHp = 0;
     renderUI();
     addLog('你被击败了...', 'info');
@@ -8698,12 +9011,12 @@ function checkPlayerDeath() {
   return false;
 }
 
-// V31: 生成奖励（卡牌+遗物）
+// V34: 生成奖励（卡牌+遗物）
 function showRewardSelection() {
   const node = getNodeById(gameState.currentNode);
   const isElite = node && (node.type === 'elite' || node.type === 'boss');
-  // V33 使用新的10张奖励卡池
-  const cardRewards = getV33RewardCards(3);
+  // V34 使用新的30张奖励卡池
+  const cardRewards = getV34RewardCards(3);
 
   // 生成遗物奖励（精英/Boss战斗有更高几率获得遗物，且稀有/传说遗物概率更高）
   const shuffledRelics = shuffle([...AVAILABLE_RELICS]).filter(r => !gameState.acquiredRelicIds.includes(r.id));
