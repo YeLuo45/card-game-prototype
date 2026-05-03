@@ -457,6 +457,58 @@
     .reward-card.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 3px solid #00ff7f; }
     .reward-card.status { background: linear-gradient(145deg, #4e4e4e, #6b6b6b); border: 3px solid #a0a0a0; }
 
+    /* V31 奖励类型切换按钮 */
+    #reward-types {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .reward-type-btn {
+      padding: 8px 20px;
+      font-size: 14px;
+      background: rgba(255,255,255,0.1);
+      border: 2px solid transparent;
+      border-radius: 20px;
+      color: #aaa;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .reward-type-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
+    .reward-type-btn.active {
+      background: rgba(255,215,0,0.2);
+      border-color: #ffd700;
+      color: #ffd700;
+    }
+
+    /* V31 遗物奖励样式 */
+    .reward-relic {
+      width: 120px;
+      padding: 15px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .reward-relic:hover { transform: scale(1.05); }
+    .reward-relic.common { background: linear-gradient(145deg, #1e90ff, #4169e1); border: 3px solid #95a5a6; }
+    .reward-relic.rare { background: linear-gradient(145deg, #9b59b6, #8e44ad); border: 3px solid #3498db; }
+    .reward-relic.legendary { background: linear-gradient(145deg, #e74c3c, #c0392b); border: 3px solid #f39c12; }
+    .reward-relic .relic-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .reward-relic .relic-name { font-weight: bold; font-size: 12px; margin-bottom: 4px; text-align: center; }
+    .reward-relic .relic-desc { font-size: 10px; opacity: 0.8; text-align: center; color: #ddd; }
+
     /* 商店遮罩 */
     #shop-overlay {
       display: none;
@@ -7995,214 +8047,18 @@ function checkPlayerDeath() {
   return false;
 }
 
-// ===== V6 战斗奖励系统（卡牌+遗物）=====
-
-// V6: 当前选择的奖励类型
-let currentRewardType = 'card';
-
-function showRewardScreen(rewards, relics) {
-  const cardsContainer = document.getElementById('reward-cards');
-  const relicsContainer = document.getElementById('reward-relics');
-  
-  // 渲染卡牌奖励
-  cardsContainer.innerHTML = '';
-  rewards.forEach((card) => {
-    const div = document.createElement('div');
-    div.className = `reward-card ${card.type}`;
-    div.innerHTML = `
-      <div class="card-cost">${card.cost}</div>
-      <div class="card-name">${card.name}</div>
-      <div class="card-type">${getCardTypeName(card.type)}</div>
-      <div class="card-effect">${card.description}</div>
-    `;
-    div.onclick = () => selectReward(card);
-    cardsContainer.appendChild(div);
-  });
-  
-  // 渲染遗物奖励
-  relicsContainer.innerHTML = '';
-  relics.forEach((relic) => {
-    const div = document.createElement('div');
-    div.className = `reward-card ${relic.rarity}`;
-    div.style.borderColor = relic.rarity === 'legendary' ? '#e74c3c' : relic.rarity === 'rare' ? '#9b59b6' : '#1e90ff';
-    div.innerHTML = `
-      <div style="font-size:40px;margin-bottom:10px;">${relic.icon}</div>
-      <div class="card-name">${relic.name}</div>
-      <div class="card-type">${relic.rarity === 'legendary' ? '传说' : relic.rarity === 'rare' ? '稀有' : '普通'}</div>
-      <div class="card-effect">${relic.description}</div>
-    `;
-    div.onclick = () => selectRelicReward(relic);
-    relicsContainer.appendChild(div);
-  });
-  
-  // 绑定跳过奖励按钮
-  const skipBtn = document.getElementById('skip-reward-btn');
-  skipBtn.onclick = () => skipReward();
-  
-  // 绑定奖励类型切换按钮
-  document.querySelectorAll('.reward-type-btn').forEach(btn => {
-    btn.onclick = () => switchRewardType(btn.dataset.type);
-  });
-  
-  // 默认显示卡牌
-  switchRewardType('card');
-  
-  document.getElementById('overlay').classList.add('show');
-}
-
-function switchRewardType(type) {
-  currentRewardType = type;
-  const cardsContainer = document.getElementById('reward-cards');
-  const relicsContainer = document.getElementById('reward-relics');
-  
-  document.querySelectorAll('.reward-type-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.type === type);
-  });
-  
-  if (type === 'card') {
-    cardsContainer.style.display = 'flex';
-    relicsContainer.style.display = 'none';
-  } else {
-    cardsContainer.style.display = 'none';
-    relicsContainer.style.display = 'flex';
-  }
-}
-
-// V6: 选择奖励卡牌
-function selectReward(card) {
-  gameState.deck.push({ ...card });
-  // V9 更新最大卡牌数
-  if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
-    gameState.achievementStats.maxCardsOwned = gameState.deck.length;
-  }
-  // V24 跟踪本局添加的卡牌数
-  gameState.achievementStats.maxCardsAddedInOneRun = (gameState.achievementStats.maxCardsAddedInOneRun || 0) + 1;
-  document.getElementById('overlay').classList.remove('show');
-  addLog(`获得新卡: ${card.name}`, 'info');
-  // V9 检查成就
-  checkAchievements();
-  returnToMap();
-}
-
-// V6: 选择遗物奖励
-function selectRelicReward(relic) {
-  if (gameState.acquiredRelicIds.includes(relic.id)) {
-    addLog('已拥有此遗物！', 'debuff');
-    return;
-  }
-  gameState.relics.push({ ...relic });
-  gameState.acquiredRelicIds.push(relic.id);
-  
-  // V9 更新最大遗物数
-  if (gameState.relics.length > gameState.achievementStats.maxRelicsOwned) {
-    gameState.achievementStats.maxRelicsOwned = gameState.relics.length;
-  }
-  
-  // 应用遗物效果
-  if (relic.effect.maxHpBonus) {
-    gameState.playerMaxHp += relic.effect.maxHpBonus;
-    gameState.playerHp += relic.effect.maxHpBonus;
-    addLog(`遗物 ${relic.name} 最大生命+${relic.effect.maxHpBonus}`, 'heal');
-  }
-  
-  document.getElementById('overlay').classList.remove('show');
-  addLog(`获得遗物: ${relic.name}`, 'info');
-  renderRelicsPanel();
-  renderMap();
-  // V9 检查成就
-  checkAchievements();
-  returnToMap();
-}
-
-// V13: 显示卡牌奖励界面（战斗后选择卡牌奖励）
-function showCardReward(rewards) {
-  const cardsContainer = document.getElementById('reward-cards');
-  const relicsContainer = document.getElementById('reward-relics');
-  
-  // 渲染卡牌奖励
-  cardsContainer.innerHTML = '';
-  rewards.forEach((card) => {
-    const div = document.createElement('div');
-    div.className = `reward-card ${card.type}`;
-    div.innerHTML = `
-      <div class="card-cost">${card.cost}</div>
-      <div class="card-name">${card.name}</div>
-      <div class="card-type">${getCardTypeName(card.type)}</div>
-      <div class="card-effect">${card.description}</div>
-    `;
-    div.onclick = () => selectRewardCard(card);
-    cardsContainer.appendChild(div);
-  });
-  
-  // 隐藏遗物奖励区域
-  relicsContainer.innerHTML = '';
-  
-  // 绑定跳过奖励按钮
-  const skipBtn = document.getElementById('skip-reward-btn');
-  if (skipBtn) {
-    skipBtn.onclick = () => skipReward();
-  }
-  
-  // 隐藏奖励类型切换按钮，卡牌奖励界面只显示卡牌
-  const rewardTypes = document.getElementById('reward-types');
-  if (rewardTypes) {
-    rewardTypes.style.display = 'none';
-  }
-  
-  // 更新标题
-  const title = document.getElementById('overlay-title');
-  if (title) {
-    title.textContent = '🎉 战斗胜利！选择卡牌奖励';
-  }
-  const subtitle = document.getElementById('overlay-subtitle');
-  if (subtitle) {
-    subtitle.textContent = '选择一张卡牌加入你的牌组';
-  }
-  
-  document.getElementById('overlay').classList.add('show');
-}
-
-// V13: 选择奖励卡牌
-function selectRewardCard(card) {
-  gameState.deck.push({ ...card });
-  audioManager.play('chestOpen');
-  // V9 更新最大卡牌数
-  if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
-    gameState.achievementStats.maxCardsOwned = gameState.deck.length;
-  }
-  document.getElementById('overlay').classList.remove('show');
-  addLog(`获得新卡: ${card.name}`, 'info');
-  // V9 检查成就
-  checkAchievements();
-  returnToMap();
-}
-
-// V13: 跳过卡牌奖励
-function skipReward() {
-  document.getElementById('overlay').classList.remove('show');
-  addLog('跳过了卡牌奖励', 'info');
-  returnToMap();
-}
-
-// V6: 跳过奖励 (兼容性别名)
-function skipCardReward() {
-  skipReward();
-}
-
-// V6: 生成奖励（卡牌+遗物）
+// V31: 生成奖励（卡牌+遗物）
 function showRewardSelection() {
   const node = getNodeById(gameState.currentNode);
   const isElite = node && (node.type === 'elite' || node.type === 'boss');
-  
-  // V13: 使用扩展的REWARD_CARD_POOL生成卡牌奖励
   const shuffledCards = shuffle([...REWARD_CARD_POOL]);
   const cardCount = isElite ? 3 : 2;
   const cardRewards = shuffledCards.slice(0, Math.min(cardCount, shuffledCards.length));
-  
+
   // 生成遗物奖励（精英/Boss战斗有更高几率获得遗物，且稀有/传说遗物概率更高）
   const shuffledRelics = shuffle([...AVAILABLE_RELICS]).filter(r => !gameState.acquiredRelicIds.includes(r.id));
   let relicRewards = [];
-  
+
   if (isElite) {
     // 精英/Boss: 100%获得遗物，从稀有/传说池抽取
     const eliteRelics = [...RELIC_POOLS.rare, ...RELIC_POOLS.legendary].filter(r => !gameState.acquiredRelicIds.includes(r.id));
@@ -8214,9 +8070,198 @@ function showRewardSelection() {
       relicRewards = shuffle(commonRareRelics).slice(0, 1);
     }
   }
-  
-  // V13: 显示卡牌奖励选择界面
-  showCardReward(cardRewards);
+
+  // V31: 保存待选奖励，调用统一奖励界面（卡牌→遗物两步流程）
+  gameState.pendingCardRewards = cardRewards;
+  gameState.pendingRelicRewards = relicRewards;
+  gameState.pendingSelectedCards = [];
+
+  showRewardScreen();
+}
+
+// V31: 统一奖励界面（卡牌→遗物两步）
+function showRewardScreen() {
+  const cardsContainer = document.getElementById('reward-cards');
+  const relicsContainer = document.getElementById('reward-relics');
+  const rewardTypes = document.getElementById('reward-types');
+
+  // 渲染卡牌奖励
+  cardsContainer.innerHTML = '';
+  gameState.pendingCardRewards.forEach((card) => {
+    const div = document.createElement('div');
+    div.className = `reward-card ${card.type}`;
+    div.innerHTML = `
+      <div class="card-cost">${card.cost}</div>
+      <div class="card-name">${card.name}</div>
+      <div class="card-type">${getCardTypeName(card.type)}</div>
+      <div class="card-effect">${card.description}</div>
+    `;
+    div.onclick = () => selectRewardCard(card);
+    cardsContainer.appendChild(div);
+  });
+
+  // 渲染遗物奖励
+  relicsContainer.innerHTML = '';
+  gameState.pendingRelicRewards.forEach((relic) => {
+    const div = document.createElement('div');
+    div.className = `reward-relic ${relic.rarity}`;
+    div.innerHTML = `
+      <div class="relic-icon">${relic.icon}</div>
+      <div class="relic-name">${relic.name}</div>
+      <div class="relic-desc">${relic.description}</div>
+    `;
+    div.onclick = () => selectRewardRelic(relic);
+    relicsContainer.appendChild(div);
+  });
+
+  // 根据有没有遗物决定显示哪些tab
+  const hasRelics = gameState.pendingRelicRewards.length > 0;
+  if (rewardTypes) {
+    rewardTypes.style.display = hasRelics ? 'flex' : 'none';
+    // 显示卡牌tab，隐藏遗物tab（先选卡牌）
+    rewardTypes.querySelectorAll('.reward-type-btn').forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.dataset.type === 'card') btn.classList.add('active');
+    });
+  }
+
+  // 默认显示卡牌tab
+  cardsContainer.style.display = 'flex';
+  relicsContainer.style.display = 'none';
+
+  // 绑定奖励类型切换
+  rewardTypes.querySelectorAll('.reward-type-btn').forEach(btn => {
+    btn.onclick = () => switchRewardTab(btn.dataset.type);
+  });
+
+  // 绑定跳过按钮（跳过当前阶段）
+  const skipBtn = document.getElementById('skip-reward-btn');
+  if (skipBtn) {
+    skipBtn.onclick = () => skipCurrentRewardStep();
+  }
+
+  // 更新标题
+  const title = document.getElementById('overlay-title');
+  if (title) {
+    title.textContent = '🎉 战斗胜利！选择奖励';
+  }
+  const subtitle = document.getElementById('overlay-subtitle');
+  if (subtitle) {
+    subtitle.textContent = '选择卡牌或遗物加入你的收藏';
+  }
+
+  document.getElementById('overlay').classList.add('show');
+}
+
+// V31: 切换奖励标签页
+function switchRewardTab(tab) {
+  document.querySelectorAll('.reward-type-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === tab);
+  });
+  document.getElementById('reward-cards').style.display = tab === 'card' ? 'flex' : 'none';
+  document.getElementById('reward-relics').style.display = tab === 'relic' ? 'flex' : 'none';
+
+  // 切换tab时同步更新跳过按钮文字
+  const skipBtn = document.getElementById('skip-reward-btn');
+  if (skipBtn) {
+    skipBtn.textContent = tab === 'card' ? '跳过卡牌' : '跳过遗物';
+  }
+}
+
+// V31: 选择奖励卡牌
+function selectRewardCard(card) {
+  gameState.deck.push({ ...card });
+  gameState.pendingSelectedCards.push(card);
+  audioManager.play('chestOpen');
+
+  if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
+    gameState.achievementStats.maxCardsOwned = gameState.deck.length;
+  }
+  addLog(`获得新卡: ${card.name}`, 'info');
+
+  // 从待选中移除（防止重选）
+  gameState.pendingCardRewards = gameState.pendingCardRewards.filter(c => c !== card);
+
+  // 仍有未选卡牌？继续显示卡牌选择
+  if (gameState.pendingCardRewards.length > 0) {
+    showRewardScreen();
+    return;
+  }
+
+  // 卡牌选完了，检查有没有遗物
+  advanceAfterCardSelection();
+}
+
+// V31: 跳过当前奖励步骤（卡牌或遗物）
+function skipCurrentRewardStep() {
+  const cardsVisible = document.getElementById('reward-cards').style.display !== 'none';
+
+  if (cardsVisible) {
+    // 跳过卡牌阶段，进入遗物阶段
+    advanceAfterCardSelection();
+  } else {
+    // 跳过遗物阶段，直接返回地图
+    finishRewardSelection();
+  }
+}
+
+// V31: 卡牌选择完毕，检查是否需要选遗物
+function advanceAfterCardSelection() {
+  if (gameState.pendingRelicRewards.length > 0) {
+    // 还有遗物要选，切换到遗物tab
+    switchRewardTab('relic');
+  } else {
+    // 没有遗物了，直接结束
+    finishRewardSelection();
+  }
+}
+
+// V31: 选择遗物
+function selectRewardRelic(relic) {
+  if (gameState.acquiredRelicIds.includes(relic.id)) {
+    addLog('已拥有此遗物！', 'debuff');
+    return;
+  }
+  gameState.relics.push({ ...relic });
+  gameState.acquiredRelicIds.push(relic.id);
+  audioManager.play('chestOpen');
+  addLog(`获得遗物: ${relic.name}`, 'info');
+
+  // 应用遗物效果
+  if (relic.effect && relic.effect.maxHpBonus) {
+    gameState.playerMaxHp += relic.effect.maxHpBonus;
+    gameState.playerHp += relic.effect.maxHpBonus;
+    addLog(`遗物 ${relic.name} 最大生命+${relic.effect.maxHpBonus}`, 'heal');
+  }
+  if (relic.effect && relic.effect.startGold) {
+    gameState.gold += relic.effect.startGold;
+  }
+
+  // 更新最大遗物数成就
+  if (gameState.relics.length > gameState.achievementStats.maxRelicsOwned) {
+    gameState.achievementStats.maxRelicsOwned = gameState.relics.length;
+  }
+
+  gameState.pendingRelicRewards = gameState.pendingRelicRewards.filter(r => r !== relic);
+
+  if (gameState.pendingRelicRewards.length > 0) {
+    // 还有更多遗物，继续显示
+    showRewardScreen();
+    switchRewardTab('relic');
+  } else {
+    renderRelicsPanel();
+    finishRewardSelection();
+  }
+}
+
+// V31: 完成奖励选择，返回地图
+function finishRewardSelection() {
+  gameState.pendingCardRewards = null;
+  gameState.pendingRelicRewards = null;
+  gameState.pendingSelectedCards = null;
+  document.getElementById('overlay').classList.remove('show');
+  checkAchievements();
+  returnToMap();
 }
 
 function showGameOver() {
