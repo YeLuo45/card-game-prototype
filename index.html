@@ -1873,6 +1873,7 @@
 <div id="deck-preview-overlay">
   <div id="deck-preview-title">🃏 牌组预览</div>
   <div id="deck-preview-stats"></div>
+  <div id="archetype-stats" style="display:none; font-size:13px; color:#aaa; margin-bottom:10px; padding:5px 10px; background:rgba(0,0,0,0.3); border-radius:6px;"></div>
   <div id="deck-preview-filters">
     <button class="filter-btn active" data-filter="all">全部</button>
     <button class="filter-btn attack" data-filter="attack">攻击</button>
@@ -2120,13 +2121,23 @@ function applyArchetypeEffects(trigger, context = {}) {
         applyDebuffToEnemy('poison', bonuses.lethalPoisonKill, 3);
         addLog(`致命毒师：击杀附加${bonuses.lethalPoisonKill}层中毒`, 'debuff');
       }
-      // 毒素精通: 灼烧传染为中毒（已在processDebuffs中burn→poison感染逻辑处理）
+      // 毒素精通: 灼烧传染为中毒（存状态，processDebuffs中使用）
+      if (bonuses.burnInfectsPoison) {
+        gameState.archetypeState.burnInfectsPoison = true;
+      }
     }
 
     // === inferno 灼烧 ===
     if (archId === 'inferno') {
-      if (trigger === 'battleStart' && bonuses.burnTurnEnd) {
-        gameState.archetypeState.burnTurnEnd = bonuses.burnTurnEnd;
+      if (trigger === 'battleStart') {
+        // V32 烈焰学: 灼烧伤害+1/层（存状态，processDebuffs中使用）
+        if (bonuses.burnDamageBonus) {
+          gameState.archetypeState.burnDamageBonus = bonuses.burnDamageBonus;
+        }
+        // V32 炎灭师: 回合结束对敌叠灼烧
+        if (bonuses.burnTurnEnd) {
+          gameState.archetypeState.burnTurnEnd = bonuses.burnTurnEnd;
+        }
       }
       if (trigger === 'cardPlay' && context.card) {
         // 烈焰学: 每层灼烧伤害1→2
@@ -2161,7 +2172,7 @@ function applyArchetypeEffects(trigger, context = {}) {
           context.effect.block = orig + bonus;
           addLog(`铁壁学效果：护甲+${bonus}`, 'buff');
         }
-        // 护甲精通: 护甲转化1%为攻击
+        // 护甲精通: 护甲转化1%为攻击（在攻击结算时从护甲池扣除并加伤）
         if (bonuses.blockToAttack) {
           gameState.archetypeState.blockToAttack = bonuses.blockToAttack;
         }
@@ -2189,9 +2200,11 @@ function applyArchetypeEffects(trigger, context = {}) {
 
     // === vampire 吸血 ===
     if (archId === 'vampire') {
-      if (trigger === 'battleStart' && bonuses.lifestealBonus) {
-        // 吸血学: 吸血率+10%
-        gameState.archetypeState.lifestealBonus = bonuses.lifestealBonus;
+      if (trigger === 'battleStart') {
+        // V32 吸血学: 吸血率+10%（存状态，攻击结算时使用）
+        if (bonuses.lifestealBonus) {
+          gameState.archetypeState.lifestealBonus = bonuses.lifestealBonus;
+        }
       }
       if (trigger === 'kill' && bonuses.killHeal) {
         const heal = Math.min(bonuses.killHeal, gameState.playerMaxHp - gameState.playerHp);
@@ -2200,11 +2213,11 @@ function applyArchetypeEffects(trigger, context = {}) {
           addLog(`饮血精通：击杀回复${heal}点生命`, 'heal');
         }
       }
-      if (trigger === 'cardPlay' && context.damage && bonuses.lifestealDamageStack) {
-        // 血噬师: 吸血叠1%伤害
-        gameState.archetypeState.lifestealDamageStack = (gameState.archetypeState.lifestealDamageStack || 0) + bonuses.lifestealDamageStack;
-        if (gameState.archetypeState.lifestealDamageStack > 0) {
-          // 额外伤害在dealDamageToEnemy后追加
+      if (trigger === 'cardPlay' && context.card) {
+        // V32 血噬师: 吸血叠1%伤害（每用吸血卡叠伤害）
+        if (bonuses.lifestealDamageStack) {
+          gameState.archetypeState.lifestealDamageStack = (gameState.archetypeState.lifestealDamageStack || 0) + bonuses.lifestealDamageStack;
+          addLog(`血噬师：吸血叠伤${gameState.archetypeState.lifestealDamageStack}%`, 'buff');
         }
       }
     }
@@ -2217,12 +2230,14 @@ function getArchetypeDisplayData() {
   return active.map(id => {
     const count = getArchetypeCount(id);
     const archetype = ARCHETYPES[id];
-    // 找当前达到的等级
+    // 找当前达到的等级（第一个满足count条件的级别）
     let currentLevel = 0;
     let currentEffect = null;
-    archetype.levels.forEach((lvl, idx) => {
+    for (let idx = 0; idx < archetype.levels.length; idx++) {
+      const lvl = archetype.levels[idx];
       if (count >= lvl.count) { currentLevel = idx + 1; currentEffect = lvl; }
-    });
+      else break; // 已达到的最高等级，之后的更高阈值不满足
+    }
     return { id, name: archetype.name, icon: archetype.icon, color: archetype.color, count, level: currentLevel, effect: currentEffect };
   });
 }
@@ -6983,7 +6998,15 @@ function playCard(card, index) {
       addLog('连击终结！造成20点伤害！', 'damage');
     }
     gameState.comboActive = true; // Mark that an attack was made this turn
-    
+
+    // V32 护甲精通: 追加转化来的伤害（只追加一次，不是每击）
+    if (gameState.archetypeState.blockToAttackDamage > 0) {
+      const bonusDmg = gameState.archetypeState.blockToAttackDamage;
+      damage += bonusDmg;
+      addLog(`护甲精通：追加${bonusDmg}点转化伤害`, 'damage');
+      gameState.archetypeState.blockToAttackDamage = 0;
+    }
+
     damage = Math.floor(damage * gameState.nextAttackMult);
     // V4 暴击
     damage = Math.floor(damage * gameState.nextCritMult);
@@ -7020,10 +7043,12 @@ function playCard(card, index) {
       }
     }
     
-    // V4 吸血效果 & V15 lifestealAura
+    // V4 吸血效果 & V15 lifestealAura & V32 吸血学(+10%吸血率)
     if ((effect.lifesteal || gameState.lifestealAuraActive) && damage > 0) {
-      const lifestealRate = effect.lifesteal || 0;
-      const healAmount = Math.floor(damage * (lifestealRate || 0.2));
+      const baseRate = effect.lifesteal || 0.2;
+      const archetypeBonus = (gameState.archetypeState.lifestealBonus || 0) / 100;
+      const lifestealRate = baseRate + archetypeBonus;
+      const healAmount = Math.floor(damage * lifestealRate);
       const actualHeal = Math.min(healAmount, gameState.playerMaxHp - gameState.playerHp);
       gameState.playerHp += actualHeal;
       if (actualHeal > 0) addLog(`吸血回复 ${actualHeal} 点生命`, 'heal');
@@ -7122,6 +7147,12 @@ function playCard(card, index) {
     audioManager.play('skill');
     if (effect.block) {
       gameState.playerShield += effect.block;
+      // V32 护甲精通: 1%护甲转化为攻击（下次攻击时追加伤害）
+      if (gameState.archetypeState.blockToAttack > 0) {
+        const convertDmg = Math.max(1, Math.floor(effect.block * gameState.archetypeState.blockToAttack / 100));
+        gameState.archetypeState.blockToAttackDamage = (gameState.archetypeState.blockToAttackDamage || 0) + convertDmg;
+        addLog(`护甲精通：${convertDmg}点护甲转化为攻击伤害`, 'damage');
+      }
       animateShieldGain();
       showDamageNumber(effect.block, 'shield', 'player-area');
       addLog(`获得 ${effect.block} 点护甲`, 'block');
@@ -7506,6 +7537,15 @@ function dealDamageToEnemy(damage) {
   }
 
   if (actualDamage > 0) {
+    // V32 血噬师: 吸血叠1%伤害（每击追加叠伤）
+    if (gameState.archetypeState.lifestealDamageStack > 0) {
+      const bonusDmg = Math.floor(actualDamage * gameState.archetypeState.lifestealDamageStack / 100);
+      if (bonusDmg > 0) {
+        actualDamage += bonusDmg;
+        addLog(`血噬师：追加${bonusDmg}点伤害（${gameState.archetypeState.lifestealDamageStack}%叠伤）`, 'damage');
+      }
+    }
+
     // V20 暴击处理
     if (isCritical) {
       actualDamage = Math.floor(actualDamage * 2);
@@ -7659,7 +7699,10 @@ function processDebuffs(target) {
   
   debuffs.forEach(debuff => {
     if (debuff.type === 'poison' || debuff.type === 'burn') {
-      let damage = debuff.stacks * (debuff.type === 'burn' ? 2 : 3);
+      // V32 烈焰学: 每层灼烧伤害基础2+bonus
+      let damage = debuff.type === 'burn'
+        ? debuff.stacks * (2 + (gameState.archetypeState.burnDamageBonus || 0))
+        : debuff.stacks * 3;
       // V11 燃烧之魂：中毒伤害翻倍
       if (debuff.type === 'poison' && hasRelic('burningSoul')) {
         damage *= 2;
@@ -7668,6 +7711,13 @@ function processDebuffs(target) {
         dealDamageToPlayer(damage, false);
         addLog(`中毒造成 ${damage} 点伤害`, 'damage');
       } else {
+        // V32 毒素精通: 灼烧传染为中毒（消耗灼烧层数转为等量中毒）
+        if (debuff.type === 'burn' && gameState.archetypeState.burnInfectsPoison) {
+          const infectStacks = Math.min(debuff.stacks, 5); // 每次最多传染5层
+          debuff.stacks -= infectStacks;
+          gameState.poisonStacks += infectStacks;
+          addLog(`毒素精通：灼烧传染${infectStacks}层为中毒`, 'debuff');
+        }
         dealDamageToEnemy(damage);
         addLog(`${debuff.name}造成 ${damage} 点伤害`, 'damage');
       }
