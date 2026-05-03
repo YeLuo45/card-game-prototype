@@ -3159,6 +3159,56 @@ const ENEMIES = {
   nothingPhantom: { id: 'nothingPhantom', name: '虚无幽魂', hp: 40, intents: ['attack', 'evade', 'debuff'], special: 'phaseShift' },
   voidTendril: { id: 'voidTendril', name: '虚空触须', hp: 55, intents: ['attack', 'constrict', 'defend'], special: 'constrict' },
   oblivionHound: { id: 'oblivionHound', name: '遗忘猎犬', hp: 45, isElite: true, intents: ['attack', 'packHunt', 'heavy'], special: 'packHunt' },
+  // V27 第5章新增敌人（神圣领域）
+  celestialGuardian: { id: 'celestialGuardian', name: '天界守护者', hp: 55, isElite: true, intents: ['attack', 'divineShield', 'buff'], special: 'divineShield' },
+  lightElemental: { id: 'lightElemental', name: '光元素', hp: 30, intents: ['attack', 'radiant', 'heal'], special: 'radiant' },
+  holyKnight: { id: 'holyKnight', name: '圣殿骑士', hp: 48, intents: ['attack', 'defend', 'holyStrike'], special: 'holyStrike' },
+  // V27 第6章新增敌人（地狱深渊）
+  demonSoldier: { id: 'demonSoldier', name: '恶魔士兵', hp: 42, intents: ['attack', 'demonFire', 'buff'], special: 'demonFire' },
+  hellHound: { id: 'hellHound', name: '地狱猎犬', hp: 38, isElite: true, intents: ['attack', 'lifesteal', 'heavy'], special: 'lifesteal' },
+  soulHarvester: { id: 'soulHarvester', name: '灵魂收割者', hp: 50, intents: ['attack', 'soulDrain', 'curse'], special: 'soulDrain' },
+  pitFiend: { id: 'pitFiend', name: '深渊恶魔', hp: 60, isElite: true, intents: ['attack', 'inferno', 'defend'], special: 'inferno' },
+  // V27 第7章新增敌人（混沌虚空）
+  voidSpawn: { id: 'voidSpawn', name: '虚空衍生体', hp: 35, intents: ['attack', 'phaseShift', 'debuff'], special: 'phaseShift' },
+  chaosWraith: { id: 'chaosWraith', name: '混沌幽灵', hp: 45, isElite: true, intents: ['attack', 'chaosBolt', 'buff'], special: 'chaosBolt' },
+  realityBreaker: { id: 'realityBreaker', name: '现实破碎者', hp: 55, intents: ['attack', 'realityDistort', 'annihilate'], special: 'realityDistort' },
+  // V27 新Boss：大天使长（3阶段：神圣冲击+天国神兵+末日审判）
+  archangel: {
+    id: 'archangel',
+    name: '大天使长',
+    hp: 180,
+    isBoss: true,
+    intents: ['divineJudgment', 'celestialBlitz', 'holyNova', 'buff'],
+    special: 'divineJudgment',
+    bossPhase: 1,
+    divineCharge: 0,
+    maxDivineCharge: 3,
+  },
+  // V27 新Boss：阿兹莫丹（3阶段：地狱火+灵魂收割+毁灭之拳）
+  azmodan: {
+    id: 'azmodan',
+    name: '阿兹莫丹',
+    hp: 200,
+    isBoss: true,
+    intents: ['hellfire', 'soulHarvest', 'annihilatingFist', 'buff'],
+    special: 'hellfire',
+    bossPhase: 1,
+    sinPower: 0,
+    maxSinPower: 25,
+  },
+  // V27 新Boss：混沌之神（3阶段：混沌脉冲+虚实交换+万物归零）
+  chaosGod: {
+    id: 'chaosGod',
+    name: '混沌之神',
+    hp: 250,
+    isBoss: true,
+    intents: ['chaosPulse', 'realitySwap', 'entropy', 'debuff'],
+    special: 'chaosPulse',
+    bossPhase: 1,
+    entropyLevel: 0,
+    maxEntropy: 30,
+    voidFormActive: false,
+  },
 };
 
 // ===== V20 Boss意图权重 =====
@@ -3172,6 +3222,24 @@ const BOSS_PHASE_WEIGHTS = {
     1: { shadowSummon: 45, voidDomain: 30, debuff: 25 },          // 阶段1：虚影召唤为主
     2: { voidDomain: 50, shadowSummon: 30, debuff: 20 },         // 阶段2：虚无领域为主
     3: { annihilation: 55, voidDomain: 30, debuff: 15 },          // 阶段3：湮灭为主
+  },
+  // V27 大天使长Boss意图权重
+  archangel: {
+    1: { divineJudgment: 40, celestialBlitz: 35, buff: 25 },      // 阶段1：神圣审判为主
+    2: { celestialBlitz: 45, holyNova: 35, buff: 20 },           // 阶段2：天国神兵为主
+    3: { holyNova: 55, divineJudgment: 30, buff: 15 },           // 阶段3：末日审判为主
+  },
+  // V27 阿兹莫丹Boss意图权重
+  azmodan: {
+    1: { hellfire: 40, soulHarvest: 35, buff: 25 },                // 阶段1：地狱火为主
+    2: { soulHarvest: 45, annihilatingFist: 35, buff: 20 },       // 阶段2：灵魂收割为主
+    3: { annihilatingFist: 55, hellfire: 30, buff: 15 },          // 阶段3：毁灭之拳为主
+  },
+  // V27 混沌之神Boss意图权重
+  chaosGod: {
+    1: { chaosPulse: 40, realitySwap: 35, debuff: 25 },           // 阶段1：混沌脉冲为主
+    2: { realitySwap: 45, entropy: 35, debuff: 20 },            // 阶段2：虚实交换为主
+    3: { entropy: 55, chaosPulse: 30, debuff: 15 },              // 阶段3：万物归零为主
   },
 };
 
@@ -3368,48 +3436,84 @@ const FLOORS = [
       ['f7c3', 'f7m1'], ['f7m1', 'f7b1'],
     ]
   },
-  // V20 章节2地图（替换旧第3层boss为深渊领主）
+  // V27 第8层：神圣领域（Chapter 5）
   {
-    id: 2,
-    name: '地下墓穴',
-    chapter: 2,
+    id: 8,
+    name: '神圣领域',
+    chapter: 5,
     nodes: [
-      { id: 'f2s1', type: 'shop',    name: '商店',    x: 80,  y: 200, enemy: null },
-      { id: 'f2e1', type: 'elite',   name: '精英战',  x: 220, y: 100, enemy: 'fireElf' },
-      { id: 'f2c1', type: 'combat',  name: '战斗',    x: 220, y: 300, enemy: 'goblin' },
-      { id: 'f2m1', type: 'mystery', name: '随机',    x: 300, y: 200, enemy: null },
-      { id: 'f2c2', type: 'combat',  name: '战斗',    x: 400, y: 200, enemy: 'skeleton' },
-      { id: 'f2r1', type: 'rest',    name: '休息',    x: 550, y: 100, enemy: null },
-      { id: 'f2c3', type: 'combat',  name: '战斗',    x: 550, y: 300, enemy: 'fireElf' },
-      { id: 'f2b1', type: 'boss',   name: 'Boss',    x: 700, y: 200, enemy: 'darkLord' },
+      { id: 'f8r1', type: 'rest',       name: '休息',      x: 80,  y: 200, enemy: null },
+      { id: 'f8e1', type: 'elite',      name: '精英战',    x: 220, y: 100, enemy: 'celestialGuardian' },
+      { id: 'f8c1', type: 'combat',     name: '战斗',      x: 220, y: 300, enemy: 'lightElemental' },
+      { id: 'f8p1', type: 'campfire',  name: '篝火',      x: 300, y: 200, enemy: null },
+      { id: 'f8c2', type: 'combat',     name: '战斗',      x: 400, y: 200, enemy: 'holyKnight' },
+      { id: 'f8t1', type: 'treasure',   name: '宝箱',      x: 350, y: 320, enemy: null },
+      { id: 'f8e2', type: 'elite',      name: '精英战',    x: 400, y: 350, enemy: 'celestialGuardian' },
+      { id: 'f8m1', type: 'mystery',    name: '随机',      x: 480, y: 300, enemy: null },
+      { id: 'f8s1', type: 'shop',       name: '商店',      x: 550, y: 100, enemy: null },
+      { id: 'f8c3', type: 'combat',     name: '战斗',      x: 550, y: 300, enemy: 'lightElemental' },
+      { id: 'f8b1', type: 'boss',       name: 'Boss',      x: 700, y: 200, enemy: 'archangel' },
     ],
     edges: [
-      ['f2s1', 'f2e1'], ['f2e1', 'f2c1'], ['f2c1', 'f2c2'],
-      ['f2c2', 'f2r1'], ['f2r1', 'f2c3'], ['f2c3', 'f2b1'],
-      ['f2c2', 'f2c3'], ['f2e1', 'f2c2'], ['f2c1', 'f2m1'],
+      ['f8r1', 'f8e1'], ['f8e1', 'f8c1'], ['f8c1', 'f8c2'],
+      ['f8c2', 'f8e2'], ['f8e2', 'f8s1'], ['f8s1', 'f8c3'],
+      ['f8c3', 'f8b1'], ['f8c2', 'f8c3'], ['f8e1', 'f8c2'],
+      ['f8c2', 'f8t1'], ['f8t1', 'f8e2'], ['f8e2', 'f8m1'],
+      ['f8c2', 'f8p1'], ['f8p1', 'f8s1'],
     ]
   },
-  // V20 章节1地图（替换旧第2层boss为史莱姆王）
+  // V27 第9层：地狱深渊（Chapter 6）
   {
-    id: 1,
-    name: '迷雾森林',
-    chapter: 1,
+    id: 9,
+    name: '地狱深渊',
+    chapter: 6,
     nodes: [
-      { id: 'f1r1', type: 'rest',    name: '休息',    x: 80,  y: 200, enemy: null },
-      { id: 'f1c1', type: 'combat',  name: '战斗',    x: 220, y: 100, enemy: 'slime' },
-      { id: 'f1c2', type: 'combat',  name: '战斗',    x: 220, y: 300, enemy: 'goblin' },
-      { id: 'f1e1', type: 'elite',   name: '精英战',  x: 400, y: 200, enemy: 'skeleton' },
-      { id: 'f1s1', type: 'shop',    name: '商店',    x: 550, y: 300, enemy: null },
-      { id: 'f1t1', type: 'treasure', name: '宝箱',   x: 300, y: 350, enemy: null },
-      { id: 'f1b1', type: 'boss',    name: 'Boss',    x: 700, y: 200, enemy: 'slimeKing' },
+      { id: 'f9r1', type: 'rest',       name: '休息',      x: 80,  y: 200, enemy: null },
+      { id: 'f9e1', type: 'elite',      name: '精英战',    x: 220, y: 100, enemy: 'pitFiend' },
+      { id: 'f9c1', type: 'combat',     name: '战斗',      x: 220, y: 300, enemy: 'demonSoldier' },
+      { id: 'f9c2', type: 'combat',     name: '战斗',      x: 300, y: 200, enemy: 'soulHarvester' },
+      { id: 'f9t1', type: 'treasure',   name: '宝箱',      x: 380, y: 150, enemy: null },
+      { id: 'f9e2', type: 'elite',      name: '精英战',    x: 400, y: 200, enemy: 'hellHound' },
+      { id: 'f9m1', type: 'mystery',    name: '随机',      x: 480, y: 300, enemy: null },
+      { id: 'f9s1', type: 'shop',       name: '商店',      x: 550, y: 100, enemy: null },
+      { id: 'f9c3', type: 'combat',     name: '战斗',      x: 550, y: 300, enemy: 'demonSoldier' },
+      { id: 'f9p1', type: 'campfire',   name: '篝火',      x: 620, y: 200, enemy: null },
+      { id: 'f9b1', type: 'boss',       name: 'Boss',      x: 700, y: 200, enemy: 'azmodan' },
     ],
     edges: [
-      ['f1r1', 'f1c1'], ['f1c1', 'f1c2'], ['f1c2', 'f1e1'],
-      ['f1e1', 'f1s1'], ['f1s1', 'f1b1'], ['f1c1', 'f1e1'],
-      ['f1c2', 'f1t1'], ['f1t1', 'f1e1'],
+      ['f9r1', 'f9e1'], ['f9e1', 'f9c1'], ['f9c1', 'f9c2'],
+      ['f9c2', 'f9e2'], ['f9e2', 'f9s1'], ['f9s1', 'f9c3'],
+      ['f9c3', 'f9b1'], ['f9c2', 'f9c3'], ['f9e1', 'f9c2'],
+      ['f9c2', 'f9t1'], ['f9t1', 'f9e2'], ['f9e2', 'f9m1'],
+      ['f9c3', 'f9p1'], ['f9p1', 'f9b1'],
     ]
   },
-
+  // V27 第10层：混沌虚空（Chapter 7 - 最终章节）
+  {
+    id: 10,
+    name: '混沌虚空',
+    chapter: 7,
+    nodes: [
+      { id: 'f10r1', type: 'rest',       name: '休息',      x: 80,  y: 200, enemy: null },
+      { id: 'f10e1', type: 'elite',      name: '精英战',    x: 220, y: 100, enemy: 'chaosWraith' },
+      { id: 'f10c1', type: 'combat',     name: '战斗',      x: 220, y: 300, enemy: 'voidSpawn' },
+      { id: 'f10p1', type: 'campfire',   name: '篝火',      x: 300, y: 200, enemy: null },
+      { id: 'f10c2', type: 'combat',      name: '战斗',      x: 400, y: 200, enemy: 'realityBreaker' },
+      { id: 'f10e2', type: 'elite',      name: '精英战',    x: 400, y: 350, enemy: 'chaosWraith' },
+      { id: 'f10t1', type: 'treasure',   name: '宝箱',      x: 350, y: 320, enemy: null },
+      { id: 'f10m1', type: 'mystery',    name: '随机',      x: 480, y: 300, enemy: null },
+      { id: 'f10s1', type: 'shop',       name: '商店',      x: 550, y: 100, enemy: null },
+      { id: 'f10c3', type: 'combat',     name: '战斗',      x: 550, y: 300, enemy: 'voidSpawn' },
+      { id: 'f10b1', type: 'boss',        name: '最终Boss',   x: 700, y: 200, enemy: 'chaosGod' },
+    ],
+    edges: [
+      ['f10r1', 'f10e1'], ['f10e1', 'f10c1'], ['f10c1', 'f10c2'],
+      ['f10c2', 'f10e2'], ['f10e2', 'f10s1'], ['f10s1', 'f10c3'],
+      ['f10c3', 'f10b1'], ['f10c2', 'f10c3'], ['f10e1', 'f10c2'],
+      ['f10c2', 'f10t1'], ['f10t1', 'f10e2'], ['f10e2', 'f10m1'],
+      ['f10c2', 'f10p1'], ['f10p1', 'f10s1'],
+    ]
+  },
 ];
 
 const NODE_TYPES = {
@@ -3758,6 +3862,14 @@ let gameState = {
   voidDomainActive: false,  // 虚无领域是否激活
   shadowMinions: 0,         // 虚影小怪数量
   annihilationCharges: 0,   // 湮灭充能层数
+  // V27 新Boss阶段状态
+  archangelPhase: 1,        // 大天使长当前阶段(1-3)
+  divineCharge: 0,           // 神圣充能层数
+  azmodanPhase: 1,          // 阿兹莫丹当前阶段(1-3)
+  sinPower: 0,              // 原罪之力
+  chaosGodPhase: 1,         // 混沌之神当前阶段(1-3)
+  entropyLevel: 0,          // 熵值
+  voidFormActive: false,    // 虚无形态是否激活
   // V25 宠物系统
   pets: [], // 玩家拥有的宠物列表 { id, equipped }
   ownedPetIds: [], // 已购买的宠物ID列表（防止重复购买）
@@ -5423,6 +5535,38 @@ const CHAPTER_REWARDS = {
     gold: 100,
     relic: 'phoenixFeather', // 凤凰羽毛：濒死时复活
   },
+  // V27 章节4奖励
+  4: {
+    title: '第四章完成：虚无之地',
+    subtitle: '选择一项奖励',
+    cards: ['ghostlyArmor', 'nocuousDust', 'fade', 'wraithForm'],
+    gold: 120,
+    relic: 'voidCore', // 虚空核心：虚无领域伤害减半
+  },
+  // V27 章节5奖励
+  5: {
+    title: '第五章完成：神圣领域',
+    subtitle: '选择一项奖励',
+    cards: ['holySmite', 'divineProtection', 'blessed', 'purify'],
+    gold: 140,
+    relic: 'celestialBlessing', // 天界祝福：神圣伤害+25%
+  },
+  // V27 章节6奖励
+  6: {
+    title: '第六章完成：地狱深渊',
+    subtitle: '选择一项奖励',
+    cards: ['immolate', 'demonForm', 'soulRend', 'infernal'],
+    gold: 160,
+    relic: 'hellfireEmblem', // 地狱火印记：攻击附带灼烧
+  },
+  // V27 章节7奖励（最终章节）
+  7: {
+    title: '第七章完成：混沌虚空',
+    subtitle: '恭喜通关！选择一项奖励',
+    cards: ['existential dread', 'realityShift', 'voidConsumption', 'cosmic'],
+    gold: 200,
+    relic: 'chaosOrb', // 混沌宝珠：所有属性+10%
+  },
 };
 
 function showChapterReward(chapter, onClose) {
@@ -5502,7 +5646,7 @@ function showChapterReward(chapter, onClose) {
 
 function rollEnemyIntent() {
   const enemy = gameState.enemy;
-  // V20 Boss阶段权重：深渊领主和虚无之主根据阶段选择意图
+  // V20/V27 Boss阶段权重：根据Boss类型和阶段选择意图
   let weights;
   if (enemy.id === 'abyssLord' && BOSS_PHASE_WEIGHTS.abyssLord) {
     const phase = gameState.abyssLordPhase || 1;
@@ -5510,6 +5654,18 @@ function rollEnemyIntent() {
   } else if (enemy.id === 'lordOfNothingness' && BOSS_PHASE_WEIGHTS.lordOfNothingness) {
     const phase = gameState.lordOfNothingnessPhase || 1;
     weights = BOSS_PHASE_WEIGHTS.lordOfNothingness[phase] || INTENT_WEIGHTS.lordOfNothingness;
+  } else if (enemy.id === 'archangel' && BOSS_PHASE_WEIGHTS.archangel) {
+    // V27 大天使长Boss阶段
+    const phase = gameState.archangelPhase || 1;
+    weights = BOSS_PHASE_WEIGHTS.archangel[phase] || INTENT_WEIGHTS.archangel;
+  } else if (enemy.id === 'azmodan' && BOSS_PHASE_WEIGHTS.azmodan) {
+    // V27 阿兹莫丹Boss阶段
+    const phase = gameState.azmodanPhase || 1;
+    weights = BOSS_PHASE_WEIGHTS.azmodan[phase] || INTENT_WEIGHTS.azmodan;
+  } else if (enemy.id === 'chaosGod' && BOSS_PHASE_WEIGHTS.chaosGod) {
+    // V27 混沌之神Boss阶段
+    const phase = gameState.chaosGodPhase || 1;
+    weights = BOSS_PHASE_WEIGHTS.chaosGod[phase] || INTENT_WEIGHTS.chaosGod;
   } else {
     weights = INTENT_WEIGHTS[enemy.id] || INTENT_WEIGHTS.slime;
   }
@@ -5636,6 +5792,36 @@ function rollEnemyIntent() {
       break;
     case 'phaseShift':
       value = 0;
+      break;
+    // V27 大天使长意图
+    case 'divineJudgment':
+      value = 15 + gameState.archangelPhase * 3;
+      break;
+    case 'celestialBlitz':
+      value = 12 + gameState.archangelPhase * 2;
+      break;
+    case 'holyNova':
+      value = 20 + gameState.archangelPhase * 5;
+      break;
+    // V27 阿兹莫丹意图
+    case 'hellfire':
+      value = 18 + gameState.azmodanPhase * 3;
+      break;
+    case 'soulHarvest':
+      value = 10 + gameState.azmodanPhase * 2;
+      break;
+    case 'annihilatingFist':
+      value = 25 + gameState.azmodanPhase * 5;
+      break;
+    // V27 混沌之神意图
+    case 'chaosPulse':
+      value = 15 + gameState.chaosGodPhase * 3;
+      break;
+    case 'realitySwap':
+      value = 0;
+      break;
+    case 'entropy':
+      value = 30 + gameState.chaosGodPhase * 5;
       break;
   }
 
