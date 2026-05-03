@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DBG卡牌游戏 V16</title>
+  <title>DBG卡牌游戏 V18</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -1150,12 +1150,50 @@
       0% { opacity: 0; transform: translateX(-50px) rotate(-10deg); }
       100% { opacity: 1; transform: translateX(0) rotate(0deg); }
     }
+
+    /* V18 随机事件遮罩 */
+    #event-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 150;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    #event-overlay.show { display: flex; }
+    #event-title { font-size: 28px; color: #ffd700; margin-bottom: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+    #event-description { font-size: 16px; color: #ccc; margin-bottom: 25px; text-align: center; max-width: 500px; line-height: 1.5; }
+    #event-options { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+    .event-option-btn {
+      padding: 12px 30px;
+      font-size: 15px;
+      border: 2px solid #ffd700;
+      border-radius: 25px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 280px;
+    }
+    .event-option-btn:hover { background: #ffd700; color: #000; transform: scale(1.05); }
+    .event-option-btn .cost { color: #ffd700; font-weight: bold; }
+    #event-result {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 10px;
+      font-size: 14px;
+      color: #4ecdc4;
+      min-height: 20px;
+    }
   </style>
 </head>
 <body>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V16</h1>
+  <h1>🃏 DBG卡牌游戏 V18</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
   <p>V9 成就系统 - 解锁全部成就挑战！</p>
@@ -1177,7 +1215,7 @@
 </div>
 
 <div id="game-container" style="display:none">
-  <h1>⚔️ DBG卡牌游戏 V16 - 卡组辅助系统</h1>
+  <h1>⚔️ DBG卡牌游戏 V18 - 卡组辅助系统</h1>
 
   <!-- 地图界面 -->
   <div id="map-container">
@@ -1328,6 +1366,14 @@
     <button id="confirm-yes-btn">确认</button>
     <button id="confirm-no-btn">取消</button>
   </div>
+</div>
+
+<!-- V18 随机事件遮罩 -->
+<div id="event-overlay">
+  <div id="event-title"></div>
+  <div id="event-description"></div>
+  <div id="event-options"></div>
+  <button id="event-close-btn" style="display:none;">关闭</button>
 </div>
 
 <script>
@@ -2473,11 +2519,13 @@ const FLOORS = [
       { id: 'f1c2', type: 'combat',  name: '战斗',    x: 220, y: 300, enemy: 'goblin' },
       { id: 'f1e1', type: 'elite',   name: '精英战',  x: 400, y: 200, enemy: 'skeleton' },
       { id: 'f1s1', type: 'shop',    name: '商店',    x: 550, y: 300, enemy: null },
+      { id: 'f1t1', type: 'treasure', name: '宝箱',   x: 300, y: 350, enemy: null },
       { id: 'f1b1', type: 'boss',    name: 'Boss',    x: 700, y: 200, enemy: 'golem' },
     ],
     edges: [
       ['f1r1', 'f1c1'], ['f1c1', 'f1c2'], ['f1c2', 'f1e1'],
       ['f1e1', 'f1s1'], ['f1s1', 'f1b1'], ['f1c1', 'f1e1'],
+      ['f1c2', 'f1t1'], ['f1t1', 'f1e1'],
     ]
   },
   {
@@ -2486,6 +2534,7 @@ const FLOORS = [
       { id: 'f2s1', type: 'shop',    name: '商店',    x: 80,  y: 200, enemy: null },
       { id: 'f2e1', type: 'elite',   name: '精英战',  x: 220, y: 100, enemy: 'fireElf' },
       { id: 'f2c1', type: 'combat',  name: '战斗',    x: 220, y: 300, enemy: 'goblin' },
+      { id: 'f2m1', type: 'mystery', name: '随机',    x: 300, y: 200, enemy: null },
       { id: 'f2c2', type: 'combat',  name: '战斗',    x: 400, y: 200, enemy: 'skeleton' },
       { id: 'f2r1', type: 'rest',    name: '休息',    x: 550, y: 100, enemy: null },
       { id: 'f2c3', type: 'combat',  name: '战斗',    x: 550, y: 300, enemy: 'fireElf' },
@@ -2494,7 +2543,7 @@ const FLOORS = [
     edges: [
       ['f2s1', 'f2e1'], ['f2e1', 'f2c1'], ['f2c1', 'f2c2'],
       ['f2c2', 'f2r1'], ['f2r1', 'f2c3'], ['f2c3', 'f2b1'],
-      ['f2c2', 'f2c3'], ['f2e1', 'f2c2'],
+      ['f2c2', 'f2c3'], ['f2e1', 'f2c2'], ['f2c1', 'f2m1'],
     ]
   },
   {
@@ -2505,6 +2554,7 @@ const FLOORS = [
       { id: 'f3c1', type: 'combat',  name: '战斗',    x: 220, y: 300, enemy: 'skeleton' },
       { id: 'f3c2', type: 'combat',  name: '战斗',    x: 400, y: 200, enemy: 'fireElf' },
       { id: 'f3s1', type: 'shop',    name: '商店',    x: 400, y: 350, enemy: null },
+      { id: 'f3p1', type: 'campfire', name: '篝火',   x: 300, y: 350, enemy: null },
       { id: 'f3c3', type: 'combat',  name: '战斗',    x: 550, y: 100, enemy: 'fireElf' },
       { id: 'f3c4', type: 'combat',  name: '战斗',    x: 550, y: 300, enemy: 'goblin' },
       { id: 'f3b1', type: 'boss',    name: 'Boss',    x: 700, y: 200, enemy: 'golem' },
@@ -2512,7 +2562,8 @@ const FLOORS = [
     edges: [
       ['f3r1', 'f3e1'], ['f3e1', 'f3c1'], ['f3c1', 'f3c2'],
       ['f3c2', 'f3s1'], ['f3s1', 'f3c4'], ['f3c4', 'f3b1'],
-      ['f3e1', 'f3c2'], ['f3e1', 'f3c3'],
+      ['f3e1', 'f3c2'], ['f3e1', 'f3c3'], ['f3c2', 'f3p1'],
+      ['f3p1', 'f3s1'],
     ]
   },
   // V10 第4层：深渊
@@ -2523,8 +2574,10 @@ const FLOORS = [
       { id: 'f4r1', type: 'rest',    name: '休息',    x: 80,  y: 200, enemy: null },
       { id: 'f4e1', type: 'elite',   name: '精英战',  x: 220, y: 100, enemy: 'necromancer' },
       { id: 'f4c1', type: 'combat',  name: '战斗',    x: 220, y: 300, enemy: 'ghost' },
+      { id: 'f4t1', type: 'treasure', name: '宝箱',   x: 300, y: 200, enemy: null },
       { id: 'f4c2', type: 'combat',  name: '战斗',    x: 400, y: 200, enemy: 'plagueRat' },
       { id: 'f4e2', type: 'elite',   name: '精英战',  x: 400, y: 350, enemy: 'voidBeast' },
+      { id: 'f4m1', type: 'mystery', name: '随机',    x: 480, y: 300, enemy: null },
       { id: 'f4c3', type: 'combat',  name: '战斗',    x: 550, y: 100, enemy: 'stoneGolem' },
       { id: 'f4s1', type: 'shop',    name: '商店',    x: 550, y: 300, enemy: null },
       { id: 'f4b1', type: 'boss',    name: 'Boss',    x: 700, y: 200, enemy: 'voidLord' },
@@ -2533,6 +2586,7 @@ const FLOORS = [
       ['f4r1', 'f4e1'], ['f4e1', 'f4c1'], ['f4c1', 'f4c2'],
       ['f4c2', 'f4e2'], ['f4e2', 'f4s1'], ['f4s1', 'f4b1'],
       ['f4c2', 'f4c3'], ['f4c3', 'f4b1'], ['f4e1', 'f4c2'],
+      ['f4c2', 'f4t1'], ['f4t1', 'f4e2'], ['f4e2', 'f4m1'],
     ]
   },
   // V10 第5层：王座
@@ -2543,16 +2597,21 @@ const FLOORS = [
       { id: 'f5r1', type: 'rest',    name: '休息',    x: 80,  y: 200, enemy: null },
       { id: 'f5e1', type: 'elite',   name: '精英战',  x: 220, y: 100, enemy: 'darkKnight' },
       { id: 'f5c1', type: 'combat',  name: '战斗',    x: 220, y: 300, enemy: 'vampireBat' },
+      { id: 'f5p1', type: 'campfire', name: '篝火',    x: 300, y: 200, enemy: null },
       { id: 'f5e2', type: 'elite',   name: '精英战',  x: 400, y: 200, enemy: 'minotaur' },
       { id: 'f5c2', type: 'combat',  name: '战斗',    x: 400, y: 350, enemy: 'ghost' },
       { id: 'f5s1', type: 'shop',    name: '商店',    x: 550, y: 100, enemy: null },
+      { id: 'f5t1', type: 'treasure', name: '宝箱',   x: 480, y: 120, enemy: null },
       { id: 'f5c3', type: 'combat',  name: '战斗',    x: 550, y: 300, enemy: 'plagueRat' },
+      { id: 'f5m1', type: 'mystery', name: '随机',    x: 620, y: 200, enemy: null },
       { id: 'f5b1', type: 'boss',    name: '最终Boss', x: 700, y: 200, enemy: 'deckMaster' },
     ],
     edges: [
       ['f5r1', 'f5e1'], ['f5e1', 'f5c1'], ['f5c1', 'f5e2'],
       ['f5e2', 'f5c2'], ['f5c2', 'f5s1'], ['f5s1', 'f5c3'],
       ['f5c3', 'f5b1'], ['f5e2', 'f5c3'], ['f5e1', 'f5e2'],
+      ['f5e2', 'f5p1'], ['f5p1', 'f5s1'], ['f5s1', 'f5t1'],
+      ['f5c3', 'f5m1'], ['f5m1', 'f5b1'],
     ]
   }
 ];
@@ -2563,7 +2622,232 @@ const NODE_TYPES = {
   boss:   { icon: '💀', color: '#9b59b6', textColor: '#fff' },
   rest:   { icon: '🏠', color: '#2ecc71', textColor: '#fff' },
   shop:   { icon: '🛒', color: '#3498db', textColor: '#fff' },
+  // V18 随机事件节点类型
+  treasure: { icon: '📦', color: '#f1c40f', textColor: '#000' },
+  mystery: { icon: '❓', color: '#9b59b6', textColor: '#fff' },
+  campfire: { icon: '🔥', color: '#e67e22', textColor: '#fff' },
 };
+
+// ===== V18 随机事件系统 =====
+// 事件类型: rest(休息)/shop(商店)/treasure(宝箱)/elite(精英)/mystery(随机)/campfire(篝火)
+const EVENTS = {
+  // 休息事件 - 免费恢复
+  rest_heal: {
+    id: 'rest_heal',
+    name: '休憩之地',
+    type: 'rest',
+    description: '一个宁静的角落，让人心旷神怡。',
+    options: [
+      { text: '休息片刻 (+20HP)', effect: () => { gameState.playerHp = Math.min(gameState.playerHp + 20, gameState.playerMaxHp); return '恢复了 20 点生命'; } },
+      { text: '冥想 (完全恢复)', effect: () => { gameState.playerHp = gameState.playerMaxHp; gameState.energy = gameState.maxEnergy; return '完全恢复！'; } },
+    ],
+  },
+  rest_blessing: {
+    id: 'rest_blessing',
+    name: '祝福之泉',
+    type: 'rest',
+    description: '传说中受到神明祝福的泉水。',
+    options: [
+      { text: '饮用泉水 (+15HP, +1能量)', effect: () => { gameState.playerHp = Math.min(gameState.playerHp + 15, gameState.playerMaxHp); gameState.energy = Math.min(gameState.energy + 1, gameState.maxEnergy + 1); return '恢复 15HP，获得 1 能量'; } },
+      { text: '接受祝福 (最大HP+5)', effect: () => { gameState.playerMaxHp += 5; gameState.playerHp += 5; return '最大生命增加 5 点！'; } },
+    ],
+  },
+
+  // 商店事件 - 打折/特殊商品
+  shop_discount: {
+    id: 'shop_discount',
+    name: '神秘商人',
+    type: 'shop',
+    description: '一个神秘的商人向你招手，声称有便宜的好货。',
+    options: [
+      { text: '查看商品 (金币-30%)', effect: () => { gameState.shopDiscount = 0.7; return '商店物品打7折！'; } },
+      { text: '出售卡牌 (双倍价格)', effect: () => { gameState.sellMultiplier = 2; return '出售卡牌价格翻倍！'; } },
+    ],
+  },
+  shop_blackMarket: {
+    id: 'shop_blackMarket',
+    name: '黑市商人',
+    type: 'shop',
+    description: '在阴暗的角落，有人低声兜售着禁忌的物品...',
+    options: [
+      { text: '购买随机遗物 (50金)', effect: () => { if (gameState.gold >= 50) { gameState.gold -= 50; const relic = getRandomRelic(); addRelic(relic); return `获得了 ${relic.name}！`; } else { return '金币不足！'; } }, cost: 50 },
+      { text: '重投商店 (免费)', effect: () => { gameState.shopRerollCost = 0; return '下次重投免费！'; } },
+    ],
+  },
+
+  // 宝箱事件 - 奖励
+  treasure_gold: {
+    id: 'treasure_gold',
+    name: '宝藏箱',
+    type: 'treasure',
+    description: '一个落满灰尘的宝箱静静地躺在那里。',
+    options: [
+      { text: '打开宝箱 (+30金币)', effect: () => { gameState.gold += 30; return '获得了 30 金币！'; } },
+      { text: '谨慎搜索 (+15金币, +1随机卡牌)', effect: () => { gameState.gold += 15; addCardToDeck(getRandomCard()); return '获得了 15 金币和 1 张卡牌！'; } },
+    ],
+  },
+  treasure_elite: {
+    id: 'treasure_elite',
+    name: '被封印的宝箱',
+    type: 'treasure',
+    description: '宝箱上有一个强大的封印，似乎需要战斗才能解除...',
+    options: [
+      { text: '战斗并开启!', effect: () => { gameState.forcedElite = true; return '准备好面对精英怪！'; } },
+      { text: '放弃离开', effect: () => { return '你悄悄离开了...'; } },
+    ],
+  },
+
+  // 精英战斗事件 - 难度+50%
+  elite_challenge: {
+    id: 'elite_challenge',
+    name: '精英考验',
+    type: 'elite',
+    description: '一位强大的战士拦住了你的去路，要求与你切磋。',
+    options: [
+      { text: '接受挑战!', effect: () => { gameState.eliteDamageBonus = 1.5; return '精英难度+50%！'; } },
+      { text: '交保护费离开 (-20金)', effect: () => { if (gameState.gold >= 20) { gameState.gold -= 20; return '破财消灾...'; } else { gameState.eliteDamageBonus = 1.5; return '金币不足，被迫战斗！'; } }, cost: 20 },
+    ],
+  },
+
+  // 随机事件 - 运气
+  mystery_fate: {
+    id: 'mystery_fate',
+    name: '命运的岔路口',
+    type: 'mystery',
+    description: '一个神秘的符文发出幽幽的光，似乎在引导你的命运...',
+    options: [
+      { text: '向左走 (随机事件)', effect: () => { return triggerRandomSubEvent(); } },
+      { text: '向右走 (随机事件)', effect: () => { return triggerRandomSubEvent(); } },
+      { text: '原地祈福', effect: () => { const heal = Math.floor(Math.random() * 10) + 5; gameState.playerHp = Math.min(gameState.playerHp + heal, gameState.playerMaxHp); return `奇迹发生！恢复了 ${heal} 点生命`; } },
+    ],
+  },
+  mystery_gamble: {
+    id: 'mystery_gamble',
+    name: '赌博机',
+    type: 'mystery',
+    description: '一台古老的赌博机出现在你面前，闪烁着诱惑的光芒。',
+    options: [
+      { text: '投入10金币 (50%赢双倍)', effect: () => { if (gameState.gold >= 10) { gameState.gold -= 10; if (Math.random() > 0.5) { gameState.gold += 20; return '运气不错！赢了 20 金币'; } else { return '运气不佳...输掉了 10 金币'; } } else { return '金币不足！'; } }, cost: 10 },
+      { text: '投入30金币 (33%赢3倍)', effect: () => { if (gameState.gold >= 30) { gameState.gold -= 30; if (Math.random() > 0.67) { gameState.gold += 90; return '大丰收！赢了 90 金币'; } else { return '运气不佳...输掉了 30 金币'; } } else { return '金币不足！'; } }, cost: 30 },
+    ],
+  },
+  mystery_merchantSpirit: {
+    id: 'mystery_merchantSpirit',
+    name: '商人幽灵',
+    type: 'mystery',
+    description: '一个半透明的幽灵商人向你伸出手...',
+    options: [
+      { text: '交易卡牌 (1HP换1卡)', effect: () => { if (gameState.playerHp > 10 && gameState.deck.length > 5) { gameState.playerHp -= 5; addCardToDeck(getRandomCard()); return '用 5HP 换了 1 张卡牌'; } else { return '无法交易（HP或牌组不足）'; } } },
+      { text: '请求遗物 (-30HP)', effect: () => { if (gameState.playerHp > 30) { gameState.playerHp -= 30; const relic = getRandomRelic(); addRelic(relic); return `用 30HP 换了 ${relic.name}`; } else { return 'HP不足！'; } } },
+    ],
+  },
+
+  // 篝火事件 - 升级/特殊
+  campfire_upgrade: {
+    id: 'campfire_upgrade',
+    name: '篝火营地',
+    type: 'campfire',
+    description: '温暖的篝火旁，你可以静下心来强化自己。',
+    options: [
+      { text: '强化卡牌 (随机升级)', effect: () => { const upgradable = gameState.deck.filter(c => CARD_UPGRADES[c.id] && !c.upgraded); if (upgradable.length > 0) { const card = upgradable[Math.floor(Math.random() * upgradable.length)]; upgradeCardInDeck(card.id); return `升级了 ${card.name}！`; } else { return '没有可升级的卡牌'; } } },
+      { text: '休息 (+10HP)', effect: () => { gameState.playerHp = Math.min(gameState.playerHp + 10, gameState.playerMaxHp); return '休息了一下，恢复 10HP'; } },
+    ],
+  },
+  campfire_smith: {
+    id: 'campfire_smith',
+    name: '铁匠篝火',
+    type: 'campfire',
+    description: '篝火旁有一位流浪铁匠，愿意为你锻造装备。',
+    options: [
+      { text: '锻造武器 (+2攻击)', effect: () => { gameState.permanentAttackBonus = (gameState.permanentAttackBonus || 0) + 2; return '攻击力永久+2！'; } },
+      { text: '锻造护甲 (+2防御)', effect: () => { gameState.permanentDefenseBonus = (gameState.permanentDefenseBonus || 0) + 2; return '防御力永久+2！'; } },
+      { text: '淬火 (+5最大HP)', effect: () => { gameState.playerMaxHp += 5; gameState.playerHp += 5; return '最大HP+5！'; } },
+    ],
+  },
+  campfire_treasure: {
+    id: 'campfire_treasure',
+    name: '遗忘的宝箱',
+    type: 'campfire',
+    description: '篝火旁有一个被遗忘的宝箱，上面刻着古老的符文。',
+    options: [
+      { text: '打开宝箱 (+50金币)', effect: () => { gameState.gold += 50; return '获得了 50 金币！'; } },
+      { text: '献祭HP (获得遗物)', effect: () => { if (gameState.playerHp > 20) { gameState.playerHp -= 20; const relic = getRandomRelic(); addRelic(relic); return `献祭了 20HP，获得了 ${relic.name}`; } else { return 'HP不足，无法献祭'; } } },
+    ],
+  },
+};
+
+// 随机触发子事件（用于mystery_fate选项）
+function triggerRandomSubEvent() {
+  const subEvents = [
+    () => { gameState.gold += 20; return '发现隐藏金币，+20'; },
+    () => { gameState.playerHp = Math.min(gameState.playerHp + 10, gameState.playerMaxHp); return '找到治疗草，+10HP'; },
+    () => { if (gameState.deck.length > 3) { removeRandomCard(); return '遭遇陷阱，丢失1张卡牌'; } else { return '平安无事'; } },
+    () => { addCardToDeck(getRandomCard()); return '发现备用卡牌，获得1张'; },
+    () => { gameState.energy = gameState.maxEnergy; return '休息充足，能量全满'; },
+  ];
+  const event = subEvents[Math.floor(Math.random() * subEvents.length)];
+  return event();
+}
+
+// 获得随机卡牌
+function getRandomCard() {
+  const cardKeys = Object.keys(CARDS);
+  const commonCards = cardKeys.filter(k => !CARDS[k].rarity || CARDS[k].rarity === 'common');
+  const cardKey = commonCards[Math.floor(Math.random() * commonCards.length)];
+  return { ...CARDS[cardKey], uid: generateUid() };
+}
+
+// 从牌组移除随机卡牌
+function removeRandomCard() {
+  if (gameState.deck.length > 3) {
+    const idx = Math.floor(Math.random() * gameState.deck.length);
+    gameState.deck.splice(idx, 1);
+  }
+}
+
+// 在牌组中升级卡牌
+function upgradeCardInDeck(cardId) {
+  const idx = gameState.deck.findIndex(c => c.id === cardId && !c.upgraded);
+  if (idx !== -1 && CARD_UPGRADES[cardId]) {
+    gameState.deck[idx] = { ...gameState.deck[idx], upgraded: true, ...CARD_UPGRADES[cardId] };
+  }
+}
+
+// 添加遗物到玩家背包
+function addRelic(relic) {
+  if (gameState.acquiredRelicIds.includes(relic.id)) {
+    addLog('已拥有此遗物！', 'debuff');
+    return false;
+  }
+  gameState.relics.push({ ...relic });
+  gameState.acquiredRelicIds.push(relic.id);
+  
+  // 应用遗物效果
+  if (relic.effect && relic.effect.maxHpBonus) {
+    gameState.playerMaxHp += relic.effect.maxHpBonus;
+    gameState.playerHp += relic.effect.maxHpBonus;
+  }
+  if (relic.effect && relic.effect.startOfCombatEnergy) {
+    gameState.energy += relic.effect.startOfCombatEnergy;
+  }
+  
+  addLog(`获得遗物: ${relic.name}`, 'relic');
+  return true;
+}
+
+// 获取随机遗物
+function getRandomRelic() {
+  const allRelics = [...RELIC_POOLS.common, ...RELIC_POOLS.rare, ...RELIC_POOLS.legendary];
+  const shuffled = shuffle([...allRelics]);
+  return shuffled[0];
+}
+
+// 添加卡牌到牌组
+function addCardToDeck(card) {
+  if (!card.uid) card.uid = generateUid();
+  gameState.deck.push({ ...card });
+  addLog(`获得卡牌: ${card.name}`, 'card');
+}
 
 // ===== 游戏状态 =====
 let gameState = {
@@ -2642,6 +2926,14 @@ let gameState = {
     noRelicVictories: 0,
     speedruns: 0,
   },
+  // V18 随机事件状态
+  currentEvent: null, // 当前事件
+  shopDiscount: 1, // 商店折扣
+  sellMultiplier: 1, // 出售倍数
+  eliteDamageBonus: 1, // 精英伤害加成
+  forcedElite: false, // 强制精英战斗
+  permanentAttackBonus: 0, // 永久攻击加成
+  permanentDefenseBonus: 0, // 永久防御加成
 };
 
 // ===== V6 遗物效果应用 =====
@@ -3360,6 +3652,16 @@ function showNodePreview(node) {
     case 'shop':
       infoText = `可购买卡牌 (当前金币: ${gameState.gold})`;
       break;
+    // V18 随机事件预览
+    case 'treasure':
+      infoText = `📦 宝箱事件 - 可能获得金币或遗物`;
+      break;
+    case 'mystery':
+      infoText = `❓ 随机事件 - 命运未知`;
+      break;
+    case 'campfire':
+      infoText = `🔥 篝火事件 - 可升级卡牌或强化属性`;
+      break;
   }
   info.textContent = infoText;
   preview.classList.add('show');
@@ -3383,6 +3685,12 @@ function enterNode() {
       break;
     case 'shop':
       handleShop();
+      break;
+    // V18 随机事件类型
+    case 'treasure':
+    case 'mystery':
+    case 'campfire':
+      handleRandomEvent(node);
       break;
   }
 }
@@ -3495,6 +3803,160 @@ function handleShop() {
   switchShopTab('cards');
 
   document.getElementById('shop-overlay').classList.add('show');
+}
+
+// ===== V18 随机事件系统 =====
+// 显示随机事件
+function handleRandomEvent(node) {
+  // 根据节点类型获取随机事件
+  const eventPool = getEventPoolForType(node.type);
+  const event = eventPool[Math.floor(Math.random() * eventPool.length)];
+  
+  gameState.currentEvent = event;
+  showEvent(event);
+}
+
+// 根据节点类型获取事件池
+function getEventPoolForType(type) {
+  switch (type) {
+    case 'treasure':
+      return EVENTS.treasure_gold ? [EVENTS.treasure_gold, EVENTS.treasure_elite] : [EVENTS.treasure_gold];
+    case 'mystery':
+      return [EVENTS.mystery_fate, EVENTS.mystery_gamble, EVENTS.mystery_merchantSpirit];
+    case 'campfire':
+      return [EVENTS.campfire_upgrade, EVENTS.campfire_smith, EVENTS.campfire_treasure];
+    case 'rest':
+      return [EVENTS.rest_heal, EVENTS.rest_blessing];
+    case 'shop':
+      return [EVENTS.shop_discount, EVENTS.shop_blackMarket];
+    case 'elite':
+      return [EVENTS.elite_challenge];
+    default:
+      return [EVENTS.mystery_fate];
+  }
+}
+
+// 显示事件卡片
+function showEvent(event) {
+  const overlay = document.getElementById('event-overlay');
+  const title = document.getElementById('event-title');
+  const desc = document.getElementById('event-description');
+  const options = document.getElementById('event-options');
+  const closeBtn = document.getElementById('event-close-btn');
+  
+  title.textContent = event.name;
+  desc.textContent = event.description;
+  options.innerHTML = '';
+  
+  // 根据事件类型设置标题颜色
+  const typeColors = {
+    rest: '#2ecc71',
+    shop: '#3498db',
+    treasure: '#f1c40f',
+    elite: '#f39c12',
+    mystery: '#9b59b6',
+    campfire: '#e67e22'
+  };
+  title.style.color = typeColors[event.type] || '#ffd700';
+  
+  // 创建选项按钮
+  event.options.forEach((option, index) => {
+    const btn = document.createElement('button');
+    btn.className = 'event-option-btn';
+    btn.innerHTML = option.text + (option.cost ? ` <span class="cost">(${option.cost}金)</span>` : '');
+    btn.onclick = () => handleEventOption(index);
+    options.appendChild(btn);
+  });
+  
+  // 隐藏关闭按钮
+  closeBtn.style.display = 'none';
+  
+  overlay.classList.add('show');
+}
+
+// 处理事件选项
+function handleEventOption(optionIndex) {
+  const event = gameState.currentEvent;
+  if (!event || !event.options[optionIndex]) return;
+  
+  const option = event.options[optionIndex];
+  const result = option.effect();
+  
+  // 显示结果
+  const resultDiv = document.getElementById('event-result') || createResultDiv();
+  resultDiv.textContent = result;
+  resultDiv.style.display = 'block';
+  
+  // 添加日志
+  addLog(`事件 [${event.name}]: ${result}`, 'info');
+  
+  // 清空选项
+  document.getElementById('event-options').innerHTML = '';
+  
+  // 显示关闭按钮
+  const closeBtn = document.getElementById('event-close-btn');
+  closeBtn.style.display = 'block';
+  closeBtn.textContent = '离开';
+  closeBtn.onclick = () => closeEvent();
+  
+  // 检查是否是特殊事件（需要继续战斗）
+  if (event.id === 'treasure_elite' && result.includes('精英')) {
+    // 强制进入精英战斗
+    setTimeout(() => {
+      closeEvent();
+      startForcedEliteCombat();
+    }, 1500);
+  }
+  
+  // 更新UI
+  updateUI();
+}
+
+function createResultDiv() {
+  const div = document.createElement('div');
+  div.id = 'event-result';
+  div.style.marginTop = '15px';
+  div.style.padding = '10px 20px';
+  div.style.background = 'rgba(0,0,0,0.5)';
+  div.style.borderRadius = '10px';
+  div.style.fontSize = '14px';
+  div.style.color = '#4ecdc4';
+  div.style.minHeight = '20px';
+  div.style.display = 'none';
+  document.getElementById('event-options').appendChild(div);
+  return div;
+}
+
+// 关闭事件
+function closeEvent() {
+  document.getElementById('event-overlay').classList.remove('show');
+  
+  // 清除事件特殊状态
+  gameState.currentEvent = null;
+  gameState.shopDiscount = 1;
+  gameState.sellMultiplier = 1;
+  gameState.eliteDamageBonus = 1;
+  gameState.forcedElite = false;
+  
+  // 完成节点并返回地图
+  completeNode(gameState.currentNode);
+  gameState.currentNode = null;
+  returnToMap();
+}
+
+// 强制进入精英战斗
+function startForcedEliteCombat() {
+  const eliteEnemies = { 1: ['skeleton', 'werewolf'], 2: ['fireElf', 'shadowAssassin'], 3: ['skeleton', 'werewolf', 'shadowAssassin'] };
+  const pool = eliteEnemies[gameState.currentFloor] || eliteEnemies[1];
+  const enemyType = pool[Math.floor(Math.random() * pool.length)];
+  
+  const node = {
+    type: 'elite',
+    enemy: enemyType,
+    name: '精英战'
+  };
+  
+  startCombat(node);
 }
 
 function switchShopTab(tab) {
