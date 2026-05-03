@@ -921,6 +921,83 @@
     .pet-tooltip .pet-name { color: #ffd700; font-weight: bold; margin-bottom: 5px; }
     .pet-tooltip .pet-desc { color: #ccc; font-size: 11px; }
 
+    /* 宠物技能按钮 */
+    .pet-skill-btn {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #9b59b6, #8e44ad);
+      border: 2px solid #e74c3c;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      margin-top: 4px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .pet-skill-btn:hover:not(.on-cooldown) {
+      transform: scale(1.15);
+      box-shadow: 0 0 12px rgba(231, 76, 60, 0.6);
+    }
+    .pet-skill-btn.on-cooldown {
+      opacity: 0.5;
+      cursor: not-allowed;
+      border-color: #555;
+      background: linear-gradient(145deg, #555, #444);
+    }
+    .pet-skill-btn .skill-cost {
+      position: absolute;
+      bottom: -4px;
+      right: -4px;
+      width: 14px;
+      height: 14px;
+      background: #4ecdc4;
+      border-radius: 50%;
+      font-size: 9px;
+      font-weight: bold;
+      color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pet-skill-btn .cooldown-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      color: #fff;
+    }
+    .pet-skill-tooltip {
+      display: none;
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.95);
+      border: 1px solid #e74c3c;
+      border-radius: 8px;
+      padding: 8px;
+      width: 160px;
+      font-size: 11px;
+      color: #fff;
+      z-index: 300;
+      text-align: center;
+    }
+    .pet-skill-btn:hover .pet-skill-tooltip { display: block; }
+    .pet-skill-tooltip .skill-name { color: #ffd700; font-weight: bold; margin-bottom: 4px; }
+    .pet-skill-tooltip .skill-desc { color: #ccc; font-size: 10px; }
+    .pet-skill-tooltip .skill-cost-info { color: #4ecdc4; margin-top: 4px; font-size: 10px; }
+
     /* V25 宠物商店遮罩 */
     #petshop-overlay {
       display: none;
@@ -1867,12 +1944,13 @@
 </div>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V34</h1>
+  <h1>🃏 DBG卡牌游戏 V39</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
   <p style="color:#ffd700;">V34 Roguelike变体 - 随机开局！</p>
   <button id="start-btn">开始游戏</button>
   <button id="daily-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#e74c3c,#c0392b);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">🏆 每日挑战</button>
+  <button id="boss-rush-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#8b0000,#cd5c5c);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">💀 BossRush</button>
   <button id="load-save-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#27ae60,#2ecc71);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">📂 继续游戏</button>
   <button id="achievements-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#9b59b6,#8e44ad);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">🏆 成就</button>
   <button id="leaderboard-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#f39c12,#e67e22);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">📊 排行榜</button>
@@ -4017,6 +4095,17 @@ const PETS = {
     icon: '🐱',
     description: '每场战斗开始时抽1张牌',
     effect: { startOfCombatDraw: 1 },
+    activeSkill: {
+      name: '疯狂抽卡',
+      cost: 2,
+      cooldown: 3,
+      execute: (petId) => {
+        for (let i = 0; i < 3; i++) {
+          drawCard();
+        }
+        addLog('🐱 抽卡猫发动疯狂抽卡！抽了3张牌！', 'info');
+      }
+    },
     cost: 80,
   },
   // 护盾伙伴 - 每场战斗开始时获得5点护甲
@@ -4044,6 +4133,15 @@ const PETS = {
     icon: '🦉',
     description: '攻击暴击率+15%',
     effect: { criticalChance: 0.15 },
+    activeSkill: {
+      name: '致命打击',
+      cost: 2,
+      cooldown: 4,
+      execute: (petId) => {
+        gameState.nextCritMult = 2.5;
+        addLog('🦉 暴击猫头鹰发动致命打击！下次攻击暴击伤害x2.5！', 'info');
+      }
+    },
     cost: 150,
   },
   // 治疗伙伴 - 每回合回复3点生命
@@ -4053,6 +4151,17 @@ const PETS = {
     icon: '🐰',
     description: '每回合回复3点生命',
     effect: { perTurnHeal: 3 },
+    activeSkill: {
+      name: '治愈光环',
+      cost: 2,
+      cooldown: 3,
+      execute: (petId) => {
+        const heal = 10;
+        gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + heal);
+        showDamageNumber(heal, 'heal', 'player-area');
+        addLog('🐰 治疗兔发动治愈光环！回复' + heal + '点生命！', 'heal');
+      }
+    },
     cost: 100,
   },
   // 宝箱助手 - 宝箱金币+30%
@@ -4410,8 +4519,22 @@ const ENEMIES = {
     intents: ['entropyBlast', 'voidConsume', 'absoluteZero', 'phaseShift'],
     special: 'entropyBlast',
     bossPhase: 1,  // 随回合数增加阶段
-  },
+  }
 };
+
+// ===== BossRush模式Boss列表 =====
+const BOSS_RUSH_BOSSES = [
+  'golem',           // 巨石像
+  'slimeKing',       // 史莱姆王
+  'ancientDragon',   // 远古巨龙
+  'darkLord',        // 黑暗领主
+  'abyssLord',       // 深渊领主
+  'lordOfNothingness', // 虚无之主
+  'archangel',       // 大天使长
+  'azmodan',         // 阿兹莫丹
+  'chaosGod',        // 混沌之神
+  'chronos',         // 克洛诺斯
+];
 
 // ===== V20 Boss意图权重 =====
 const BOSS_PHASE_WEIGHTS = {
@@ -5244,6 +5367,9 @@ let gameState = {
   dailyAttempts: 0,          // 尝试次数
   dailyLastPlayed: null,    // UTC日期字符串
   isDailyChallenge: false, // 是否为每日挑战模式
+  isBossRush: false, // 是否为BossRush模式
+  bossRushIndex: 0, // BossRush当前Boss索引
+  bossRushBossesDefeated: 0, // BossRush已击败Boss数量
   // V36 新手教程系统
   tutorial: {
     enabled: true,           // 教程总开关
@@ -5470,8 +5596,23 @@ function updatePetsDisplay() {
     
     const div = document.createElement('div');
     div.className = 'pet-icon ' + (pet.equipped ? 'equipped' : 'owned');
+    const skill = petData.activeSkill;
+    const cd = gameState.petSkillCooldowns[pet.id] || 0;
+    const skillBtn = skill ? `
+      <div class="pet-skill-btn ${cd > 0 ? 'on-cooldown' : ''}"
+           onclick="event.stopPropagation(); usePetSkill('${pet.id}')">
+        <div class="skill-cost">⚡${skill.cost}</div>
+        ${cd > 0 ? `<div class="cooldown-overlay">${cd}</div>` : ''}
+        <div class="pet-skill-tooltip">
+          <div class="skill-name">${skill.name}</div>
+          <div>${skill.desc || ''}</div>
+          <div style="color:#f39c12;font-size:11px;">冷却: ${skill.cooldown}回合</div>
+        </div>
+      </div>
+    ` : '';
     div.innerHTML = `
       ${petData.icon}
+      ${pet.equipped && skill ? skillBtn : ''}
       <div class="pet-tooltip">
         <div class="pet-name">${petData.name}</div>
         <div class="pet-desc">${petData.description}</div>
@@ -5831,6 +5972,407 @@ function formatTime(seconds) {
 
 function showLeaderboard() {
   showDailyChallenge();
+}
+
+// ===== BossRush模式 =====
+function showBossRushInfo() {
+  // BossRush信息面板
+  const infoHtml = `
+    <div style="text-align: center; padding: 20px;">
+      <h2 style="color: #ff6b6b; font-size: 28px; margin-bottom: 15px;">💀 BossRush模式</h2>
+      <p style="color: #ccc; font-size: 16px; margin-bottom: 10px;">连续挑战10个Boss，中途无法休息或补充资源</p>
+      <p style="color: #ffd700; font-size: 14px; margin-bottom: 20px;">每击败一个Boss回复15%最大生命值</p>
+      <div style="text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+        <p style="color: #aaa; font-size: 13px;">待战Boss列表：</p>
+        <ul style="color: #ccc; font-size: 12px; margin: 10px 0 0 20px; line-height: 1.8;">
+          ${BOSS_RUSH_BOSSES.map((id, i) => `<li>${i + 1}. ${ENEMIES[id] ? ENEMIES[id].name : id}</li>`).join('')}
+        </ul>
+      </div>
+      <button id="start-boss-rush-btn" style="padding: 15px 50px; font-size: 20px; background: linear-gradient(145deg, #8b0000, #cd5c5c); border: none; border-radius: 25px; color: #fff; cursor: pointer; font-weight: bold;">💀 开始挑战</button>
+    </div>
+  `;
+  
+  // 创建一个简单的遮罩来显示BossRush信息
+  const overlay = document.createElement('div');
+  overlay.id = 'boss-rush-info-overlay';
+  overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 200; display: flex; justify-content: center; align-items: center;';
+  overlay.innerHTML = infoHtml;
+  document.body.appendChild(overlay);
+  
+  document.getElementById('start-boss-rush-btn').onclick = () => {
+    startBossRush();
+  };
+  
+  // 点击遮罩关闭
+  overlay.onclick = (e) => {
+    if (e.target === overlay) {
+      overlay.remove();
+    }
+  };
+}
+
+function startBossRush() {
+  // 移除BossRush信息遮罩
+  const overlay = document.getElementById('boss-rush-info-overlay');
+  if (overlay) overlay.remove();
+  
+  // 隐藏开始菜单
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('game-container').style.display = 'block';
+  
+  // 重置BossRush状态
+  gameState.isBossRush = true;
+  gameState.bossRushIndex = 0;
+  gameState.bossRushBossesDefeated = 0;
+  gameState.isDailyChallenge = false;
+  gameState.dailySeed = null;
+  gameState.runSeed = null;
+  gameState.gameStartTime = Date.now();
+  
+  // 随机初始牌组
+  const random = new RNG();
+  gameState.deck = generateRandomInitialDeck(random);
+  
+  // 随机初始遗物
+  gameState.relics = [];
+  gameState.acquiredRelicIds = [];
+  const starterRelic = random.pick(STARTER_RELICS_POOL);
+  gameState.relics.push({ ...starterRelic });
+  gameState.acquiredRelicIds.push(starterRelic.id);
+  if (starterRelic.effect.maxEnergyBonus) {
+    gameState.maxEnergy += starterRelic.effect.maxEnergyBonus;
+  }
+  
+  // 重置其他状态
+  gameState.playerHp = 80;
+  gameState.playerMaxHp = 80;
+  gameState.playerShield = 0;
+  gameState.gold = 0;
+  gameState.hand = [];
+  gameState.drawPile = [];
+  gameState.discardPile = [];
+  gameState.energy = 3;
+  gameState.maxEnergy = 3;
+  gameState.turn = 1;
+  gameState.pets = [];
+  gameState.ownedPetIds = [];
+  gameState.inMap = false;
+  gameState.selectedNode = null;
+  gameState.totalBattlesWon = 0;
+  gameState.totalGoldEarned = 0;
+  gameState.runCardSkipCount = 0;
+  gameState.runShopPurchaseCount = 0;
+  gameState.runMaxHpLost = 0;
+  gameState.ngPlus = 0;
+  gameState.difficulty = 'normal';
+  gameState.statistics = {
+    totalDamage: 0, totalHealing: 0, maxSingleDamage: 0, maxCombo: 0,
+    enemiesDefeated: 0, cardsGained: 0, cardsSkipped: 0,
+    cardsPlayed: 0, cardsDiscarded: 0, cardUsageByType: { attack: 0, defense: 0, skill: 0, power: 0, curse: 0, fate: 0, special: 0, status: 0 },
+    goldSpent: 0, goldEarned: 0, timePlayed: 0, bossesDefeated: 0, elitesDefeated: 0
+  };
+  
+  // 隐藏地图，显示战斗区域
+  document.getElementById('map-container').style.display = 'none';
+  document.getElementById('battle-container').style.display = 'block';
+  document.getElementById('log-panel').style.display = 'block';
+  
+  loadAchievements();
+  
+  // 开始第一个Boss战斗
+  startBossRushCombat();
+  
+  addLog(`💀 BossRush开始！第1个Boss：${ENEMIES[BOSS_RUSH_BOSSES[0]].name}`, 'info');
+}
+
+function startBossRushCombat() {
+  const bossId = BOSS_RUSH_BOSSES[gameState.bossRushIndex];
+  const bossData = ENEMIES[bossId];
+  
+  if (!bossData) {
+    addLog('错误：未找到Boss数据', 'info');
+    return;
+  }
+  
+  // 克隆Boss数据
+  const enemy = JSON.parse(JSON.stringify(bossData));
+  
+  // BossRush模式Boss血量缩放（后面Boss更强）
+  const scaleFactor = 1 + (gameState.bossRushIndex * 0.1);
+  enemy.hp = Math.floor(enemy.hp * scaleFactor);
+  
+  // 重置Boss阶段状态
+  if (enemy.bossPhase !== undefined) enemy.bossPhase = 1;
+  if (enemy.rageAccumulator !== undefined) enemy.rageAccumulator = 0;
+  if (enemy.voidDomainActive !== undefined) enemy.voidDomainActive = false;
+  if (enemy.shadowMinions !== undefined) enemy.shadowMinions = 0;
+  if (enemy.annihilationCharges !== undefined) enemy.annihilationCharges = 0;
+  if (enemy.divineCharge !== undefined) enemy.divineCharge = 0;
+  if (enemy.sinPower !== undefined) enemy.sinPower = 0;
+  if (enemy.entropyLevel !== undefined) enemy.entropyLevel = 0;
+  if (enemy.voidFormActive !== undefined) enemy.voidFormActive = false;
+  if (enemy.timeSlowTurns !== undefined) enemy.timeSlowTurns = 0;
+  if (enemy.hasUsedPhase3Revive !== undefined) enemy.hasUsedPhase3Revive = false;
+  if (enemy.turnCostIncrease !== undefined) enemy.turnCostIncrease = 0;
+  if (enemy.phase1Threshold !== undefined) enemy.phase1Threshold = 350;
+  if (enemy.phase2Threshold !== undefined) enemy.phase2Threshold = 200;
+  if (enemy.dragonScale !== undefined) enemy.dragonScale = 0;
+  
+  gameState.enemy = enemy;
+  gameState.enemyHp = enemy.hp;
+  gameState.enemyMaxHp = enemy.hp;
+  gameState.enemyArmor = enemy.armor || 0;
+  gameState.enemyIntent = null;
+  gameState.enemyIntentValue = 0;
+  gameState.enemyDebuffs = [];
+  gameState.turn = 1;
+  gameState.energy = gameState.maxEnergy;
+  gameState.playerShield = 0;
+  gameState.thorns = 0;
+  gameState.aoeDamage = 0;
+  gameState.burnChance = 0;
+  gameState.burnDamage = 0;
+  gameState.burnDuration = 0;
+  gameState.nextAttackMult = 1;
+  gameState.thornsActive = false;
+  gameState.gameOver = false;
+  gameState.battleLog = [];
+  gameState.powerCardsPlayedThisCombat = {};
+  gameState.curses = [];
+  gameState.dodgeNext = 0;
+  gameState.nextCritMult = 1;
+  gameState.skipEnemyNextTurn = false;
+  gameState.poisonStacks = 0;
+  gameState.bleedStacks = 0;
+  gameState.burnStacks = 0;
+  gameState.comboActive = false;
+  gameState.nextTurnBlockBonus = 0;
+  gameState.auraBurnActive = false;
+  gameState.lifestealAuraActive = false;
+  gameState.thornsAuraActive = false;
+  gameState.thornsAuraValue = 0;
+  gameState.blockAuraValue = 0;
+  gameState.quickeningActive = false;
+  gameState.burnReflectActive = false;
+  gameState.burnReflectValue = 0;
+  gameState.reflectAuraActive = false;
+  gameState.reflectAuraValue = 0;
+  gameState.fortifyAuraActive = false;
+  gameState.fortifyAuraValue = 0;
+  gameState.evasionAuraActive = false;
+  gameState.evasionChance = 0;
+  gameState.weakenAuraActive = false;
+  gameState.weakenRate = 0;
+  gameState.enrageAuraActive = false;
+  gameState.enrageThreshold = 0.5;
+  gameState.enrageBonus = 0;
+  gameState.enemySilenceTurns = 0;
+  gameState.enemyThorns = 0;
+  gameState.summonedMinions = 0;
+  gameState.guardianHornUsed = false;
+  gameState.phoenixFeatherUsed = false;
+  gameState.burnReflectActive = false;
+  gameState.burnReflectValue = 0;
+  gameState.reflectAuraActive = false;
+  gameState.reflectAuraValue = 0;
+  gameState.fortifyAuraActive = false;
+  gameState.fortifyAuraValue = 0;
+  gameState.evasionAuraActive = false;
+  gameState.evasionChance = 0;
+  gameState.weakenAuraActive = false;
+  gameState.weakenRate = 0;
+  gameState.enrageAuraActive = false;
+  gameState.enrageBonus = 0;
+  gameState.enemySilenceTurns = 0;
+  // BossRush特定状态重置
+  if (enemy.id === 'abyssLord') {
+    gameState.abyssLordPhase = 1;
+    gameState.abyssLordRage = 0;
+  } else if (enemy.id === 'lordOfNothingness') {
+    gameState.lordOfNothingnessPhase = 1;
+    gameState.voidDomainActive = false;
+    gameState.shadowMinions = 0;
+    gameState.annihilationCharges = 0;
+  } else if (enemy.id === 'archangel') {
+    gameState.archangelPhase = 1;
+    gameState.divineCharge = 0;
+  } else if (enemy.id === 'azmodan') {
+    gameState.azmodanPhase = 1;
+    gameState.sinPower = 0;
+  } else if (enemy.id === 'chaosGod') {
+    gameState.chaosGodPhase = 1;
+    gameState.entropyLevel = 0;
+    gameState.voidFormActive = false;
+  }
+  
+  // 更新BossRush显示
+  updateBossRushDisplay();
+  
+  // 初始化手牌
+  initBattle();
+  
+  addLog(`⚔️ 遭遇 ${enemy.name}！(Boss ${gameState.bossRushIndex + 1}/10)`, 'info');
+  rollEnemyIntent();
+  renderEnemy();
+}
+
+function updateBossRushDisplay() {
+  // 更新页面标题显示BossRush状态
+  const title = document.querySelector('#game-container h1');
+  if (title && gameState.isBossRush) {
+    const bossId = BOSS_RUSH_BOSSES[gameState.bossRushIndex];
+    const bossName = ENEMIES[bossId] ? ENEMIES[bossId].name : bossId;
+    title.innerHTML = `💀 BossRush - ${bossName} (${gameState.bossRushIndex + 1}/10)`;
+  }
+}
+
+function showBossRushReward() {
+  gameState.bossRushBossesDefeated++;
+  
+  if (gameState.bossRushBossesDefeated >= BOSS_RUSH_BOSSES.length) {
+    // 全部Boss击败，BossRush通关！
+    showBossRushVictory();
+    return;
+  }
+  
+  // 显示BossRush奖励界面（只回复生命，不给选择）
+  const healAmount = Math.floor(gameState.playerMaxHp * 0.15);
+  gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + healAmount);
+  
+  const overlay = document.createElement('div');
+  overlay.id = 'boss-rush-reward-overlay';
+  overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 200; display: flex; justify-content: center; align-items: center; flex-direction: column;';
+  overlay.innerHTML = `
+    <div style="text-align: center; padding: 30px;">
+      <h2 style="color: #4ecdc4; font-size: 32px; margin-bottom: 15px;">💀 BossRush击杀！</h2>
+      <p style="color: #90ee90; font-size: 20px; margin-bottom: 10px;">+${healAmount} 生命值回复</p>
+      <p style="color: #ccc; font-size: 16px;">已击败: ${gameState.bossRushBossesDefeated}/${BOSS_RUSH_BOSSES.length}</p>
+      <p style="color: #ffd700; font-size: 18px; margin-top: 10px;">即将进入下一个Boss...</p>
+      <button id="next-boss-btn" style="margin-top: 20px; padding: 15px 40px; font-size: 18px; background: linear-gradient(145deg, #8b0000, #cd5c5c); border: none; border-radius: 25px; color: #fff; cursor: pointer; font-weight: bold;">⚔️ 继续战斗</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  
+  document.getElementById('next-boss-btn').onclick = () => {
+    overlay.remove();
+    // 重置战斗状态但保留玩家状态
+    gameState.hand = [];
+    gameState.drawPile = [];
+    gameState.discardPile = [];
+    gameState.energy = gameState.maxEnergy;
+    gameState.playerShield = 0;
+    gameState.enemy = null;
+    
+    // 进入下一个Boss
+    gameState.bossRushIndex++;
+    startBossRushCombat();
+  };
+}
+
+function showBossRushVictory() {
+  audioManager.play('victory');
+  gameState.isBossRush = false;
+  
+  // 更新统计
+  gameState.statistics.bossesDefeated = BOSS_RUSH_BOSSES.length;
+  checkAchievements();
+  
+  if (gameState.statistics.timePlayed === 0 && gameState.gameStartTime) {
+    gameState.statistics.timePlayed = Math.floor((Date.now() - gameState.gameStartTime) / 1000);
+  }
+  
+  // 显示胜利界面
+  const overlay = document.createElement('div');
+  overlay.id = 'boss-rush-victory-overlay';
+  overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, rgba(26,26,46,0.98) 0%, rgba(22,33,62,0.98) 100%); z-index: 200; display: flex; justify-content: center; align-items: center; flex-direction: column; overflow-y: auto; padding: 20px;';
+  
+  const bossListHtml = BOSS_RUSH_BOSSES.map((id, i) => {
+    const boss = ENEMIES[id];
+    return `<div style="display: flex; justify-content: space-between; padding: 8px 15px; background: rgba(139,0,0,0.3); border-radius: 8px; margin: 5px 0;">
+      <span style="color: #ff6b6b;">${i + 1}. ${boss ? boss.name : id}</span>
+      <span style="color: #90ee90;">✓ 已击败</span>
+    </div>`;
+  }).join('');
+  
+  overlay.innerHTML = `
+    <div style="text-align: center; max-width: 500px; width: 100%;">
+      <h1 style="color: #ffd700; font-size: 48px; margin-bottom: 10px; text-shadow: 0 0 20px #ffd700;">🏆 BossRush通关！</h1>
+      <p style="color: #4ecdc4; font-size: 24px; margin-bottom: 30px;">你击败了所有10位Boss！</p>
+      
+      <div style="background: rgba(0,0,0,0.4); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+        <h3 style="color: #ffd700; margin-bottom: 15px;">💀 击杀列表</h3>
+        ${bossListHtml}
+      </div>
+      
+      <div style="background: rgba(0,0,0,0.4); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+        <h3 style="color: #ffd700; margin-bottom: 15px;">📊 本次战斗统计</h3>
+        <p style="color: #ccc; font-size: 14px;">总伤害: ${gameState.statistics.totalDamage}</p>
+        <p style="color: #ccc; font-size: 14px;">总治疗: ${gameState.statistics.totalHealing}</p>
+        <p style="color: #ccc; font-size: 14px;">使用卡牌: ${gameState.statistics.cardsPlayed}</p>
+        <p style="color: #ccc; font-size: 14px;">剩余生命: ${gameState.playerHp}/${gameState.playerMaxHp}</p>
+      </div>
+      
+      <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+        <button id="br-retry-btn" style="padding: 15px 30px; font-size: 16px; background: linear-gradient(145deg, #8b0000, #cd5c5c); border: none; border-radius: 25px; color: #fff; cursor: pointer; font-weight: bold;">🔄 再来一次</button>
+        <button id="br-menu-btn" style="padding: 15px 30px; font-size: 16px; background: linear-gradient(145deg, #555, #777); border: none; border-radius: 25px; color: #fff; cursor: pointer; font-weight: bold;">🏠 返回主菜单</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  
+  document.getElementById('br-retry-btn').onclick = () => {
+    overlay.remove();
+    startBossRush();
+  };
+  
+  document.getElementById('br-menu-btn').onclick = () => {
+    overlay.remove();
+    document.getElementById('game-container').style.display = 'none';
+    document.getElementById('battle-container').style.display = 'none';
+    document.getElementById('log-panel').style.display = 'none';
+    document.getElementById('quick-save-btn').classList.remove('show');
+    document.getElementById('start-screen').style.display = 'block';
+  };
+}
+
+function showBossRushGameOver() {
+  audioManager.play('defeat');
+  checkAchievements();
+  
+  const overlay = document.createElement('div');
+  overlay.id = 'boss-rush-gameover-overlay';
+  overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 200; display: flex; justify-content: center; align-items: center; flex-direction: column;';
+  
+  const currentBossId = BOSS_RUSH_BOSSES[gameState.bossRushIndex];
+  const currentBossName = ENEMIES[currentBossId] ? ENEMIES[currentBossId].name : currentBossId;
+  
+  overlay.innerHTML = `
+    <div style="text-align: center; padding: 30px;">
+      <h1 style="color: #ff0000; font-size: 48px; margin-bottom: 10px;">💀 挑战失败</h1>
+      <p style="color: #ff6b6b; font-size: 20px; margin-bottom: 20px;">在 vs ${currentBossName} 时倒下</p>
+      <p style="color: #ccc; font-size: 16px;">已击败: ${gameState.bossRushBossesDefeated}/${BOSS_RUSH_BOSSES.length}</p>
+      
+      <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px; flex-wrap: wrap;">
+        <button id="br-retry-btn" style="padding: 15px 30px; font-size: 16px; background: linear-gradient(145deg, #8b0000, #cd5c5c); border: none; border-radius: 25px; color: #fff; cursor: pointer; font-weight: bold;">🔄 再来一次</button>
+        <button id="br-menu-btn" style="padding: 15px 30px; font-size: 16px; background: linear-gradient(145deg, #555, #777); border: none; border-radius: 25px; color: #fff; cursor: pointer; font-weight: bold;">🏠 返回主菜单</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  
+  document.getElementById('br-retry-btn').onclick = () => {
+    overlay.remove();
+    startBossRush();
+  };
+  
+  document.getElementById('br-menu-btn').onclick = () => {
+    overlay.remove();
+    document.getElementById('game-container').style.display = 'none';
+    document.getElementById('battle-container').style.display = 'none';
+    document.getElementById('log-panel').style.display = 'none';
+    document.getElementById('quick-save-btn').classList.remove('show');
+    document.getElementById('start-screen').style.display = 'block';
+  };
 }
 
 function renderRelicsPanel() {
@@ -9181,6 +9723,25 @@ function dealDamageToPlayer(damage, isEnemyAttack = true) {
 }
 
 function checkEnemyDeath() {
+  // V39 BossRush: 敌人死亡时如果是BossRush模式
+  if (gameState.enemyHp <= 0 && gameState.isBossRush) {
+    gameState.enemyHp = 0;
+    renderEnemy();
+    gameState.bossRushBossesDefeated++;
+    if (gameState.bossRushBossesDefeated >= BOSS_RUSH_BOSSES.length) {
+      // 全部Boss击败
+      setTimeout(() => showBossRushVictory(), 1000);
+    } else {
+      // 进入下一个Boss，回复10点生命
+      gameState.bossRushIndex++;
+      setTimeout(() => {
+        gameState.playerHp = Math.min(gameState.playerHp + 10, gameState.playerMaxHp);
+        startBossRushCombat();
+      }, 1500);
+    }
+    return true;
+  }
+
   if (gameState.enemyHp <= 0) {
     gameState.enemyHp = 0;
     renderEnemy();
@@ -9346,7 +9907,12 @@ function checkPlayerDeath() {
     gameState.playerHp = 0;
     renderUI();
     addLog('你被击败了...', 'info');
-    setTimeout(() => showGameOver(), 500);
+    // V39 BossRush: 如果是BossRush模式，显示失败界面
+    if (gameState.isBossRush) {
+      setTimeout(() => showBossRushGameOver(), 500);
+    } else {
+      setTimeout(() => showGameOver(), 500);
+    }
     gameState.gameOver = true;
     return true;
   }
@@ -10568,8 +11134,13 @@ function initGame() {
     // V25 宠物系统（漏掉字段补充）
     pets: [],
     ownedPetIds: [],
+    petSkillCooldowns: {},
     // V32 流派协同系统状态
-    archetypeState: {}, // { drawBonus, lifestealBonus, burnTurnEnd, speedDrawCounter, ... }
+    archetypeState: {},
+    // BossRush模式状态
+    isBossRush: false,
+    bossRushIndex: 0,
+    bossRushBossesDefeated: 0,
   };
 
   // V9 加载已解锁的成就
@@ -11313,6 +11884,8 @@ document.getElementById('close-achievements-btn').onclick = () => {
 };
 // V29 每日挑战按钮
 document.getElementById('daily-btn').onclick = showDailyChallenge;
+// BossRush按钮
+document.getElementById('boss-rush-btn').onclick = showBossRushInfo;
 document.getElementById('close-daily-btn').onclick = () => {
   document.getElementById('daily-overlay').classList.remove('show');
 };
