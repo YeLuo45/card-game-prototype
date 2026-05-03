@@ -8961,6 +8961,7 @@ function initGame() {
     enrageBonus: 0,
     enemySilenceTurns: 0,
     currentFloor: 1,
+    currentChapter: 1,
     currentNode: null,
     unlockedNodes: [],
     completedNodes: [],
@@ -9029,6 +9030,9 @@ function initGame() {
     dailyAttempts: 0,
     dailyLastPlayed: null,
     isDailyChallenge: false,
+    // V25 宠物系统（漏掉字段补充）
+    pets: [],
+    ownedPetIds: [],
   };
 
   // V9 加载已解锁的成就
@@ -9068,6 +9072,7 @@ function saveGame(slot) {
   const saveData = {
     timestamp: Date.now(),
     floor: gameState.currentFloor,
+    currentChapter: gameState.currentChapter,
     hp: gameState.playerHp,
     maxHp: gameState.playerMaxHp,
     gold: gameState.gold,
@@ -9170,6 +9175,7 @@ function loadGame(slot) {
       blockAuraValue: 0,
       quickeningActive: false,
       currentFloor: saveData.floor || 1,
+      currentChapter: saveData.currentChapter || 1,
       currentNode: null,
       unlockedNodes: [],
       completedNodes: [],
