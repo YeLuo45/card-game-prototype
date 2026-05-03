@@ -262,6 +262,30 @@
     .card-type { font-size: 10px; opacity: 0.8; }
     .card-effect { font-size: 10px; margin-top: 5px; text-align: center; }
     .card.disabled { opacity: 0.5; cursor: not-allowed; }
+    /* V35 卡牌悬浮提示 */
+    .card-tooltip {
+      display: none;
+      position: absolute;
+      bottom: 115px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.95);
+      border: 1px solid #ffd700;
+      border-radius: 8px;
+      padding: 10px;
+      width: 220px;
+      font-size: 11px;
+      color: #fff;
+      z-index: 300;
+      text-align: left;
+      line-height: 1.5;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    }
+    .card:hover .card-tooltip { display: block; }
+    .card-tooltip .tooltip-name { color: #ffd700; font-weight: bold; margin-bottom: 5px; font-size: 12px; }
+    .card-tooltip .tooltip-effect { color: #aaffaa; margin-bottom: 4px; }
+    .card-tooltip .tooltip-archetype { color: #ff9944; font-size: 10px; margin-top: 4px; }
+    .card-tooltip .tooltip-cost { color: #ffd700; }
     .card.upgraded::after {
       content: '★';
       position: absolute;
@@ -6058,6 +6082,81 @@ function getCardTypeName(type) {
   return types[type] || type;
 }
 
+// V35 卡牌悬浮提示 - 生成带实际数值的详细描述
+function generateCardDescription(card) {
+  if (!card || !card.effect) return card.description || '';
+
+  const e = card.effect;
+  const parts = [];
+
+  // 伤害
+  if (e.damage) {
+    let dmg = e.damage;
+    if (hasRelic('fateCoin')) dmg = Math.floor(dmg * 1.25);
+    parts.push(`伤害: ${dmg}`);
+  }
+  // 护甲
+  if (e.block) {
+    let blk = e.block;
+    if (hasRelic('steelShield')) blk = Math.floor(blk * 1.20);
+    parts.push(`护甲: ${blk}`);
+  }
+  // 治疗
+  if (e.heal) parts.push(`治疗: ${e.heal}`);
+  // 能量
+  if (e.energyGain) parts.push(`能量: +${e.energyGain}`);
+  // 中毒
+  if (e.poisonStacks) parts.push(`中毒: ${e.poisonStacks}/回合`);
+  // 虚弱（敌人攻击降低）
+  if (e.weakenEnemyDamage) parts.push(`敌人攻击-${e.weakenEnemyDamage}`);
+  // 虚弱（百分比）
+  if (e.weakenEnemyPercent) parts.push(`敌人攻击-${Math.round(e.weakenEnemyPercent*100)}%`);
+  // 易伤
+  if (e.vulnerable) parts.push(`易伤: +${Math.round(e.vulnerable*100)}%`);
+  // 持续回合（独立显示）
+  if (e.duration) parts.push(`持续: ${e.duration}回合`);
+  if (e.poisonDuration) parts.push(`持续: ${e.poisonDuration}回合`);
+  if (e.weakenDuration) parts.push(`持续: ${e.weakenDuration}回合`);
+  if (e.weakenPercentDuration) parts.push(`持续: ${e.weakenPercentDuration}回合`);
+  // 攻击次数
+  if (e.hits) parts.push(`×${e.hits}次`);
+  // 穿透
+  if (e.pierce) parts.push('穿透护甲');
+  // 盾击
+  if (e.blockEqualDamage) parts.push('护甲=伤害');
+  // 战吼/攻击加成
+  if (e.nextAttackMult) parts.push(`下回合攻击+${Math.round(e.nextAttackMult*100)}%`);
+  if (e.nextAttackMultBonus) parts.push(`下回合攻击+${Math.round(e.nextAttackMultBonus*100)}%`);
+  // 护甲加成（回合）
+  if (e.blockMult) parts.push(`护甲+${Math.round(e.blockMult*100)}%`);
+  // 护甲持续
+  if (e.blockLastsNextTurn) parts.push('(持续到下回合)');
+  // 攻击加成（累计）
+  if (e.perAttackBonus) parts.push(`本回合每次攻击+${e.perAttackBonus}`);
+  // 自身伤害
+  if (e.selfDamage) parts.push(`自伤: ${e.selfDamage}`);
+  // 荆棘
+  if (e.thorns) parts.push(`荆棘: ${e.thorns}反弹`);
+  // 受伤减免
+  if (e.damageReduction) parts.push(`受伤-${e.damageReduction}`);
+  // 眩晕
+  if (e.stunChance) parts.push(`${Math.round(e.stunChance*100)}%眩晕`);
+  // 失败率
+  if (e.failChance) parts.push(`${Math.round(e.failChance*100)}%失败`);
+  // 无伤条件
+  if (e.requireNoDamageTaken) parts.push('(本回合未受伤)');
+  // 硬壳（存活）
+  if (e.surviveLethal) parts.push('(致命伤害存活)');
+  // 复活
+  if (e.reviveChance) parts.push(`复活: ${Math.round(e.reviveChance*100)}%`);
+  // 护甲回复
+  if (e.restoreShield) parts.push(`护甲恢复: ${e.restoreShield}`);
+  // 章节治疗
+  if (e.healPerChapter) parts.push(`每章治疗: ${e.healPerChapter}`);
+
+  return parts.join(' | ');
+}
+
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -6370,6 +6469,12 @@ function showUpgradeScreen() {
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.3);font-size:10px;color:#ffd700;">
         ⬆️ ${upgrade.upgradedDescription}
       </div>
+      <div class="card-tooltip">
+        <div class="tooltip-name">${card.name} ★</div>
+        <div class="tooltip-cost">费用: ${card.cost} | ${getCardTypeName(card.type)}</div>
+        <div class="tooltip-effect">${generateCardDescription(card)}</div>
+        ${card.archetype ? `<div class="tooltip-archetype">流派: ${Array.isArray(card.archetype) ? card.archetype.join(', ') : card.archetype}</div>` : ''}
+      </div>
     `;
     div.onclick = () => selectUpgradeCard(card);
     container.appendChild(div);
@@ -6615,6 +6720,12 @@ function showShop() {
       <div class="card-type">${getCardTypeName(card.type)}</div>
       <div class="card-effect">${card.description}</div>
       <div class="price-tag">💰 ${price}</div>
+      <div class="card-tooltip">
+        <div class="tooltip-name">${card.name}</div>
+        <div class="tooltip-cost">费用: ${card.cost} | ${getCardTypeName(card.type)}</div>
+        <div class="tooltip-effect">${generateCardDescription(card)}</div>
+        ${card.archetype ? `<div class="tooltip-archetype">流派: ${Array.isArray(card.archetype) ? card.archetype.join(', ') : card.archetype}</div>` : ''}
+      </div>
     `;
     div.onclick = () => buyShopCard(index);
     container.appendChild(div);
@@ -9064,6 +9175,12 @@ function showRewardScreen() {
       <div class="card-name">${card.name}</div>
       <div class="card-type">${getCardTypeName(card.type)}</div>
       <div class="card-effect">${card.description}</div>
+      <div class="card-tooltip">
+        <div class="tooltip-name">${card.name}</div>
+        <div class="tooltip-cost">费用: ${card.cost} | ${getCardTypeName(card.type)}</div>
+        <div class="tooltip-effect">${generateCardDescription(card)}</div>
+        ${card.archetype ? `<div class="tooltip-archetype">流派: ${Array.isArray(card.archetype) ? card.archetype.join(', ') : card.archetype}</div>` : ''}
+      </div>
     `;
     div.onclick = () => selectRewardCard(card);
     cardsContainer.appendChild(div);
@@ -9859,6 +9976,12 @@ function renderHand() {
       <div class="card-name">${card.name}</div>
       <div class="card-type">${getCardTypeName(card.type)}</div>
       <div class="card-effect">${card.description}</div>
+      <div class="card-tooltip">
+        <div class="tooltip-name">${card.name}</div>
+        <div class="tooltip-cost">费用: ${card.cost} | ${getCardTypeName(card.type)}</div>
+        <div class="tooltip-effect">${generateCardDescription(card)}</div>
+        ${card.archetype ? `<div class="tooltip-archetype">流派: ${Array.isArray(card.archetype) ? card.archetype.join(', ') : card.archetype}</div>` : ''}
+      </div>
     `;
     
     if (gameState.energy >= card.cost && !gameState.gameOver) {
