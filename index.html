@@ -2943,6 +2943,11 @@ const STARTER_RELICS_POOL = [
   { id: 'energyPendant', name: '能量吊坠', icon: '💎', description: '每回合额外获得1能量', effect: { perTurnEnergy: 1 } },
 ];
 
+// V29 随机卡牌UID生成器
+function generateUid() {
+  return 'c_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+}
+
 function generateRandomInitialDeck(random) {
   const BASIC_CARDS = {
     strike: { id: 'strike', name: '打击', type: 'attack', cost: 1, damage: 6 },
