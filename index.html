@@ -6,7 +6,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
-  <title>DBG卡牌游戏 V21 — 移动端适配</title>
+  <link rel="manifest" href="manifest.json">
+  <title>DBG卡牌游戏 V24 — 成就系统</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -1373,10 +1374,10 @@
 </div>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V21</h1>
+  <h1>🃏 DBG卡牌游戏 V24</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
-  <p>V9 成就系统 - 解锁全部成就挑战！</p>
+  <p>V9 成就系统 - 18个成就等你解锁！</p>
   <p style="color:#ffd700;">V19 存档系统 - 3槽位存档</p>
   <p style="color:#4ecdc4;">V21 移动端适配 - 触屏支持</p>
   <button id="start-btn">开始游戏</button>
@@ -2738,6 +2739,55 @@ const ACHIEVEMENTS = {
     category: 'special',
     condition: (state) => state.speedruns >= 1,
   },
+  // V24 新增成就
+  eliteHunter: {
+    id: 'eliteHunter',
+    name: '精英猎手',
+    description: '击败10个精英敌人',
+    icon: '🎯',
+    category: 'battle',
+    condition: (state) => (state.achievementStats.totalElitesDefeated || 0) >= 10,
+  },
+  chapterMaster: {
+    id: 'chapterMaster',
+    name: '章节大师',
+    description: '完成所有3个章节',
+    icon: '📜',
+    category: 'progression',
+    condition: (state) => (state.totalChaptersCompleted || 0) >= 3,
+  },
+  megaWealthy: {
+    id: 'megaWealthy',
+    name: '富甲一方',
+    description: '累计获得2000金币',
+    icon: '💎',
+    category: 'economy',
+    condition: (state) => state.totalGoldEarned >= 2000,
+  },
+  cardHoarder: {
+    id: 'cardHoarder',
+    name: '卡牌囤积者',
+    description: '拥有30张以上卡牌',
+    icon: '📚',
+    category: 'collection',
+    condition: (state) => state.maxCardsOwned >= 30,
+  },
+  relicCollector: {
+    id: 'relicCollector',
+    name: '遗物收藏家',
+    description: '收集10个遗物',
+    icon: '🏛️',
+    category: 'collection',
+    condition: (state) => state.maxRelicsOwned >= 10,
+  },
+  deckBuilder: {
+    id: 'deckBuilder',
+    name: '牌组构建师',
+    description: '在同一局游戏中添加20张卡牌',
+    icon: '🛠️',
+    category: 'special',
+    condition: (state) => (state.achievementStats.maxCardsAddedInOneRun || 0) >= 20,
+  },
 };
 
 const ACHIEVEMENT_CATEGORIES = {
@@ -3295,6 +3345,8 @@ function getRandomRelic() {
 function addCardToDeck(card) {
   if (!card.uid) card.uid = generateUid();
   gameState.deck.push({ ...card });
+  // V24 跟踪本局添加的卡牌数
+  gameState.achievementStats.maxCardsAddedInOneRun = (gameState.achievementStats.maxCardsAddedInOneRun || 0) + 1;
   addLog(`获得卡牌: ${card.name}`, 'card');
 }
 
@@ -3370,12 +3422,15 @@ let gameState = {
   achievementStats: {
     totalEnemiesDefeated: 0,
     totalBossesDefeated: 0,
+    totalElitesDefeated: 0,
     maxCardsOwned: 0,
     maxRelicsOwned: 0,
     flawlessVictories: 0,
     noRelicVictories: 0,
     speedruns: 0,
+    maxCardsAddedInOneRun: 0,
   },
+  totalChaptersCompleted: 0,
   // V18 随机事件状态
   currentEvent: null, // 当前事件
   shopDiscount: 1, // 商店折扣
@@ -3601,6 +3656,11 @@ function showAchievementPopup(achievement) {
   
   document.body.appendChild(popup);
   setTimeout(() => popup.remove(), 3000);
+}
+
+// V24 成就通知函数（兼容性别名）
+function showAchievementNotification(achievement) {
+  showAchievementPopup(achievement);
 }
 
 // ===== V16 卡组辅助系统 =====
@@ -6138,18 +6198,28 @@ function checkEnemyDeath() {
 
       // V20 检查是否通关（击败第7层Boss = 通关）
       if (gameState.currentFloor >= 7) {
+        // V24 章节3完成（最终章节）
+        gameState.totalChaptersCompleted++;
         // 完全胜利！
         setTimeout(() => showVictory(), 500);
         return true;
       }
       // V20 章节切换：第5层Boss后进入第6层（章节2->3）
       else if (gameState.currentFloor === 5) {
+        // V24 章节2完成
+        gameState.totalChaptersCompleted++;
         // 章节2完成，显示章节奖励
         setTimeout(() => {
           showChapterReward(2, () => {
             advanceToNextFloor();
           });
         }, 500);
+        return true;
+      } else if (gameState.currentFloor === 3) {
+        // V24 章节1完成
+        gameState.totalChaptersCompleted++;
+        // 普通楼层切换
+        advanceToNextFloor();
         return true;
       } else {
         // 普通楼层切换
@@ -6186,6 +6256,7 @@ function checkEnemyDeath() {
     
     // 精英战斗奖励金币
     if (isElite) {
+      gameState.achievementStats.totalElitesDefeated++;
       const goldReward = gameState.currentFloor * 10;
       gameState.gold += goldReward;
       gameState.totalGoldEarned += goldReward;
@@ -6292,6 +6363,8 @@ function selectReward(card) {
   if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
     gameState.achievementStats.maxCardsOwned = gameState.deck.length;
   }
+  // V24 跟踪本局添加的卡牌数
+  gameState.achievementStats.maxCardsAddedInOneRun = (gameState.achievementStats.maxCardsAddedInOneRun || 0) + 1;
   document.getElementById('overlay').classList.remove('show');
   addLog(`获得新卡: ${card.name}`, 'info');
   // V9 检查成就
@@ -6682,14 +6755,17 @@ function initGame() {
     achievementStats: {
       totalEnemiesDefeated: 0,
       totalBossesDefeated: 0,
+      totalElitesDefeated: 0,
       maxCardsOwned: 0,
       maxRelicsOwned: 0,
       flawlessVictories: 0,
       noRelicVictories: 0,
       speedruns: 0,
+      maxCardsAddedInOneRun: 0,
     },
     // V9 新增统计
     totalVictories: 0,
+    totalChaptersCompleted: 0,
   };
 
   // V9 加载已解锁的成就
@@ -6732,7 +6808,8 @@ function saveGame(slot) {
     totalGoldEarned: gameState.totalGoldEarned,
     unlockedAchievements: gameState.unlockedAchievements,
     achievementStats: gameState.achievementStats,
-    totalVictories: gameState.totalVictories
+    totalVictories: gameState.totalVictories,
+    totalChaptersCompleted: gameState.totalChaptersCompleted,
   };
   try {
     localStorage.setItem(saveKey, JSON.stringify(saveData));
@@ -6826,13 +6903,16 @@ function loadGame(slot) {
       achievementStats: saveData.achievementStats || {
         totalEnemiesDefeated: 0,
         totalBossesDefeated: 0,
+        totalElitesDefeated: 0,
         maxCardsOwned: 0,
         maxRelicsOwned: 0,
         flawlessVictories: 0,
         noRelicVictories: 0,
         speedruns: 0,
+        maxCardsAddedInOneRun: 0,
       },
       totalVictories: saveData.totalVictories || 0,
+      totalChaptersCompleted: saveData.totalChaptersCompleted || 0,
     };
 
     loadAchievements();
@@ -6948,7 +7028,8 @@ function autoSave() {
     totalGoldEarned: gameState.totalGoldEarned,
     unlockedAchievements: gameState.unlockedAchievements,
     achievementStats: gameState.achievementStats,
-    totalVictories: gameState.totalVictories
+    totalVictories: gameState.totalVictories,
+    totalChaptersCompleted: gameState.totalChaptersCompleted,
   };
   try {
     localStorage.setItem(saveKey, JSON.stringify(saveData));
@@ -7158,7 +7239,56 @@ document.getElementById('confirm-no-btn').onclick = closeConfirmDialog;
 // 初始化移动端支持
 document.addEventListener('DOMContentLoaded', () => {
   initMobileSupport();
+  registerServiceWorker();
 });
+
+// Service Worker 注册
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then((registration) => {
+          console.log('[App] Service Worker 注册成功:', registration.scope);
+        })
+        .catch((error) => {
+          console.error('[App] Service Worker 注册失败:', error);
+        });
+    });
+  }
+}
+
+// 离线状态提示
+function showOfflineIndicator() {
+  if (!document.getElementById('offline-indicator')) {
+    const indicator = document.createElement('div');
+    indicator.id = 'offline-indicator';
+    indicator.innerHTML = '📴 离线模式';
+    indicator.style.cssText = `
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 107, 107, 0.9);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      z-index: 10000;
+      display: none;
+    `;
+    document.body.appendChild(indicator);
+  }
+}
+
+function updateOnlineStatus() {
+  const indicator = document.getElementById('offline-indicator');
+  if (indicator) {
+    indicator.style.display = navigator.onLine ? 'none' : 'block';
+  }
+}
+
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+document.addEventListener('DOMContentLoaded', showOfflineIndicator);
 </script>
 
 </body>
