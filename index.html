@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V26 — 更多卡牌设计</title>
+  <title>DBG卡牌游戏 V29 — Roguelike变体</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -855,6 +855,95 @@
     }
     #petshop-leave:hover { transform: scale(1.05); }
 
+    /* V29 遗物选择遮罩 */
+    #relic-selection-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.95);
+      z-index: 600;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #relic-selection-overlay.show { display: flex; }
+    #relic-selection-panel {
+      text-align: center;
+      max-width: 600px;
+    }
+    #relic-selection-panel h2 { font-size: 28px; color: #ffd700; margin-bottom: 10px; }
+    #relic-choices {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+    .relic-choice {
+      width: 150px;
+      padding: 20px 15px;
+      border-radius: 15px;
+      background: linear-gradient(145deg, #2c3e50, #34495e);
+      border: 3px solid #ffd700;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-align: center;
+    }
+    .relic-choice:hover { transform: scale(1.1); box-shadow: 0 0 30px rgba(255,215,0,0.5); }
+    .relic-choice .relic-icon-big { font-size: 50px; margin-bottom: 10px; }
+    .relic-choice .relic-name { font-weight: bold; font-size: 16px; color: #ffd700; margin-bottom: 8px; }
+    .relic-choice .relic-desc { font-size: 12px; color: #ccc; }
+
+    /* V29 每日挑战遮罩 */
+    #daily-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      z-index: 600;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #daily-overlay.show { display: flex; }
+    #daily-panel {
+      text-align: center;
+      max-width: 500px;
+      background: rgba(0,0,0,0.8);
+      border-radius: 15px;
+      padding: 30px;
+      border: 2px solid #e74c3c;
+    }
+    #daily-panel h2 { font-size: 28px; color: #ffd700; margin-bottom: 20px; }
+    #daily-info { margin-bottom: 20px; }
+    #daily-info .daily-stat { font-size: 16px; color: #ccc; margin: 8px 0; }
+    #daily-info .daily-stat span { color: #ffd700; font-weight: bold; }
+    #daily-countdown { font-size: 24px; color: #e74c3c; margin: 15px 0; }
+    #daily-leaderboard { max-height: 300px; overflow-y: auto; margin: 20px 0; }
+    #daily-leaderboard table { width: 100%; border-collapse: collapse; }
+    #daily-leaderboard th { color: #ffd700; padding: 8px; border-bottom: 1px solid #555; }
+    #daily-leaderboard td { color: #ccc; padding: 8px; border-bottom: 1px solid #333; }
+    #close-daily-btn {
+      margin-top: 15px;
+      padding: 12px 40px;
+      font-size: 16px;
+      background: linear-gradient(145deg, #555, #777);
+      border: none;
+      border-radius: 25px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #close-daily-btn:hover { transform: scale(1.05); }
+
     /* 奖励界面增加遗物选项 */
     #reward-types {
       display: flex;
@@ -1519,15 +1608,34 @@
 </div>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V28</h1>
+  <h1>🃏 DBG卡牌游戏 V29</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
-  <p>V9 成就系统 - 18个成就等你解锁！</p>
-  <p style="color:#ffd700;">V19 存档系统 - 3槽位存档</p>
-  <p style="color:#4ecdc4;">V28 终局内容 + 周目系统</p>
+  <p style="color:#ffd700;">V29 Roguelike变体 - 随机开局！</p>
   <button id="start-btn">开始游戏</button>
+  <button id="daily-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#e74c3c,#c0392b);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">🏆 每日挑战</button>
   <button id="load-save-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#27ae60,#2ecc71);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">📂 继续游戏</button>
   <button id="achievements-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#9b59b6,#8e44ad);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">🏆 成就</button>
+  <button id="leaderboard-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#f39c12,#e67e22);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">📊 排行榜</button>
+</div>
+
+<!-- V29 初始遗物选择遮罩 -->
+<div id="relic-selection-overlay">
+  <div id="relic-selection-panel">
+    <h2>🎁 选择你的初始遗物</h2>
+    <p style="color:#aaa;margin-bottom:20px;">选择一项开始你的冒险</p>
+    <div id="relic-choices"></div>
+  </div>
+</div>
+
+<!-- V29 每日挑战遮罩 -->
+<div id="daily-overlay">
+  <div id="daily-panel">
+    <h2>🏆 每日挑战</h2>
+    <div id="daily-info"></div>
+    <div id="daily-leaderboard"></div>
+    <button id="close-daily-btn">关闭</button>
+  </div>
 </div>
 
 <!-- V19 存档系统遮罩 -->
@@ -2687,6 +2795,212 @@ function animateDrawCard(cardEl) {
   }
 }
 
+// ===== V29 确定性随机数生成器 =====
+class SeededRandom {
+  constructor(seed) {
+    this.seed = seed;
+    this.initial = seed;
+  }
+  
+  next() {
+    this.seed = (this.seed * 1103515245 + 12345) & 0x7fffffff;
+    return this.seed / 0x7fffffff;
+  }
+  
+  nextInt(min, max) {
+    return Math.floor(this.next() * (max - min + 1)) + min;
+  }
+  
+  shuffle(array) {
+    const result = [...array];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = this.nextInt(0, i);
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  }
+  
+  pick(array) {
+    return array[this.nextInt(0, array.length - 1)];
+  }
+  
+  reset() {
+    this.seed = this.initial;
+  }
+}
+
+// 全局非确定性随机生成器（用于普通模式）
+const rng = {
+  next: () => Math.random(),
+  nextInt: (min, max) => Math.floor(Math.random() * (max - min + 1)) + min,
+  shuffle: (arr) => { const a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a; },
+  pick: (arr) => arr[Math.floor(Math.random() * arr.length)]
+};
+
+// ===== V29 每日挑战系统 =====
+const DAILY_LEADERBOARD_KEY = 'cardgame_daily_v1';
+
+function getDailySeed() {
+  const now = new Date();
+  const utcDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const dateStr = utcDate.toISOString().split('T')[0];
+  return hashString(dateStr);
+}
+
+function hashString(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}
+
+function getDailyLeaderboard() {
+  const data = localStorage.getItem(DAILY_LEADERBOARD_KEY);
+  return data ? JSON.parse(data) : {};
+}
+
+function submitDailyScore(time, difficulty) {
+  const board = getDailyLeaderboard();
+  const today = getDailySeed();
+  
+  if (!board[today]) board[today] = [];
+  
+  board[today].push({
+    time,
+    difficulty,
+    date: new Date().toISOString()
+  });
+  
+  board[today].sort((a, b) => a.time - b.time);
+  board[today] = board[today].slice(0, 100);
+  
+  localStorage.setItem(DAILY_LEADERBOARD_KEY, JSON.stringify(board));
+}
+
+function isDailyChallengeAvailable() {
+  const today = getDailySeed();
+  const lastPlayed = gameState.dailyLastPlayed;
+  return lastPlayed !== today;
+}
+
+function completeDailyChallenge() {
+  const today = getDailySeed();
+  const elapsed = (Date.now() - gameState.gameStartTime) / 1000;
+  
+  gameState.dailyCompleted = true;
+  gameState.dailyLastPlayed = today;
+  
+  if (!gameState.dailyBestTime || elapsed < gameState.dailyBestTime) {
+    gameState.dailyBestTime = elapsed;
+  }
+  
+  submitDailyScore(elapsed, gameState.difficulty);
+  saveGame();
+}
+
+function getDailyCountdown() {
+  const now = new Date();
+  const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  const diff = tomorrow - now;
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const secs = Math.floor((diff % (1000 * 60)) / 1000);
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// ===== V29 随机初始系统 =====
+const STARTER_RELICS_POOL = [
+  { id: 'burningBlood', name: '燃烧之血', icon: '🔥', description: '战斗开始时获得2力量', effect: { startOfCombatStrength: 2 } },
+  { id: 'prayerWheel', name: '转经筒', icon: '☸️', description: '击杀敌人额外获得5金币', effect: { goldPerKill: 5 } },
+  { id: 'vintageShield', name: '复古盾牌', icon: '🛡️', description: '每3回合获得8护甲', effect: { blockPer3Turns: 8 } },
+  { id: 'shadowCloak', name: '暗影斗篷', icon: '🌑', description: '15%几率躲避攻击', effect: { dodgeChance: 0.15 } },
+  { id: 'toxicRing', name: '毒戒指', icon: '💍', description: '攻击有20%几率使敌人中毒', effect: { attackPoisonChance: 0.2 } },
+  { id: 'luckyCoin', name: '幸运硬币', icon: '🪙', description: '战斗开始时获得5金币', effect: { startOfCombatGold: 5 } },
+  { id: 'healthAmulet', name: '健康护身符', icon: '💚', description: '战斗结束恢复3生命', effect: { healPerVictory: 3 } },
+  { id: 'energyPendant', name: '能量吊坠', icon: '💎', description: '每回合额外获得1能量', effect: { perTurnEnergy: 1 } },
+];
+
+function generateRandomInitialDeck(random) {
+  const BASIC_CARDS = {
+    strike: { id: 'strike', name: '打击', type: 'attack', cost: 1, damage: 6 },
+    defend: { id: 'defend', name: '防御', type: 'skill', cost: 1, block: 5 },
+    harden: { id: 'harden', name: '硬撑', type: 'skill', cost: 1, block: 8, draw: 1 },
+  };
+  
+  const deck = [];
+  const deckSize = random.nextInt(8, 12);
+  const cardTypes = ['strike', 'defend', 'harden'];
+  
+  for (let i = 0; i < deckSize; i++) {
+    const cardType = random.pick(cardTypes);
+    deck.push({ ...BASIC_CARDS[cardType], uid: generateUid() });
+  }
+  
+  return deck;
+}
+
+function generateRelicChoices(random, count = 3) {
+  return random.shuffle([...STARTER_RELICS_POOL]).slice(0, count);
+}
+
+function generateRandomStartResources(random) {
+  return {
+    gold: random.nextInt(50, 100),
+    maxHp: random.nextInt(70, 90),
+  };
+}
+
+function generateSeededRun(seed) {
+  const random = new SeededRandom(seed);
+  
+  // 生成随机初始牌组
+  gameState.deck = generateRandomInitialDeck(random);
+  
+  // 生成随机初始资源
+  const resources = generateRandomStartResources(random);
+  gameState.gold = resources.gold;
+  gameState.playerMaxHp = resources.maxHp;
+  gameState.playerHp = resources.maxHp;
+  gameState.runStartHp = resources.maxHp;
+  
+  // 重置其他状态
+  gameState.hand = [];
+  gameState.drawPile = [];
+  gameState.discardPile = [];
+  gameState.energy = 3;
+  gameState.maxEnergy = 3;
+  gameState.turn = 1;
+  gameState.relics = [];
+  gameState.acquiredRelicIds = [];
+  gameState.pets = [];
+  gameState.ownedPetIds = [];
+  gameState.currentFloor = 1;
+  gameState.currentNode = null;
+  gameState.unlockedNodes = [];
+  gameState.completedNodes = [];
+  gameState.inMap = true;
+  gameState.selectedNode = null;
+  gameState.totalBattlesWon = 0;
+  gameState.totalGoldEarned = 0;
+  gameState.gameStartTime = Date.now();
+  gameState.runCardSkipCount = 0;
+  gameState.runShopPurchaseCount = 0;
+  gameState.runMaxHpLost = 0;
+  gameState.ngPlus = 0;
+  gameState.difficulty = 'normal';
+  gameState.statistics = {
+    totalDamage: 0, totalHealing: 0, maxSingleDamage: 0, maxCombo: 0,
+    enemiesDefeated: 0, cardsGained: 0, cardsSkipped: 0,
+    goldSpent: 0, goldEarned: 0, timePlayed: 0, bossesDefeated: 0, elitesDefeated: 0
+  };
+  
+  // 初始化地图
+  initMap();
+}
+
 // ===== V6 遗物/神器数据 =====
 const RELICS = {
   // 初始遗物
@@ -3708,6 +4022,82 @@ const EVENTS = {
       { text: '献祭HP (获得遗物)', effect: () => { if (gameState.playerHp > 20) { gameState.playerHp -= 20; const relic = getRandomRelic(); addRelic(relic); return `献祭了 20HP，获得了 ${relic.name}`; } else { return 'HP不足，无法献祭'; } } },
     ],
   },
+
+  // V29 新增随机事件 - 命运骰子
+  dice_gambit: {
+    id: 'dice_gambit',
+    name: '命运骰子',
+    type: 'mystery',
+    icon: '🎲',
+    description: '一个神秘的骰子出现在你面前，闪烁着命运的光芒...',
+    options: [
+      { text: '投掷骰子', effect: () => { 
+        const outcome = Math.floor(Math.random() * 4) + 1;
+        switch(outcome) {
+          case 1: gameState.gold *= 2; return `金币翻倍！获得 ${gameState.gold} 金币！`;
+          case 2: gameState.gold = Math.floor(gameState.gold * 0.5); return `运气不好...失去50%金币，剩余 ${gameState.gold}`;
+          case 3: const card = getRandomCard(); addCardToDeck(card); return `获得随机卡牌: ${card.name}！`;
+          case 4: const relic = getRandomRelic(); if (addRelic(relic)) { return `获得随机遗物: ${relic.name}！`; } else { return '背包已满...'; }
+        }
+      }},
+      { text: '离开', effect: () => { return '你决定不去触碰命运...'; } },
+    ],
+  },
+
+  // V29 新增随机事件 - 赌博商人
+  gambling_merchant: {
+    id: 'gambling_merchant',
+    name: '赌博商人',
+    type: 'mystery',
+    icon: '🎰',
+    description: '一个衣着华丽的商人在此设下赌局，声称可以用金币换取更多财富...',
+    options: [
+      { text: '押注50金币', effect: () => { 
+        if (gameState.gold >= 50) {
+          gameState.gold -= 50;
+          if (Math.random() > 0.5) {
+            const win = Math.floor(Math.random() * 70) + 80;
+            gameState.gold += win;
+            return `你赢了！获得 ${win} 金币！`;
+          }
+          return '你输了...50金币有去无回';
+        } else {
+          return '金币不足，无法参与赌局';
+        }
+      }},
+      { text: '离开', effect: () => { return '你决定不冒险...'; } },
+    ],
+  },
+
+  // V29 新增随机事件 - 随机祭坛
+  random_altar: {
+    id: 'random_altar',
+    name: '神秘祭坛',
+    type: 'mystery',
+    icon: '⛩️',
+    description: '一座被遗忘的祭坛散发着诡异的光芒，似乎在呼唤着什么...',
+    options: [
+      { text: '献祭10HP', effect: () => { 
+        if (gameState.playerHp > 10) {
+          gameState.playerHp -= 10;
+          const buff = Math.floor(Math.random() * 3);
+          switch(buff) {
+            case 0: gameState.permanentAttackBonus = (gameState.permanentAttackBonus || 0) + 3; return '攻击力永久+3！';
+            case 1: gameState.permanentDefenseBonus = (gameState.permanentDefenseBonus || 0) + 3; return '防御力永久+3！';
+            case 2: gameState.playerMaxHp += 10; gameState.playerHp += 10; return '最大HP+10！';
+          }
+        } else { return 'HP不足，无法献祭'; }
+      }},
+      { text: '献祭30金币', effect: () => { 
+        if (gameState.gold >= 30) {
+          gameState.gold -= 30;
+          const relic = getRandomRelic();
+          if (addRelic(relic)) { return `获得了 ${relic.name}！`; } else { gameState.gold += 30; return '背包已满，金币退还'; }
+        } else { return '金币不足'; }
+      }},
+      { text: '离开', effect: () => { return '你决定不触碰禁忌...'; } },
+    ],
+  },
 };
 
 // 随机触发子事件（用于mystery_fate选项）
@@ -3938,7 +4328,18 @@ let gameState = {
     enemies: {},    // { enemyId: { discovered: true, defeatCount: 0 } }
     cards: {},      // { cardId: { discovered: true, timesPlayed: 0 } }
     relics: {}      // { relicId: { discovered: true } }
-  }
+  },
+  // V29 Roguelike变体
+  dailySeed: null,          // 每日挑战种子
+  runSeed: null,            // 本局随机种子
+  initialDeckSeed: null,    // 初始牌组种子
+  initialRelicSeed: null,   // 初始遗物种子
+  mapSeed: null,            // 地图生成种子
+  dailyCompleted: false,    // 今日是否完成
+  dailyBestTime: null,      // 最佳时间(秒)
+  dailyAttempts: 0,          // 尝试次数
+  dailyLastPlayed: null,    // UTC日期字符串
+  isDailyChallenge: false, // 是否为每日挑战模式
 };
 
 // ===== V25 宠物效果应用 =====
@@ -4282,6 +4683,182 @@ function grantStartingRelic() {
     }
     addLog(`获得初始遗物: ${startingRelic.name}`, 'info');
   }
+}
+
+// ===== V29 遗物选择系统 =====
+function showStarterRelicSelection() {
+  const choices = generateRelicChoices(rng, 3);
+  const container = document.getElementById('relic-choices');
+  container.innerHTML = '';
+  
+  choices.forEach(relic => {
+    const div = document.createElement('div');
+    div.className = 'relic-choice';
+    div.innerHTML = `
+      <div class="relic-icon-big">${relic.icon}</div>
+      <div class="relic-name">${relic.name}</div>
+      <div class="relic-desc">${relic.description}</div>
+    `;
+    div.onclick = () => selectStarterRelic(relic);
+    container.appendChild(div);
+  });
+  
+  document.getElementById('relic-selection-overlay').classList.add('show');
+}
+
+function selectStarterRelic(relic) {
+  document.getElementById('relic-selection-overlay').classList.remove('show');
+  
+  // 添加遗物
+  gameState.relics.push({ ...relic });
+  gameState.acquiredRelicIds.push(relic.id);
+  
+  // 应用遗物效果
+  if (relic.effect.maxEnergyBonus) {
+    gameState.maxEnergy += relic.effect.maxEnergyBonus;
+  }
+  if (relic.effect.maxHpBonus) {
+    gameState.playerMaxHp += relic.effect.maxHpBonus;
+    gameState.playerHp += relic.effect.maxHpBonus;
+  }
+  
+  addLog(`选择遗物: ${relic.name}`, 'info');
+  
+  // 初始化地图
+  initMap();
+  renderMap();
+  
+  // 更新UI
+  updateUI();
+  updateRelicsDisplay();
+  
+  // V19 显示快速存档按钮
+  document.getElementById('quick-save-btn').classList.add('show');
+}
+
+// ===== V29 每日挑战系统 =====
+function startDailyChallenge() {
+  const seed = getDailySeed();
+  gameState.runSeed = seed;
+  gameState.dailySeed = seed;
+  gameState.isDailyChallenge = true;
+  gameState.dailyAttempts++;
+  
+  // 使用确定性随机生成开局
+  const random = new SeededRandom(seed);
+  
+  // 生成随机初始牌组
+  gameState.deck = generateRandomInitialDeck(random);
+  
+  // 生成随机初始资源
+  const resources = generateRandomStartResources(random);
+  gameState.gold = resources.gold;
+  gameState.playerMaxHp = resources.maxHp;
+  gameState.playerHp = resources.maxHp;
+  gameState.runStartHp = resources.maxHp;
+  
+  // 重置其他状态
+  gameState.hand = [];
+  gameState.drawPile = [];
+  gameState.discardPile = [];
+  gameState.energy = 3;
+  gameState.maxEnergy = 3;
+  gameState.turn = 1;
+  gameState.relics = [];
+  gameState.acquiredRelicIds = [];
+  gameState.pets = [];
+  gameState.ownedPetIds = [];
+  gameState.currentFloor = 1;
+  gameState.currentNode = null;
+  gameState.unlockedNodes = [];
+  gameState.completedNodes = [];
+  gameState.inMap = true;
+  gameState.selectedNode = null;
+  gameState.totalBattlesWon = 0;
+  gameState.totalGoldEarned = 0;
+  gameState.gameStartTime = Date.now();
+  gameState.runCardSkipCount = 0;
+  gameState.runShopPurchaseCount = 0;
+  gameState.runMaxHpLost = 0;
+  gameState.ngPlus = 0;
+  gameState.difficulty = 'normal';
+  gameState.statistics = {
+    totalDamage: 0, totalHealing: 0, maxSingleDamage: 0, maxCombo: 0,
+    enemiesDefeated: 0, cardsGained: 0, cardsSkipped: 0,
+    goldSpent: 0, goldEarned: 0, timePlayed: 0, bossesDefeated: 0, elitesDefeated: 0
+  };
+  
+  // V29 隐藏旧遗物选择相关
+  document.getElementById('relic-selection-overlay').classList.remove('show');
+  document.getElementById('daily-overlay').classList.remove('show');
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('game-container').style.display = 'block';
+  
+  // V9 加载成就
+  loadAchievements();
+  
+  // 随机选择初始遗物（每日挑战也是随机的）
+  const starterRelic = random.pick(STARTER_RELICS_POOL);
+  gameState.relics.push({ ...starterRelic });
+  gameState.acquiredRelicIds.push(starterRelic.id);
+  if (starterRelic.effect.maxEnergyBonus) {
+    gameState.maxEnergy += starterRelic.effect.maxEnergyBonus;
+  }
+  
+  initMap();
+  renderMap();
+  updateUI();
+  updateRelicsDisplay();
+  document.getElementById('quick-save-btn').classList.add('show');
+  
+  addLog(`每日挑战开始！Seed: ${seed}`, 'info');
+}
+
+function showDailyChallenge() {
+  const today = getDailySeed();
+  const board = getDailyLeaderboard();
+  const todayRecords = board[today] || [];
+  const available = isDailyChallengeAvailable();
+  
+  let infoHtml = `<div class="daily-stat">状态: <span>${available ? '可挑战' : '今日已完成'}</span></div>`;
+  infoHtml += `<div class="daily-stat">今日Seed: <span>${today}</span></div>`;
+  
+  if (gameState.dailyBestTime) {
+    infoHtml += `<div class="daily-stat">最佳时间: <span>${formatTime(gameState.dailyBestTime)}</span></div>`;
+  }
+  infoHtml += `<div class="daily-stat">尝试次数: <span>${gameState.dailyAttempts}</span></div>`;
+  infoHtml += `<div id="daily-countdown">重置倒计时: ${getDailyCountdown()}</div>`;
+  infoHtml += `<button id="start-daily-btn" style="margin-top:15px;padding:12px 40px;font-size:18px;background:linear-gradient(145deg,#e74c3c,#c0392b);border:none;border-radius:25px;color:#fff;cursor:pointer;font-weight:bold;">🏆 开始挑战</button>`;
+  
+  document.getElementById('daily-info').innerHTML = infoHtml;
+  
+  // 绑定开始按钮
+  document.getElementById('start-daily-btn').onclick = () => {
+    startDailyChallenge();
+  };
+  
+  // 排行榜
+  let leaderboardHtml = '<table><tr><th>#</th><th>时间</th><th>难度</th></tr>';
+  todayRecords.slice(0, 10).forEach((record, i) => {
+    leaderboardHtml += `<tr><td>${i + 1}</td><td>${formatTime(record.time)}</td><td>${record.difficulty}</td></tr>`;
+  });
+  leaderboardHtml += '</table>';
+  if (todayRecords.length === 0) {
+    leaderboardHtml = '<p style="color:#aaa;margin:20px;">暂无记录</p>';
+  }
+  document.getElementById('daily-leaderboard').innerHTML = leaderboardHtml;
+  
+  document.getElementById('daily-overlay').classList.add('show');
+}
+
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function showLeaderboard() {
+  showDailyChallenge();
 }
 
 function renderRelicsPanel() {
@@ -5058,7 +5635,7 @@ function getEventPoolForType(type) {
     case 'treasure':
       return EVENTS.treasure_gold ? [EVENTS.treasure_gold, EVENTS.treasure_elite] : [EVENTS.treasure_gold];
     case 'mystery':
-      return [EVENTS.mystery_fate, EVENTS.mystery_gamble, EVENTS.mystery_merchantSpirit];
+      return [EVENTS.mystery_fate, EVENTS.mystery_gamble, EVENTS.mystery_merchantSpirit, EVENTS.dice_gambit, EVENTS.gambling_merchant, EVENTS.random_altar];
     case 'campfire':
       return [EVENTS.campfire_upgrade, EVENTS.campfire_smith, EVENTS.campfire_treasure];
     case 'rest':
@@ -7448,6 +8025,11 @@ function showVictory() {
   // V28 解锁下一个难度
   unlockNextDifficulty();
   
+  // V29 每日挑战完成
+  if (gameState.isDailyChallenge) {
+    completeDailyChallenge();
+  }
+  
   // V28 显示终局结算界面
   showEndgameScreen();
 }
@@ -7946,21 +8528,15 @@ function initGame() {
   // 初始化音效系统
   audioManager.init();
   
-  // 初始牌组
-  const startingDeck = [
-    CARDS.strike, CARDS.strike, CARDS.strike, CARDS.strike,
-    CARDS.defend, CARDS.defend, CARDS.defend, CARDS.defend,
-    CARDS.harden, CARDS.harden,
-    CARDS.consecutiveStrike, CARDS.consecutiveStrike,
-    CARDS.painfulStrike,
-  ];
+  // 生成随机初始牌组（V29 Roguelike）
+  const startingDeck = generateRandomInitialDeck(rng);
   
   gameState = {
     playerHp: 80,
     playerMaxHp: 80,
     playerShield: 0,
     gold: 0,
-    deck: startingDeck.map(c => ({ ...c })),
+    deck: startingDeck,
     hand: [],
     drawPile: [],
     discardPile: [],
@@ -8080,12 +8656,25 @@ function initGame() {
       enemies: {},
       cards: {},
       relics: {}
-    }
+    },
+    // V29 Roguelike变体
+    dailySeed: null,
+    runSeed: null,
+    initialDeckSeed: null,
+    initialRelicSeed: null,
+    mapSeed: null,
+    dailyCompleted: false,
+    dailyBestTime: null,
+    dailyAttempts: 0,
+    dailyLastPlayed: null,
+    isDailyChallenge: false,
   };
 
   // V9 加载已解锁的成就
   loadAchievements();
-  grantStartingRelic();
+  
+  // V29 显示遗物选择
+  showStarterRelicSelection();
 
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('game-over-screen').classList.remove('show');
@@ -8558,6 +9147,13 @@ document.getElementById('achievements-btn').onclick = showAchievements;
 document.getElementById('close-achievements-btn').onclick = () => {
   document.getElementById('achievements-overlay').classList.remove('show');
 };
+// V29 每日挑战按钮
+document.getElementById('daily-btn').onclick = showDailyChallenge;
+document.getElementById('close-daily-btn').onclick = () => {
+  document.getElementById('daily-overlay').classList.remove('show');
+};
+// V29 排行榜按钮
+document.getElementById('leaderboard-btn').onclick = showLeaderboard;
 // V28 终局结算按钮
 document.getElementById('ngplus-btn').onclick = startNGPlus;
 document.getElementById('difficulty-btn').onclick = showDifficultySelection;
