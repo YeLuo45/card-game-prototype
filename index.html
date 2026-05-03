@@ -8834,6 +8834,57 @@ function renderLog() {
 }
 
 // ===== 初始化游戏 =====
+// V28 辅助函数：更新UI显示
+function updateUI() {
+  // 更新玩家状态显示
+  const hpText = `❤️ ${gameState.playerHp}/${gameState.playerMaxHp}`;
+  const goldText = `💰 ${gameState.gold}`;
+  const energyText = `⚡ ${gameState.energy}/${gameState.maxEnergy}`;
+  
+  const hpEl = document.getElementById('player-hp');
+  const goldEl = document.getElementById('player-gold');
+  const energyEl = document.getElementById('player-energy');
+  
+  if (hpEl) hpEl.textContent = hpText;
+  if (goldEl) goldEl.textContent = goldText;
+  if (energyEl) energyEl.textContent = energyText;
+  
+  // 更新手牌显示
+  if (typeof renderHand === 'function') renderHand();
+}
+
+// V25 辅助函数：更新遗物显示
+function updateRelicsDisplay() {
+  const container = document.getElementById('relics-display');
+  if (!container) return;
+  
+  if (gameState.relics.length === 0) {
+    container.innerHTML = '<span style="color:#666;font-size:12px;">无遗物</span>';
+    return;
+  }
+  
+  container.innerHTML = gameState.relics.map(r => {
+    const data = RELICS[r.id];
+    return data ? `<span title="${data.description}">${data.icon || '📿'}</span>` : '';
+  }).join(' ');
+}
+
+// V25 辅助函数：更新宠物显示
+function updatePetsDisplay() {
+  const container = document.getElementById('pets-display');
+  if (!container) return;
+  
+  if (gameState.pets.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  container.innerHTML = gameState.pets.map(p => {
+    const data = PETS[p.id];
+    return data ? `<span title="${data.description}">${data.icon || '🐾'}</span>` : '';
+  }).join(' ');
+}
+
 function initGame() {
   // 初始化音效系统
   audioManager.init();
