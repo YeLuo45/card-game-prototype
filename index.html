@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V30 — Roguelike变体</title>
+  <title>DBG卡牌游戏 V33 — 核心循环补全</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -456,6 +456,62 @@
     .reward-card.fate { background: linear-gradient(145deg, #1b4e4e, #3f6b6b); border: 3px solid #00ffff; }
     .reward-card.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 3px solid #00ff7f; }
     .reward-card.status { background: linear-gradient(145deg, #4e4e4e, #6b6b6b); border: 3px solid #a0a0a0; }
+
+    /* V33 稀有度标记 */
+    .rarity-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    /* V33 流派状态面板 */
+    #archetype-panel {
+      position: fixed;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 180px;
+      background: rgba(0,0,0,0.85);
+      border-radius: 10px;
+      padding: 10px;
+      max-height: 400px;
+      overflow-y: auto;
+      z-index: 150;
+    }
+    #archetype-panel h4 {
+      color: #ffd700;
+      font-size: 13px;
+      margin-bottom: 8px;
+      text-align: center;
+      border-bottom: 1px solid #333;
+      padding-bottom: 5px;
+    }
+    .archetype-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px;
+      margin-bottom: 5px;
+      border-radius: 6px;
+      font-size: 11px;
+    }
+    .archetype-item.active {
+      background: rgba(255,215,0,0.15);
+      border: 1px solid rgba(255,215,0,0.3);
+    }
+    .archetype-item.inactive {
+      opacity: 0.5;
+      background: rgba(100,100,100,0.2);
+    }
+    .archetype-icon { font-size: 18px; }
+    .archetype-name { font-weight: bold; color: #fff; }
+    .archetype-desc { font-size: 10px; color: #aaa; }
 
     /* V31 奖励类型切换按钮 */
     #reward-types {
@@ -1824,6 +1880,12 @@
   <button id="skip-reward-btn" style="margin-top: 15px; padding: 10px 30px; font-size: 16px; background: #555; border: none; border-radius: 20px; color: #fff; cursor: pointer;">跳过奖励</button>
 </div>
 
+<!-- V33 流派状态面板 -->
+<div id="archetype-panel" style="display:none;">
+  <h4>⚔️ 流派状态</h4>
+  <div id="archetype-list"></div>
+</div>
+
 <!-- 商店遮罩 V14 -->
 <div id="shop-overlay">
   <div id="shop-title">🛒 商店</div>
@@ -2353,6 +2415,136 @@ const CARD_REWARDS = {
   lightningReflex: { id: 'lightningReflex', name: '闪电反应', cost: 1, type: 'special', archetype: 'swift', effect: { dodgeChance: 0.5, draw: 1 }, description: '50%几率躲避攻击，抽1张牌' },
   vampiricTouch: { id: 'vampiricTouch', name: '吸血之触', cost: 2, type: 'special', archetype: ['toxic','vampire'], effect: { damage: 6, lifesteal: 4 }, description: '造成6点伤害，偷取4生命' },
 };
+
+// V33 核心循环补全 - 章节敌人池
+// 第1章：序章 - 史莱姆/哥布林/蝙蝠 + Boss史莱姆王
+const CHAPTER_1_ENEMIES = {
+  normal: [
+    { id: 'slime', hp: 40, name: '史莱姆' },
+    { id: 'goblin', hp: 30, name: '哥布林' },
+    { id: 'bat', hp: 25, name: '蝙蝠' }
+  ],
+  boss: { id: 'slimeKing', hp: 65, name: '史莱姆王' }
+};
+
+// 第2章：征程 - 狼人/巨魔/暗法师 + Boss黑暗骑士
+const CHAPTER_2_ENEMIES = {
+  normal: [
+    { id: 'werewolf', hp: 55, name: '狼人' },
+    { id: 'minotaur', hp: 70, name: '巨魔' },
+    { id: 'darkMage', hp: 45, name: '暗法师' }
+  ],
+  boss: { id: 'darkKnight', hp: 80, name: '黑暗骑士' }
+};
+
+// 第3章：终章 - 暗影刺客/地狱犬/亡灵骑士 + Boss克洛诺斯
+const CHAPTER_3_ENEMIES = {
+  normal: [
+    { id: 'shadowAssassin', hp: 60, name: '暗影刺客' },
+    { id: 'hellHound', hp: 80, name: '地狱犬' },
+    { id: 'deathBringer', hp: 65, name: '亡灵骑士' }
+  ],
+  boss: { id: 'chronos', hp: 500, name: '克洛诺斯' }
+};
+
+// V33 章节配置
+const CHAPTER_CONFIG = {
+  1: { name: '序章', difficulty: 1.0, enemies: CHAPTER_1_ENEMIES },
+  2: { name: '征程', difficulty: 1.3, enemies: CHAPTER_2_ENEMIES },
+  3: { name: '终章', difficulty: 1.6, enemies: CHAPTER_3_ENEMIES }
+};
+
+// V33 章节状态追踪
+let chapterState = {
+  currentChapter: 1,
+  currentBattleInChapter: 0, // 0-3 = 3场战斗+Boss
+  defeatedEnemiesThisChapter: [],
+  chapterEnemyPool: [] // 当前章节剩余敌人池
+};
+
+// V33 初始化章节敌人池
+function initChapterEnemyPool(chapter) {
+  const config = CHAPTER_CONFIG[chapter];
+  if (!config) return;
+  
+  // 深拷贝普通敌人到池中
+  chapterState.chapterEnemyPool = config.enemies.normal.map(e => ({...e}));
+  chapterState.defeatedEnemiesThisChapter = [];
+  chapterState.currentBattleInChapter = 0;
+}
+
+// V33 获取当前章节配置
+function getCurrentChapterConfig() {
+  return CHAPTER_CONFIG[chapterState.currentChapter];
+}
+
+// V33 获取章节过渡数据
+function getChapterTransitionData(chapter) {
+  const config = CHAPTER_CONFIG[chapter];
+  return {
+    chapter,
+    title: `第${chapter}章：${config.name}`,
+    difficulty: config.difficulty,
+    bossName: config.enemies.boss.name
+  };
+}
+
+// V33 奖励卡池（V33核心循环补全：10张指定卡牌）
+const V33_REWARD_CARD_POOL = [
+  // 攻击系3张
+  { id: 'heavyStrike', name: '重击', cost: 2, type: 'attack', rarity: 'common', effect: { damage: 12 }, description: '造成12点伤害' },
+  { id: 'doubleStrike', name: '连击', cost: 1, type: 'attack', rarity: 'common', effect: { damage: 4, hits: 2 }, description: '造成4点伤害2次' },
+  { id: 'shieldStrike', name: '盾击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 8, shieldPierce: true }, description: '造成8点伤害，无视护甲' },
+  // 技能系3张
+  { id: 'ironWallSkill', name: '铁壁', cost: 2, type: 'skill', rarity: 'common', effect: { block: 15 }, description: '获得15点护甲' },
+  { id: 'firstAidSkill', name: '急救', cost: 1, type: 'skill', rarity: 'common', effect: { block: 5, heal: 8 }, description: '获得5点护甲，治疗8点' },
+  { id: 'warCrySkill', name: '战吼', cost: 1, type: 'skill', rarity: 'rare', effect: { nextAttackMult: 1.5, draw: 1 }, description: '下次攻击+50%，抽1张' },
+  // 诅咒系2张
+  { id: 'weakenCurse', name: '虚弱', cost: 1, type: 'curse', rarity: 'common', effect: { weakenStacks: 2, weakenDuration: 3 }, description: '敌人攻击力-50%持续3回合' },
+  { id: 'poisonCurseSkill', name: '中毒', cost: 1, type: 'curse', rarity: 'rare', effect: { poisonStacks: 5, poisonDuration: 4 }, description: '敌人中毒5层持续4回合' },
+  // 命运系2张
+  { id: 'fateStrike', name: '命运打击', cost: 1, type: 'fate', rarity: 'common', effect: { fateDamageMin: 5, fateDamageMax: 20 }, description: '造成5-20点随机伤害' },
+  { id: 'chaoticShieldSkill', name: '混沌护盾', cost: 1, type: 'fate', rarity: 'rare', effect: { fateShieldMin: 8, fateShieldMax: 20 }, description: '获得8-20点随机护甲' }
+];
+
+// V33 根据稀有度概率获取奖励卡牌
+function getV33RewardCards(count = 3) {
+  const availableCards = V33_REWARD_CARD_POOL.filter(card => {
+    // 检查同名牌组最多3张限制
+    const sameNameCount = gameState.deck.filter(c => c.name === card.name).length;
+    return sameNameCount < 3;
+  });
+  
+  if (availableCards.length === 0) return [];
+  
+  const rewards = [];
+  for (let i = 0; i < count && availableCards.length > 0; i++) {
+    // 稀有度概率：普通60%、稀有30%、史诗10%
+    const roll = Math.random();
+    let rarityTarget;
+    if (roll < 0.60) rarityTarget = 'common';
+    else if (roll < 0.90) rarityTarget = 'rare';
+    else rarityTarget = 'epic';
+    
+    // 尝试找对应稀有度的卡牌
+    let candidates = availableCards.filter(c => c.rarity === rarityTarget);
+    if (candidates.length === 0) {
+      // 没有对应稀有度，尝试找普通
+      candidates = availableCards.filter(c => c.rarity === 'common');
+      if (candidates.length === 0) {
+        candidates = [...availableCards];
+      }
+    }
+    
+    const selected = candidates[Math.floor(Math.random() * candidates.length)];
+    rewards.push({...selected});
+    // 从可用池移除（防止重复）
+    const idx = availableCards.findIndex(c => c.id === selected.id);
+    if (idx >= 0) availableCards.splice(idx, 1);
+  }
+  
+  return rewards;
+}
 
 // 奖励卡牌池（从CARD_REWARDS中选取可奖励的卡牌）
 const REWARD_CARD_POOL = [
@@ -3979,6 +4171,11 @@ const INTENT_WEIGHTS = {
   timeWraith:       { attack: 45, timeSlow: 35, buff: 20 },
   spaceFiend:       { attack: 40, spaceWarp: 40, defend: 20 },
   voidAngel:        { attack: 40, giveCurse: 35, buff: 25 },
+  // V33 敌人意图丰富化
+  // multi_attack: 连续攻击2-3次
+  // buff_stack: 每回合攻击力+2
+  // defend_revenge: 护盾+反弹
+  // aoe: 对玩家全体攻击
 };
 
 // ===== 地图数据 =====
@@ -6425,38 +6622,65 @@ function startCombat(node) {
   document.getElementById('battle-container').style.display = 'block';
   document.getElementById('log-panel').style.display = 'block';
 
-  // 更新楼层敌人分配
-  if (node.type === 'elite') {
-    // 精英敌人根据楼层
-    const eliteEnemies = {
-      1: ['skeleton', 'werewolf'],
-      2: ['fireElf', 'shadowAssassin'],
-      3: ['skeleton', 'werewolf', 'shadowAssassin'],
-      4: ['necromancer', 'voidBeast', 'darkKnight'],
-      5: ['darkKnight', 'minotaur', 'vampireBat'],
-      6: ['shadowKnight', 'deathBringer'],
-      7: ['deathBringer', 'oblivionHound'],
-    };
-    const pool = eliteEnemies[gameState.currentFloor];
-    enemyType = pool[Math.floor(Math.random() * pool.length)];
-  } else if (node.type === 'boss') {
-    audioManager.play('bossAppear');
-    // Boss敌人根据楼层
-    const bossEnemies = { 1: 'slimeKing', 2: 'darkLord', 3: 'ancientDragon', 4: 'voidLord', 5: 'deckMaster', 6: 'abyssLord', 7: 'lordOfNothingness' };
-    enemyType = bossEnemies[gameState.currentFloor];
+  // V33 多章节递进框架：从章节敌人池获取敌人
+  // 优先使用chapterState的敌人池（3章结构），否则回退到旧楼层系统
+  if (chapterState.currentChapter >= 1 && chapterState.chapterEnemyPool && chapterState.chapterEnemyPool.length > 0) {
+    // V33 从章节敌人池随机选择
+    if (node.type === 'boss') {
+      // Boss战：使用章节配置的Boss
+      const config = CHAPTER_CONFIG[chapterState.currentChapter];
+      if (config && config.enemies.boss) {
+        enemyType = config.enemies.boss.id;
+      } else {
+        // 回退到旧Boss映射
+        const bossEnemies = { 1: 'slimeKing', 2: 'darkKnight', 3: 'chronos' };
+        enemyType = bossEnemies[chapterState.currentChapter] || 'slimeKing';
+      }
+    } else {
+      // 普攻/精英战：从池中随机选一个
+      enemyType = chapterState.chapterEnemyPool.splice(
+        Math.floor(Math.random() * chapterState.chapterEnemyPool.length), 1
+      )[0].id;
+    }
   } else {
-    // 普通战斗敌人
-    const combatEnemies = { 
-      1: ['slime', 'goblin', 'bat'], 
-      2: ['goblin', 'skeleton', 'bat', 'skeletonArcher'], 
-      3: ['skeleton', 'fireElf', 'darkMage', 'skeletonArcher', 'bat'],
-      4: ['ghost', 'plagueRat', 'stoneGolem', 'voidBeast'],
-      5: ['ghost', 'vampireBat', 'plagueRat', 'minotaur'],
-      6: ['abyssStalker', 'voidWraith', 'nothingPhantom'],
-      7: ['nothingPhantom', 'voidWraith', 'voidTendril'],
-    };
-    const pool = combatEnemies[gameState.currentFloor];
-    enemyType = pool[Math.floor(Math.random() * pool.length)];
+    // 回退到旧楼层敌人分配系统
+    if (node.type === 'elite') {
+      // 精英敌人根据楼层
+      const eliteEnemies = {
+        1: ['skeleton', 'werewolf'],
+        2: ['fireElf', 'shadowAssassin'],
+        3: ['skeleton', 'werewolf', 'shadowAssassin'],
+        4: ['necromancer', 'voidBeast', 'darkKnight'],
+        5: ['darkKnight', 'minotaur', 'vampireBat'],
+        6: ['shadowKnight', 'deathBringer'],
+        7: ['deathBringer', 'oblivionHound'],
+      };
+      const pool = eliteEnemies[gameState.currentFloor];
+      enemyType = pool[Math.floor(Math.random() * pool.length)];
+    } else if (node.type === 'boss') {
+      audioManager.play('bossAppear');
+      // Boss敌人根据楼层
+      const bossEnemies = { 1: 'slimeKing', 2: 'darkLord', 3: 'ancientDragon', 4: 'voidLord', 5: 'deckMaster', 6: 'abyssLord', 7: 'lordOfNothingness' };
+      enemyType = bossEnemies[gameState.currentFloor];
+    } else {
+      // 普通战斗敌人
+      const combatEnemies = { 
+        1: ['slime', 'goblin', 'bat'], 
+        2: ['goblin', 'skeleton', 'bat', 'skeletonArcher'], 
+        3: ['skeleton', 'fireElf', 'darkMage', 'skeletonArcher', 'bat'],
+        4: ['ghost', 'plagueRat', 'stoneGolem', 'voidBeast'],
+        5: ['ghost', 'vampireBat', 'plagueRat', 'minotaur'],
+        6: ['abyssStalker', 'voidWraith', 'nothingPhantom'],
+        7: ['nothingPhantom', 'voidWraith', 'voidTendril'],
+      };
+      const pool = combatEnemies[gameState.currentFloor];
+      enemyType = pool[Math.floor(Math.random() * pool.length)];
+    }
+  }
+  
+  // V33 Boss出现时播放音效
+  if (node.type === 'boss') {
+    audioManager.play('bossAppear');
   }
 
   const enemy = getEnemyByType(enemyType, gameState.currentFloor);
@@ -6536,6 +6760,7 @@ function advanceToNextFloor() {
   gameState.enemyArmor = 0;
   gameState.enemyIntent = null;
   gameState.enemyIntentValue = 0;
+  gameState.enemyIntentExtra = 0; // V33 敌人意图额外值
   gameState.currentNode = null;
   // V20 初始化新楼层解锁节点
   const nextFloor = FLOORS.find(f => f.id === gameState.currentFloor);
@@ -6684,6 +6909,84 @@ function showChapterReward(chapter, onClose) {
   }
 
   overlay.classList.add('show');
+}
+
+// V33 章节过渡界面：黑屏→标题淡入→难度提示→继续
+function showChapterTransition(chapter, callback) {
+  const overlay = document.getElementById('overlay');
+  const title = document.getElementById('overlay-title');
+  const subtitle = document.getElementById('overlay-subtitle');
+  const cardsContainer = document.getElementById('reward-cards');
+  
+  const transitionData = getChapterTransitionData(chapter);
+  
+  // 隐藏遗物tab
+  const rewardTypes = document.getElementById('reward-types');
+  if (rewardTypes) rewardTypes.style.display = 'none';
+  
+  // 第一阶段：黑屏
+  overlay.style.background = 'rgba(0,0,0,1)';
+  title.textContent = '';
+  subtitle.textContent = '';
+  cardsContainer.innerHTML = '';
+  overlay.classList.add('show');
+  
+  // 第二阶段：标题淡入
+  setTimeout(() => {
+    title.textContent = transitionData.title;
+    title.style.opacity = '0';
+    title.style.transition = 'opacity 1s';
+    setTimeout(() => {
+      title.style.opacity = '1';
+    }, 100);
+    
+    // 第三阶段：难度提示
+    setTimeout(() => {
+      subtitle.textContent = `难度系数：${transitionData.difficulty} | Boss：${transitionData.bossName}`;
+      
+      // 显示继续按钮
+      cardsContainer.innerHTML = `
+        <button id="chapter-continue-btn" style="
+          padding: 15px 40px;
+          font-size: 18px;
+          background: linear-gradient(145deg, #ffd700, #ff8c00);
+          border: none;
+          border-radius: 25px;
+          color: #000;
+          cursor: pointer;
+          font-weight: bold;
+          margin-top: 20px;
+        ">继续前进</button>
+      `;
+      
+      document.getElementById('chapter-continue-btn').onclick = () => {
+        overlay.style.background = 'rgba(0,0,0,0.85)';
+        overlay.classList.remove('show');
+        if (rewardTypes) rewardTypes.style.display = 'flex';
+        if (callback) callback();
+      };
+    }, 1500);
+  }, 500);
+}
+
+// V33 章节切换逻辑
+function advanceToNextChapter() {
+  chapterState.currentChapter++;
+  
+  if (chapterState.currentChapter > 3) {
+    // 通关全部章节
+    showVictory();
+    return;
+  }
+  
+  // 初始化新章节敌人池
+  initChapterEnemyPool(chapterState.currentChapter);
+  
+  // 显示章节过渡
+  showChapterTransition(chapterState.currentChapter, () => {
+    // 章节过渡完成后进入下一楼层
+    advanceToNextFloor();
+  });
 }
 
 function rollEnemyIntent() {
@@ -6864,6 +7167,25 @@ function rollEnemyIntent() {
       break;
     case 'entropy':
       value = 30 + gameState.chaosGodPhase * 5;
+      break;
+    // V33 敌人意图丰富化
+    case 'multi_attack':
+      // 连续攻击2-3次
+      gameState.enemyIntentExtra = Math.random() < 0.5 ? 2 : 3;
+      value = enemy.isBoss ? 15 : 8;
+      break;
+    case 'buff_stack':
+      // 每回合+2攻击，显示累计
+      gameState.enemyIntentExtra = 1;
+      value = 2;
+      break;
+    case 'defend_revenge':
+      // 护盾+反弹
+      gameState.enemyIntentExtra = Math.floor(value * 0.5);
+      break;
+    case 'aoe':
+      // 对玩家全体攻击
+      value = enemy.isBoss ? 25 : 15;
       break;
   }
 
@@ -8255,6 +8577,29 @@ function checkEnemyDeath() {
       gameState.chronosPhase = 1;
       gameState.chronosTurnCostIncrease = 0;
 
+      // V33 多章节递进框架：3章结构
+      // 章节内战斗流程：3场普通战斗 → Boss战 → 章节过渡
+      const currentBattle = chapterState.currentBattleInChapter;
+      
+      // Boss战胜利后
+      if (currentBattle === 3) {
+        // 这是本章的Boss，章节完成
+        chapterState.currentBattleInChapter = 0;
+        
+        if (chapterState.currentChapter >= 3) {
+          // 第三章Boss击败 = 通关胜利
+          gameState.totalChaptersCompleted++;
+          setTimeout(() => showVictory(), 500);
+          return true;
+        } else {
+          // 进入下一章节
+          setTimeout(() => {
+            advanceToNextChapter();
+          }, 500);
+          return true;
+        }
+      }
+      
       // V30 检查是否通关第8章Boss（克洛诺斯）
       if (gameState.currentFloor === 11 && gameState.enemyId === 'chronos') {
         // 击败克洛诺斯！显示真终局选项
@@ -8296,6 +8641,11 @@ function checkEnemyDeath() {
     // 战斗胜利
     addLog(`${gameState.enemy.name} 被击败！`, 'info');
     audioManager.play('enemyDeath');
+    
+    // V33 章节战斗追踪：非Boss战胜利后计数
+    chapterState.currentBattleInChapter++;
+    chapterState.defeatedEnemiesThisChapter.push(gameState.enemy.id);
+    
     // V11 生命之泉：击杀敌人恢复3HP
     if (hasRelic('lifeSpring')) {
       const healAmount = 3;
@@ -8352,9 +8702,8 @@ function checkPlayerDeath() {
 function showRewardSelection() {
   const node = getNodeById(gameState.currentNode);
   const isElite = node && (node.type === 'elite' || node.type === 'boss');
-  const shuffledCards = shuffle([...REWARD_CARD_POOL]);
-  const cardCount = isElite ? 3 : 2;
-  const cardRewards = shuffledCards.slice(0, Math.min(cardCount, shuffledCards.length));
+  // V33 使用新的10张奖励卡池
+  const cardRewards = getV33RewardCards(3);
 
   // 生成遗物奖励（精英/Boss战斗有更高几率获得遗物，且稀有/传说遗物概率更高）
   const shuffledRelics = shuffle([...AVAILABLE_RELICS]).filter(r => !gameState.acquiredRelicIds.includes(r.id));
@@ -8386,13 +8735,19 @@ function showRewardScreen() {
   const relicsContainer = document.getElementById('reward-relics');
   const rewardTypes = document.getElementById('reward-types');
 
+  // V33 显示当前牌组数量
+  const deckCount = gameState.deck ? gameState.deck.length : 0;
+
   // 渲染卡牌奖励
   cardsContainer.innerHTML = '';
   gameState.pendingCardRewards.forEach((card) => {
     const div = document.createElement('div');
     div.className = `reward-card ${card.type}`;
+    // V33 添加稀有度标记
+    const rarityBadge = card.rarity === 'rare' ? '⭐' : card.rarity === 'epic' ? '💎' : '';
     div.innerHTML = `
       <div class="card-cost">${card.cost}</div>
+      ${rarityBadge ? `<div class="rarity-badge">${rarityBadge}</div>` : ''}
       <div class="card-name">${card.name}</div>
       <div class="card-type">${getCardTypeName(card.type)}</div>
       <div class="card-effect">${card.description}</div>
@@ -8400,6 +8755,15 @@ function showRewardScreen() {
     div.onclick = () => selectRewardCard(card);
     cardsContainer.appendChild(div);
   });
+
+  // V33 显示牌组数量
+  const overlaySubtitle = document.getElementById('overlay-subtitle');
+  if (overlaySubtitle) {
+    overlaySubtitle.textContent = `牌组：${deckCount}张 | 选择卡牌加入你的牌组`;
+  }
+
+  // V33 渲染流派状态面板（奖励界面右侧）
+  renderArchetypePanel();
 
   // 渲染遗物奖励
   relicsContainer.innerHTML = '';
@@ -8441,14 +8805,14 @@ function showRewardScreen() {
     skipBtn.onclick = () => skipCurrentRewardStep();
   }
 
-  // 更新标题
+  // V33 更新标题
   const title = document.getElementById('overlay-title');
   if (title) {
-    title.textContent = '🎉 战斗胜利！选择奖励';
+    title.textContent = '🎉 战斗胜利！选择奖励卡牌';
   }
   const subtitle = document.getElementById('overlay-subtitle');
   if (subtitle) {
-    subtitle.textContent = '选择卡牌或遗物加入你的收藏';
+    subtitle.textContent = '选择卡牌加入你的牌组（当前牌组：' + (gameState.deck?.length || 0) + '张）';
   }
 
   document.getElementById('overlay').classList.add('show');
@@ -8469,9 +8833,97 @@ function switchRewardTab(tab) {
   }
 }
 
+// V33 渲染流派状态面板
+function renderArchetypePanel() {
+  const panel = document.getElementById('archetype-panel');
+  const list = document.getElementById('archetype-list');
+  if (!panel || !list) return;
+  
+  const activeArchetypes = getActiveArchetypes();
+  
+  list.innerHTML = '';
+  
+  // 遍历所有流派
+  Object.entries(ARCHETYPES).forEach(([id, archetype]) => {
+    const isActive = activeArchetypes.includes(id);
+    const count = getArchetypeCount(id);
+    const nextThreshold = getNextArchetypeThreshold(id);
+    
+    const div = document.createElement('div');
+    div.className = `archetype-item ${isActive ? 'active' : 'inactive'}`;
+    
+    if (isActive) {
+      // 已激活流派显示图标、名称和效果
+      const bonuses = getArchetypeBonuses(id);
+      const activeEffects = getActiveEffectDescriptions(bonuses);
+      div.innerHTML = `
+        <span class="archetype-icon">${archetype.icon}</span>
+        <div>
+          <div class="archetype-name">${archetype.name}</div>
+          <div class="archetype-desc">${activeEffects}</div>
+        </div>
+      `;
+    } else {
+      // 未激活流派灰显但显示激活条件
+      div.innerHTML = `
+        <span class="archetype-icon">${archetype.icon}</span>
+        <div>
+          <div class="archetype-name">${archetype.name}</div>
+          <div class="archetype-desc">需${nextThreshold}张（当前${count}张）</div>
+        </div>
+      `;
+    }
+    
+    list.appendChild(div);
+  });
+  
+  panel.style.display = 'block';
+}
+
+// V33 获取流派下一级门槛
+function getNextArchetypeThreshold(archetypeId) {
+  const archetype = ARCHETYPES[archetypeId];
+  if (!archetype) return 3;
+  const count = getArchetypeCount(archetypeId);
+  
+  // 找下一个未达到的门槛
+  for (const level of archetype.levels) {
+    if (count < level.count) return level.count;
+  }
+  return archetype.levels[archetype.levels.length - 1].count;
+}
+
+// V33 获取激活效果描述
+function getActiveEffectDescriptions(bonuses) {
+  if (!bonuses || Object.keys(bonuses).length === 0) return '无效果';
+  
+  const effects = [];
+  if (bonuses.poisonBonus) effects.push(`中毒+${bonuses.poisonBonus}`);
+  if (bonuses.lifestealBonus) effects.push(`吸血+${bonuses.lifestealBonus}%`);
+  if (bonuses.burnDamageBonus) effects.push(`灼烧伤害+${bonuses.burnDamageBonus}`);
+  if (bonuses.blockBonusPercent) effects.push(`护甲+${bonuses.blockBonusPercent}%`);
+  if (bonuses.drawBonus) effects.push(`每回合抽+${bonuses.drawBonus}`);
+  if (bonuses.lifestealDamageStack) effects.push(`吸血叠伤+${bonuses.lifestealDamageStack}%`);
+  
+  return effects.length > 0 ? effects.join(' | ') : '无效果';
+}
+
+// V33 隐藏流派状态面板
+function hideArchetypePanel() {
+  const panel = document.getElementById('archetype-panel');
+  if (panel) panel.style.display = 'none';
+}
+
 // V31: 选择奖励卡牌
 function selectRewardCard(card) {
-  gameState.deck.push({ ...card });
+  // V33 同名牌组最多3张限制检查
+  const sameNameCount = gameState.deck.filter(c => c.name === card.name).length;
+  if (sameNameCount >= 3) {
+    addLog(`${card.name}已达3张上限，无法获得！`, 'debuff');
+    return;
+  }
+  
+  gameState.deck.push({ ...card, uid: generateUid() });
   gameState.pendingSelectedCards.push(card);
   audioManager.play('chestOpen');
 
@@ -8489,12 +8941,18 @@ function selectRewardCard(card) {
     return;
   }
 
+  // V33 隐藏流派面板
+  hideArchetypePanel();
+  
   // 卡牌选完了，检查有没有遗物
   advanceAfterCardSelection();
 }
 
 // V31: 跳过当前奖励步骤（卡牌或遗物）
 function skipCurrentRewardStep() {
+  // V33 隐藏流派面板
+  hideArchetypePanel();
+  
   const cardsVisible = document.getElementById('reward-cards').style.display !== 'none';
 
   if (cardsVisible) {
@@ -8899,6 +9357,7 @@ function resetGameStateForNGPlus() {
   gameState.enemyArmor = 0;
   gameState.enemyIntent = null;
   gameState.enemyIntentValue = 0;
+  gameState.enemyIntentExtra = 0; // V33 敌人意图额外值
   gameState.playerDebuffs = [];
   gameState.enemyDebuffs = [];
   gameState.burnStacks = 0;
@@ -9126,6 +9585,11 @@ function renderEnemy() {
     dragonScale: `🐉 龙鳞 +${gameState.enemyIntentValue}`,
     summon: '👹 召唤',
     multihit: `🔪 分裂 ${gameState.enemyIntentValue}x3`,
+    // V33 敌人意图丰富化
+    multi_attack: `⚔️×${gameState.enemyIntentExtra || 2} ${gameState.enemyIntentValue}`,
+    buff_stack: `↑×${gameState.enemyIntentExtra || 1} +${gameState.enemyIntentValue}`,
+    defend_revenge: `🛡️${gameState.enemyIntentValue} →⚔️${gameState.enemyIntentExtra || 0}`,
+    aoe: `💥AOE ${gameState.enemyIntentValue}`,
   };
   document.getElementById('enemy-intent').textContent = `意图: ${intentLabels[gameState.enemyIntent] || gameState.enemyIntent}`;
   
@@ -9237,6 +9701,10 @@ function initGame() {
   
   // 生成随机初始牌组（V29 Roguelike）
   const startingDeck = generateRandomInitialDeck(rng);
+  
+  // V33 初始化章节状态
+  initChapterEnemyPool(1);
+  chapterState.currentChapter = 1;
   
   gameState = {
     playerHp: 80,
