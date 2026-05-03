@@ -751,7 +751,124 @@
       color: #fff;
       cursor: pointer;
       font-weight: bold;
+    }
     #skip-upgrade-btn { margin-top: 15px; padding: 10px 30px; font-size: 16px; background: #555; border: none; border-radius: 20px; color: #fff; cursor: pointer; }
+
+    /* V19 存档系统 */
+    #save-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    #save-overlay.show { display: flex; }
+    #save-panel {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      border: 2px solid #ffd700;
+      border-radius: 15px;
+      padding: 30px;
+      min-width: 500px;
+      max-width: 600px;
+    }
+    #save-panel h2 {
+      color: #ffd700;
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+    .save-slot {
+      background: rgba(0,0,0,0.4);
+      border: 2px solid #333;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .save-slot:hover {
+      border-color: #ffd700;
+      transform: scale(1.02);
+    }
+    .save-slot.empty {
+      border-color: #555;
+      opacity: 0.7;
+    }
+    .save-slot.empty:hover {
+      border-color: #4ecdc4;
+      opacity: 1;
+    }
+    .save-slot-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #ffd700;
+      margin-bottom: 5px;
+    }
+    .save-slot-info {
+      font-size: 14px;
+      color: #aaa;
+    }
+    .save-slot-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .save-slot-actions button {
+      padding: 8px 20px;
+      font-size: 14px;
+      border: none;
+      border-radius: 15px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .save-btn {
+      background: linear-gradient(145deg, #27ae60, #2ecc71);
+      color: #fff;
+    }
+    .load-btn {
+      background: linear-gradient(145deg, #3498db, #2980b9);
+      color: #fff;
+    }
+    .delete-btn {
+      background: linear-gradient(145deg, #c0392b, #e74c3c);
+      color: #fff;
+    }
+    #close-save-btn {
+      display: block;
+      margin: 20px auto 0;
+      padding: 10px 40px;
+      font-size: 16px;
+      background: #555;
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      cursor: pointer;
+    }
+    #close-save-btn:hover { background: #666; }
+
+    /* 游戏中快速存档按钮 */
+    #quick-save-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      font-size: 14px;
+      background: linear-gradient(145deg, #9b59b6, #8e44ad);
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+      z-index: 100;
+      display: none;
+    }
+    #quick-save-btn.show { display: block; }
+    #quick-save-btn:hover { transform: scale(1.05); }
     #skip-upgrade-btn:hover { background: #666; }
 
     /* 成就系统 V9 */
@@ -1193,13 +1310,27 @@
 <body>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V18</h1>
+  <h1>🃏 DBG卡牌游戏 V19</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
   <p>V9 成就系统 - 解锁全部成就挑战！</p>
+  <p style="color:#ffd700;">V19 存档系统 - 3槽位存档</p>
   <button id="start-btn">开始游戏</button>
+  <button id="load-save-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#27ae60,#2ecc71);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">📂 继续游戏</button>
   <button id="achievements-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#9b59b6,#8e44ad);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">🏆 成就</button>
 </div>
+
+<!-- V19 存档系统遮罩 -->
+<div id="save-overlay">
+  <div id="save-panel">
+    <h2>📂 存档管理</h2>
+    <div id="save-slots"></div>
+    <button id="close-save-btn">关闭</button>
+  </div>
+</div>
+
+<!-- V19 快速存档按钮 -->
+<button id="quick-save-btn">💾 快速存档</button>
 
 <div id="game-over-screen">
   <h1 id="game-over-title">💀 游戏结束</h1>
@@ -1215,7 +1346,7 @@
 </div>
 
 <div id="game-container" style="display:none">
-  <h1>⚔️ DBG卡牌游戏 V18 - 卡组辅助系统</h1>
+  <h1>⚔️ DBG卡牌游戏 V19 - 卡组辅助系统</h1>
 
   <!-- 地图界面 -->
   <div id="map-container">
@@ -4196,13 +4327,16 @@ function returnToMap() {
   document.getElementById('map-container').style.display = 'block';
   document.getElementById('battle-container').style.display = 'none';
   document.getElementById('log-panel').style.display = 'none';
-  
+
   // 检查游戏结束条件
   if (gameState.playerHp <= 0) {
     showGameOver();
     return;
   }
-  
+
+  // V19 自动存档：节点切换时
+  autoSave();
+
   renderMap();
 }
 
@@ -5292,6 +5426,8 @@ function checkEnemyDeath() {
     applyRelicEffect('onVictory');
     // V9 检查成就
     checkAchievements();
+    // V19 自动存档：战斗胜利
+    autoSave();
     
     // 精英战斗奖励金币
     if (isElite) {
@@ -5546,7 +5682,9 @@ function showGameOver() {
   audioManager.play('defeat');
   // V9 检查成就
   checkAchievements();
-  
+  // V19 隐藏快速存档按钮
+  document.getElementById('quick-save-btn').classList.remove('show');
+
   document.getElementById('game-container').style.display = 'none';
   document.getElementById('log-panel').style.display = 'none';
   document.getElementById('game-over-screen').classList.add('show');
@@ -5570,7 +5708,9 @@ function showVictory() {
   }
   
   checkAchievements();
-  
+  // V19 隐藏快速存档按钮
+  document.getElementById('quick-save-btn').classList.remove('show');
+
   document.getElementById('game-container').style.display = 'none';
   document.getElementById('log-panel').style.display = 'none';
   document.getElementById('victory-screen').classList.add('show');
@@ -5813,6 +5953,303 @@ function initGame() {
 
   initMap();
   renderMap();
+
+  // V19 显示快速存档按钮
+  document.getElementById('quick-save-btn').classList.add('show');
+}
+
+// ===== V19 存档系统 =====
+const SAVE_SLOTS = 3;
+
+function saveGame(slot) {
+  const saveKey = `dbg_save_${slot}`;
+  const saveData = {
+    timestamp: Date.now(),
+    floor: gameState.currentFloor,
+    hp: gameState.playerHp,
+    maxHp: gameState.playerMaxHp,
+    gold: gameState.gold,
+    relics: gameState.relics,
+    acquiredRelicIds: gameState.acquiredRelicIds,
+    deck: gameState.deck,
+    totalBattlesWon: gameState.totalBattlesWon,
+    totalGoldEarned: gameState.totalGoldEarned,
+    unlockedAchievements: gameState.unlockedAchievements,
+    achievementStats: gameState.achievementStats,
+    totalVictories: gameState.totalVictories
+  };
+  try {
+    localStorage.setItem(saveKey, JSON.stringify(saveData));
+    showNotification(`存档成功: 槽位${slot}`);
+    renderSaveSlots();
+  } catch (e) {
+    showNotification('存档失败: 存储空间不足', 'error');
+  }
+}
+
+function loadGame(slot) {
+  const saveKey = `dbg_save_${slot}`;
+  const data = localStorage.getItem(saveKey);
+  if (!data) {
+    showNotification('存档不存在', 'error');
+    return false;
+  }
+  try {
+    const saveData = JSON.parse(data);
+
+    // 初始化基础游戏状态
+    audioManager.init();
+    const startingDeck = [
+      CARDS.strike, CARDS.strike, CARDS.strike, CARDS.strike,
+      CARDS.defend, CARDS.defend, CARDS.defend, CARDS.defend,
+      CARDS.harden, CARDS.harden,
+      CARDS.consecutiveStrike, CARDS.consecutiveStrike,
+      CARDS.painfulStrike,
+    ];
+
+    gameState = {
+      playerHp: saveData.hp || 80,
+      playerMaxHp: saveData.maxHp || 80,
+      playerShield: 0,
+      gold: saveData.gold || 0,
+      deck: saveData.deck || startingDeck.map(c => ({ ...c })),
+      hand: [],
+      drawPile: [],
+      discardPile: [],
+      energy: 3,
+      maxEnergy: 3,
+      turn: 1,
+      enemy: null,
+      enemyHp: 0,
+      enemyMaxHp: 0,
+      enemyArmor: 0,
+      enemyIntent: null,
+      enemyIntentValue: 0,
+      playerDebuffs: [],
+      enemyDebuffs: [],
+      thorns: 0,
+      aoeDamage: 0,
+      burnChance: 0,
+      burnDamage: 0,
+      burnDuration: 0,
+      nextAttackMult: 1,
+      thornsActive: false,
+      gameOver: false,
+      battleLog: [],
+      powerCardsPlayedThisCombat: {},
+      curses: [],
+      dodgeNext: 0,
+      nextCritMult: 1,
+      skipEnemyNextTurn: false,
+      poisonStacks: 0,
+      bleedStacks: 0,
+      enemyThorns: 0,
+      summonedMinions: 0,
+      guardianHornUsed: false,
+      phoenixFeatherUsed: false,
+      burnStacks: 0,
+      comboActive: false,
+      nextTurnBlockBonus: 0,
+      auraBurnActive: false,
+      lifestealAuraActive: false,
+      thornsAuraActive: false,
+      thornsAuraValue: 0,
+      blockAuraValue: 0,
+      quickeningActive: false,
+      currentFloor: saveData.floor || 1,
+      currentNode: null,
+      unlockedNodes: [],
+      completedNodes: [],
+      inMap: true,
+      selectedNode: null,
+      totalBattlesWon: saveData.totalBattlesWon || 0,
+      totalGoldEarned: saveData.totalGoldEarned || 0,
+      relics: saveData.relics || [],
+      acquiredRelicIds: saveData.acquiredRelicIds || [],
+      unlockedAchievements: saveData.unlockedAchievements || [],
+      achievementStats: saveData.achievementStats || {
+        totalEnemiesDefeated: 0,
+        totalBossesDefeated: 0,
+        maxCardsOwned: 0,
+        maxRelicsOwned: 0,
+        flawlessVictories: 0,
+        noRelicVictories: 0,
+        speedruns: 0,
+      },
+      totalVictories: saveData.totalVictories || 0,
+    };
+
+    loadAchievements();
+
+    document.getElementById('start-screen').style.display = 'none';
+    document.getElementById('game-over-screen').classList.remove('show');
+    document.getElementById('victory-screen').classList.remove('show');
+    document.getElementById('game-container').style.display = 'block';
+    document.getElementById('map-container').style.display = 'block';
+    document.getElementById('battle-container').style.display = 'none';
+    document.getElementById('log-panel').style.display = 'none';
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('shop-overlay').classList.remove('show');
+    document.getElementById('node-preview').classList.remove('show');
+    document.getElementById('save-overlay').classList.remove('show');
+
+    initMap();
+    renderMap();
+
+    // V19 显示快速存档按钮
+    document.getElementById('quick-save-btn').classList.add('show');
+
+    showNotification('读档成功');
+    return true;
+  } catch (e) {
+    showNotification('读档失败: 数据损坏', 'error');
+    return false;
+  }
+}
+
+function deleteSave(slot) {
+  const saveKey = `dbg_save_${slot}`;
+  if (confirm(`确定要删除槽位${slot}的存档吗？`)) {
+    localStorage.removeItem(saveKey);
+    showNotification(`已删除槽位${slot}的存档`);
+    renderSaveSlots();
+  }
+}
+
+function renderSaveSlots() {
+  const container = document.getElementById('save-slots');
+  container.innerHTML = '';
+
+  for (let i = 1; i <= SAVE_SLOTS; i++) {
+    const saveKey = `dbg_save_${i}`;
+    const data = localStorage.getItem(saveKey);
+    const slot = document.createElement('div');
+    slot.className = 'save-slot' + (data ? '' : ' empty');
+
+    if (data) {
+      const saveData = JSON.parse(data);
+      const date = new Date(saveData.timestamp);
+      const dateStr = `${date.getFullYear()}/${String(date.getMonth()+1).padStart(2,'0')}/${String(date.getDate()).padStart(2,'0')} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+
+      slot.innerHTML = `
+        <div class="save-slot-title">存档槽位 ${i}</div>
+        <div class="save-slot-info">
+          🏠 第${saveData.floor}层 | ❤️ ${saveData.hp}/${saveData.maxHp} | 💰 ${saveData.gold}金<br>
+          📅 ${dateStr}
+        </div>
+        <div class="save-slot-actions">
+          <button class="load-btn" onclick="handleSlotClick(${i}, 'load')">读取</button>
+          <button class="save-btn" onclick="handleSlotClick(${i}, 'save')">覆盖</button>
+          <button class="delete-btn" onclick="handleSlotClick(${i}, 'delete')">删除</button>
+        </div>
+      `;
+    } else {
+      slot.innerHTML = `
+        <div class="save-slot-title">存档槽位 ${i}</div>
+        <div class="save-slot-info">空存档槽位</div>
+        <div class="save-slot-actions">
+          <button class="save-btn" onclick="handleSlotClick(${i}, 'save')">新建存档</button>
+        </div>
+      `;
+    }
+
+    container.appendChild(slot);
+  }
+}
+
+function handleSlotClick(slot, action) {
+  if (action === 'load') {
+    loadGame(slot);
+  } else if (action === 'save') {
+    saveGame(slot);
+  } else if (action === 'delete') {
+    deleteSave(slot);
+  }
+}
+
+function showSaveSlots() {
+  renderSaveSlots();
+  document.getElementById('save-overlay').classList.add('show');
+}
+
+function hideSaveSlots() {
+  document.getElementById('save-overlay').classList.remove('show');
+}
+
+function autoSave() {
+  // 自动存档到槽位1（静默存档，不显示通知）
+  const saveKey = 'dbg_save_1';
+  const saveData = {
+    timestamp: Date.now(),
+    floor: gameState.currentFloor,
+    hp: gameState.playerHp,
+    maxHp: gameState.playerMaxHp,
+    gold: gameState.gold,
+    relics: gameState.relics,
+    acquiredRelicIds: gameState.acquiredRelicIds,
+    deck: gameState.deck,
+    totalBattlesWon: gameState.totalBattlesWon,
+    totalGoldEarned: gameState.totalGoldEarned,
+    unlockedAchievements: gameState.unlockedAchievements,
+    achievementStats: gameState.achievementStats,
+    totalVictories: gameState.totalVictories
+  };
+  try {
+    localStorage.setItem(saveKey, JSON.stringify(saveData));
+  } catch (e) {
+    // 静默失败
+  }
+}
+
+function showQuickSave() {
+  // 快速存档到最近的空槽位
+  for (let i = 1; i <= SAVE_SLOTS; i++) {
+    const saveKey = `dbg_save_${i}`;
+    if (!localStorage.getItem(saveKey)) {
+      saveGame(i);
+      return;
+    }
+  }
+  // 如果都满了，存档到槽位1
+  saveGame(1);
+}
+
+function showNotification(message, type = 'success') {
+  // 使用已有的overlay显示提示
+  const overlay = document.getElementById('overlay');
+  const overlayContent = overlay.querySelector('.overlay-content') || overlay;
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 15px 30px;
+    background: ${type === 'error' ? '#c0392b' : '#27ae60'};
+    color: white;
+    border-radius: 10px;
+    font-size: 16px;
+    z-index: 2000;
+    animation: fadeInOut 2s ease-in-out forwards;
+  `;
+  notification.textContent = message;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      20% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      80% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    }
+  `;
+  document.head.appendChild(style);
+  document.body.appendChild(notification);
+
+  setTimeout(() => {
+    notification.remove();
+    style.remove();
+  }, 2000);
 }
 
 // ===== 事件绑定 =====
@@ -5828,6 +6265,10 @@ document.getElementById('achievements-btn').onclick = showAchievements;
 document.getElementById('close-achievements-btn').onclick = () => {
   document.getElementById('achievements-overlay').classList.remove('show');
 };
+// V19 存档系统按钮
+document.getElementById('load-save-btn').onclick = showSaveSlots;
+document.getElementById('close-save-btn').onclick = hideSaveSlots;
+document.getElementById('quick-save-btn').onclick = showQuickSave;
 // V16 卡组预览按钮
 document.getElementById('deck-preview-btn').onclick = showDeckPreview;
 document.getElementById('close-deck-preview-btn').onclick = () => {
