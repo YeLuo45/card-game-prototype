@@ -732,6 +732,129 @@
     .relic-tooltip .relic-name { color: #ffd700; font-weight: bold; margin-bottom: 5px; }
     .relic-tooltip .relic-desc { color: #ccc; font-size: 11px; }
 
+    /* V25 宠物系统样式 */
+    #pets-panel {
+      background: rgba(0,0,0,0.5);
+      border-radius: 10px;
+      padding: 10px 15px;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    #pets-panel h4 {
+      color: #ffd700;
+      font-size: 14px;
+      margin: 0;
+    }
+    .pet-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.2s;
+      border: 2px solid #ffd700;
+    }
+    .pet-icon:hover { transform: scale(1.15); }
+    .pet-icon.equipped { background: linear-gradient(145deg, #27ae60, #2ecc71); }
+    .pet-icon.owned { background: linear-gradient(145deg, #7f8c8d, #95a5a6); }
+    .pet-tooltip {
+      position: absolute;
+      bottom: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.95);
+      border: 1px solid #ffd700;
+      border-radius: 8px;
+      padding: 10px;
+      width: 200px;
+      font-size: 12px;
+      color: #fff;
+      z-index: 200;
+      display: none;
+      text-align: center;
+    }
+    .pet-icon:hover .pet-tooltip { display: block; }
+    .pet-tooltip .pet-name { color: #ffd700; font-weight: bold; margin-bottom: 5px; }
+    .pet-tooltip .pet-desc { color: #ccc; font-size: 11px; }
+
+    /* V25 宠物商店遮罩 */
+    #petshop-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      z-index: 500;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    #petshop-overlay.show { display: flex; }
+    #petshop-title { font-size: 28px; color: #ffd700; margin-bottom: 15px; }
+    #petshop-gold { font-size: 18px; color: #ffd700; margin-bottom: 20px; }
+    #petshop-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      max-width: 700px;
+    }
+    .petshop-pet {
+      width: 120px;
+      padding: 15px;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #2c3e50, #34495e);
+      border: 3px solid #95a5a6;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-align: center;
+    }
+    .petshop-pet:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(255,215,0,0.3); }
+    .petshop-pet.owned { opacity: 0.4; cursor: not-allowed; }
+    .petshop-pet.equipped { border-color: #27ae60; background: linear-gradient(145deg, #1e8449, #27ae60); }
+    .petshop-pet .pet-icon-big {
+      font-size: 40px;
+      margin-bottom: 8px;
+    }
+    .petshop-pet .pet-name { font-weight: bold; font-size: 14px; color: #ffd700; margin-bottom: 5px; }
+    .petshop-pet .pet-desc { font-size: 11px; color: #ccc; margin-bottom: 8px; min-height: 30px; }
+    .petshop-pet .pet-cost {
+      background: #f39c12;
+      color: #000;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 12px;
+      display: inline-block;
+    }
+    .petshop-pet .pet-status {
+      font-size: 11px;
+      color: #2ecc71;
+      margin-top: 5px;
+    }
+    #petshop-leave {
+      margin-top: 20px;
+      padding: 12px 40px;
+      font-size: 16px;
+      background: linear-gradient(145deg, #e74c3c, #c0392b);
+      border: none;
+      border-radius: 25px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #petshop-leave:hover { transform: scale(1.05); }
+
     /* 奖励界面增加遗物选项 */
     #reward-types {
       display: flex;
@@ -1420,6 +1543,7 @@
       <span class="hp">❤️ <span id="map-hp">80</span>/<span id="map-max-hp">80</span></span>
       <span class="energy">💰 <span id="map-gold">0</span></span>
       <span id="relics-header" style="color:#ffd700;font-size:14px;">🎁 遗物: <span id="relics-count">0</span></span>
+      <span id="pets-header" style="color:#4ecdc4;font-size:14px;cursor:pointer;" onclick="showPetsShop()">🐾 宠物: <span id="pets-count">0</span></span>
       <span id="achievements-header" style="color:#9b59b6;font-size:14px;cursor:pointer;" onclick="showAchievements()">🏆 成就: <span id="achievements-count">0</span></span>
     </div>
     <canvas id="map-canvas" width="800" height="400"></canvas>
@@ -1464,6 +1588,10 @@
       <div id="relics-panel" style="display:none">
         <h4>🎁 遗物:</h4>
         <div id="relics-container"></div>
+      </div>
+      <div id="pets-panel" style="display:none">
+        <h4>🐾 宠物:</h4>
+        <div id="pets-container"></div>
       </div>
       <div id="hand"></div>
     </div>
@@ -1515,6 +1643,14 @@
     <div id="sell-cards"></div>
   </div>
   <button id="shop-leave" class="shop-btn leave">离开商店</button>
+</div>
+
+<!-- V25 宠物商店遮罩 -->
+<div id="petshop-overlay">
+  <div id="petshop-title">🐾 宠物商店</div>
+  <div id="petshop-gold">💰 金币: <span id="petshop-current-gold">0</span></div>
+  <div id="petshop-grid"></div>
+  <button id="petshop-leave">离开宠物商店</button>
 </div>
 
 <!-- 升级遮罩 -->
@@ -2620,6 +2756,85 @@ const RELICS = {
   },
 };
 
+// ===== V25 宠物/同伴系统 =====
+const PETS = {
+  // 抽卡助手 - 每场战斗开始时抽1张牌
+  drawCat: {
+    id: 'drawCat',
+    name: '抽卡猫',
+    icon: '🐱',
+    description: '每场战斗开始时抽1张牌',
+    effect: { startOfCombatDraw: 1 },
+    cost: 80,
+  },
+  // 护盾伙伴 - 每场战斗开始时获得5点护甲
+  shieldPup: {
+    id: 'shieldPup',
+    name: '护盾犬',
+    icon: '🐕',
+    description: '每场战斗开始时获得5点护甲',
+    effect: { startOfCombatBlock: 5 },
+    cost: 100,
+  },
+  // 商店折扣 - 商店物品9折
+  discountBird: {
+    id: 'discountBird',
+    name: '折扣鸟',
+    icon: '🦅',
+    description: '商店所有物品9折',
+    effect: { shopDiscount: 0.1 }, // 10% discount
+    cost: 120,
+  },
+  // 暴击伙伴 - 暴击率+15%
+  critOwl: {
+    id: 'critOwl',
+    name: '暴击猫头鹰',
+    icon: '🦉',
+    description: '攻击暴击率+15%',
+    effect: { criticalChance: 0.15 },
+    cost: 150,
+  },
+  // 治疗伙伴 - 每回合回复3点生命
+  healBunny: {
+    id: 'healBunny',
+    name: '治疗兔',
+    icon: '🐰',
+    description: '每回合回复3点生命',
+    effect: { perTurnHeal: 3 },
+    cost: 100,
+  },
+  // 宝箱助手 - 宝箱金币+30%
+  chestFox: {
+    id: 'chestFox',
+    name: '宝箱狐狸',
+    icon: '🦊',
+    description: '开启宝箱时金币+30%',
+    effect: { chestGoldBonus: 0.3 },
+    cost: 90,
+  },
+  // 升级折扣 - 卡牌升级费用-20%
+  upgradeTurtle: {
+    id: 'upgradeTurtle',
+    name: '升级龟',
+    icon: '🐢',
+    description: '卡牌升级费用-20%',
+    effect: { upgradeDiscount: 0.2 },
+    cost: 110,
+  },
+  // 战斗护盾 - 战斗开始时额外获得3点护甲（可叠加）
+  battleBear: {
+    id: 'battleBear',
+    name: '战斗熊',
+    icon: '🐻',
+    description: '每场战斗开始时额外获得3点护甲',
+    effect: { startOfCombatBlock: 3 },
+    cost: 80,
+  },
+};
+
+// 宠物池
+const PET_POOL = Object.values(PETS);
+
 // 遗物池（按稀有度）
 const RELIC_POOLS = {
   starting: Object.values(RELICS).filter(r => r.rarity === 'starting'),
@@ -3446,7 +3661,233 @@ let gameState = {
   voidDomainActive: false,  // 虚无领域是否激活
   shadowMinions: 0,         // 虚影小怪数量
   annihilationCharges: 0,   // 湮灭充能层数
+  // V25 宠物系统
+  pets: [], // 玩家拥有的宠物列表 { id, equipped }
+  ownedPetIds: [], // 已购买的宠物ID列表（防止重复购买）
 };
+
+// ===== V25 宠物效果应用 =====
+// 辅助函数：检查玩家是否拥有指定宠物
+function hasPet(petId) {
+  return gameState.pets.some(p => p.id === petId);
+}
+
+// 检查宠物是否已装备
+function isPetEquipped(petId) {
+  const pet = gameState.pets.find(p => p.id === petId);
+  return pet && pet.equipped;
+}
+
+// 获取已装备的宠物列表
+function getEquippedPets() {
+  return gameState.pets.filter(p => p.equipped);
+}
+
+// 应用宠物效果
+function applyPetEffect(trigger, context = {}) {
+  getEquippedPets().forEach(pet => {
+    const petData = PETS[pet.id];
+    if (!petData || !petData.effect) return;
+    const effect = petData.effect;
+    
+    switch (trigger) {
+      case 'startOfCombat':
+        // 战斗开始时抽牌（抽卡猫）
+        if (effect.startOfCombatDraw) {
+          drawCards(effect.startOfCombatDraw);
+          addLog(`宠物 ${petData.name} 帮助抽了 ${effect.startOfCombatDraw} 张牌`, 'info');
+        }
+        // 战斗开始时护甲（护盾犬、战斗熊）
+        if (effect.startOfCombatBlock) {
+          gameState.playerShield += effect.startOfCombatBlock;
+          addLog(`宠物 ${petData.name} 提供 ${effect.startOfCombatBlock} 护甲`, 'block');
+        }
+        break;
+      case 'startOfTurn':
+        // 每回合回复生命（治疗兔）
+        if (effect.perTurnHeal) {
+          const healAmount = Math.min(effect.perTurnHeal, gameState.playerMaxHp - gameState.playerHp);
+          if (healAmount > 0) {
+            gameState.playerHp += healAmount;
+            addLog(`宠物 ${petData.name} 回复 ${healAmount} 生命`, 'heal');
+          }
+        }
+        break;
+      case 'onAttack':
+        // 暴击率加成（暴击猫头鹰）
+        if (effect.criticalChance) {
+          context.critBonus = (context.critBonus || 0) + effect.criticalChance;
+        }
+        break;
+      case 'onVictory':
+        // 宝箱金币加成（宝箱狐狸）
+        if (effect.chestGoldBonus) {
+          // 金币加成会在开宝箱时应用，这里记录加成值
+          gameState.chestGoldBonus = (gameState.chestGoldBonus || 0) + effect.chestGoldBonus;
+        }
+        break;
+      case 'onShopPurchase':
+        // 商店折扣（折扣鸟）
+        if (effect.shopDiscount) {
+          context.shopDiscount = (context.shopDiscount || 0) + effect.shopDiscount;
+        }
+        break;
+      case 'onUpgrade':
+        // 升级折扣（升级龟）
+        if (effect.upgradeDiscount) {
+          context.upgradeDiscount = (context.upgradeDiscount || 0) + effect.upgradeDiscount;
+        }
+        break;
+    }
+  });
+}
+
+// 购买宠物
+function buyPet(petId) {
+  if (gameState.ownedPetIds.includes(petId)) {
+    addLog('已拥有此宠物！', 'debuff');
+    return false;
+  }
+  
+  const petData = PETS[petId];
+  if (!petData) return false;
+  
+  const price = petData.cost;
+  if (gameState.gold < price) {
+    addLog('金币不足！', 'debuff');
+    return false;
+  }
+  
+  gameState.gold -= price;
+  gameState.pets.push({ id: petId, equipped: true }); // 购买后自动装备
+  gameState.ownedPetIds.push(petId);
+  
+  addLog(`购买宠物: ${petData.name}！`, 'info');
+  audioManager.play('purchase');
+  
+  // 刷新宠物商店显示
+  renderPetsShop();
+  updatePetsDisplay();
+  
+  return true;
+}
+
+// 装备宠物
+function equipPet(petId) {
+  const pet = gameState.pets.find(p => p.id === petId);
+  if (!pet) return false;
+  
+  pet.equipped = true;
+  addLog(`装备宠物: ${PETS[petId].name}`, 'info');
+  updatePetsDisplay();
+  return true;
+}
+
+// 卸下宠物
+function unequipPet(petId) {
+  const pet = gameState.pets.find(p => p.id === petId);
+  if (!pet) return false;
+  
+  pet.equipped = false;
+  addLog(`卸下宠物: ${PETS[petId].name}`, 'info');
+  updatePetsDisplay();
+  return true;
+}
+
+// 显示宠物商店
+function showPetsShop() {
+  document.getElementById('petshop-current-gold').textContent = gameState.gold;
+  renderPetsShop();
+  document.getElementById('petshop-overlay').classList.add('show');
+}
+
+// 渲染宠物商店
+function renderPetsShop() {
+  const grid = document.getElementById('petshop-grid');
+  if (!grid) return;
+  
+  grid.innerHTML = '';
+  
+  PET_POOL.forEach(petData => {
+    const owned = gameState.ownedPetIds.includes(petData.id);
+    const pet = gameState.pets.find(p => p.id === petData.id);
+    const equipped = pet && pet.equipped;
+    
+    const div = document.createElement('div');
+    div.className = 'petshop-pet' + (owned ? ' owned' : '') + (equipped ? ' equipped' : '');
+    div.innerHTML = `
+      <div class="pet-icon-big">${petData.icon}</div>
+      <div class="pet-name">${petData.name}</div>
+      <div class="pet-desc">${petData.description}</div>
+      ${owned ? 
+        `<div class="pet-status">${equipped ? '✅ 已装备' : '❌ 未装备'}</div>` :
+        `<div class="pet-cost">💰 ${petData.cost}</div>`
+      }
+    `;
+    
+    if (!owned) {
+      div.onclick = () => buyPet(petData.id);
+    } else if (!equipped) {
+      div.onclick = () => equipPet(petData.id);
+    } else {
+      div.onclick = () => unequipPet(petData.id);
+    }
+    
+    grid.appendChild(div);
+  });
+  
+  // 绑定离开按钮
+  document.getElementById('petshop-leave').onclick = () => {
+    document.getElementById('petshop-overlay').classList.remove('show');
+  };
+}
+
+// 更新宠物显示
+function updatePetsDisplay() {
+  const panel = document.getElementById('pets-panel');
+  const container = document.getElementById('pets-container');
+  const countSpan = document.getElementById('pets-count');
+  
+  if (gameState.pets.length === 0) {
+    panel.style.display = 'none';
+    return;
+  }
+  
+  panel.style.display = 'flex';
+  if (countSpan) countSpan.textContent = gameState.pets.length;
+  
+  container.innerHTML = '';
+  gameState.pets.forEach(pet => {
+    const petData = PETS[pet.id];
+    if (!petData) return;
+    
+    const div = document.createElement('div');
+    div.className = 'pet-icon ' + (pet.equipped ? 'equipped' : 'owned');
+    div.innerHTML = `
+      ${petData.icon}
+      <div class="pet-tooltip">
+        <div class="pet-name">${petData.name}</div>
+        <div class="pet-desc">${petData.description}</div>
+        <div style="color:${pet.equipped ? '#2ecc71' : '#f39c12'};margin-top:5px;">
+          ${pet.equipped ? '✅ 已装备' : '❌ 未装备'}
+        </div>
+      </div>
+    `;
+    div.title = `${petData.name}: ${petData.description}`;
+    div.onclick = () => {
+      if (pet.equipped) {
+        unequipPet(pet.id);
+      } else {
+        equipPet(pet.id);
+      }
+    };
+    container.appendChild(div);
+  });
+  
+  // 更新宠物数量显示
+  const mapCount = document.getElementById('pets-count');
+  if (mapCount) mapCount.textContent = gameState.pets.length;
+}
 
 // ===== V6 遗物效果应用 =====
 // 辅助函数：检查玩家是否拥有指定遗物
@@ -4806,6 +5247,9 @@ function startCombat(node) {
   // V6 遗物效果: 战斗开始时
   applyRelicEffect('startOfCombat');
   
+  // V25 宠物效果: 战斗开始时
+  applyPetEffect('startOfCombat');
+
   addLog(`遭遇 ${enemy.name}！`, 'info');
   rollEnemyIntent();
   renderEnemy();
@@ -5115,6 +5559,9 @@ function startPlayerTurn() {
   
   // V6 遗物效果: 回合开始时
   applyRelicEffect('startOfTurn');
+  
+  // V25 宠物效果: 回合开始时
+  applyPetEffect('startOfTurn');
 
   // V11 冰霜之心: 10%几率获得1能量
   if (hasRelic('frostHeart') && Math.random() < 0.1) {
@@ -6810,6 +7257,9 @@ function saveGame(slot) {
     achievementStats: gameState.achievementStats,
     totalVictories: gameState.totalVictories,
     totalChaptersCompleted: gameState.totalChaptersCompleted,
+    // V25 宠物系统
+    pets: gameState.pets,
+    ownedPetIds: gameState.ownedPetIds,
   };
   try {
     localStorage.setItem(saveKey, JSON.stringify(saveData));
@@ -6913,6 +7363,9 @@ function loadGame(slot) {
       },
       totalVictories: saveData.totalVictories || 0,
       totalChaptersCompleted: saveData.totalChaptersCompleted || 0,
+      // V25 宠物系统
+      pets: saveData.pets || [],
+      ownedPetIds: saveData.ownedPetIds || [],
     };
 
     loadAchievements();
