@@ -2,21 +2,65 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DBG卡牌游戏 V20 — 章节扩展 + Boss战</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1a1a2e">
+  <title>DBG卡牌游戏 V21 — 移动端适配</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
       min-height: 100vh;
+      min-height: 100dvh;
       color: #fff;
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 20px;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      overflow: hidden;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
     }
     h1 { color: #ffd700; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+
+    /* 横屏提示 */
+    #landscape-warning {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #1a1a2e;
+      z-index: 9999;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #ffd700;
+      font-size: 18px;
+      text-align: center;
+      padding: 20px;
+    }
+    #landscape-warning .rotate-icon {
+      font-size: 60px;
+      margin-bottom: 20px;
+      animation: rotate 1.5s ease-in-out infinite;
+    }
+    @keyframes rotate {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(90deg); }
+    }
+    @media (orientation: portrait) and (max-width: 768px) {
+      #landscape-warning { display: flex; }
+      #game-container { display: none; }
+    }
 
     /* 游戏容器 */
     #game-container {
@@ -1103,7 +1147,19 @@
 
     @media (max-width: 768px) {
       #log-panel { position: static; width: 100%; margin-top: 10px; transform: none; max-height: 120px; }
-      .card { width: 90px; padding: 8px; }
+      .card { width: 90px; padding: 8px; font-size: 11px; }
+      .card:hover { transform: translateY(-4px); }
+      #status-bar { font-size: 14px; padding: 8px 12px; }
+      #enemy-area, #player-area { padding: 12px; }
+      #hand { min-height: 120px; gap: 6px; }
+      button { padding: 8px 16px; font-size: 14px; }
+    }
+
+    /* 触屏优化 */
+    @media (hover: none) and (pointer: coarse) {
+      .card:hover { transform: none; }
+      .card:active { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+      button:active { transform: scale(0.95); }
     }
 
     /* ===== V12 动画与特效 ===== */
@@ -1309,12 +1365,20 @@
 </head>
 <body>
 
+<!-- 横屏提示 -->
+<div id="landscape-warning">
+  <div class="rotate-icon">📱</div>
+  <div>请旋转设备至横屏模式</div>
+  <div style="margin-top: 10px; font-size: 14px; color: #aaa;">Please rotate your device to landscape mode</div>
+</div>
+
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V19</h1>
+  <h1>🃏 DBG卡牌游戏 V21</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
   <p>V9 成就系统 - 解锁全部成就挑战！</p>
   <p style="color:#ffd700;">V19 存档系统 - 3槽位存档</p>
+  <p style="color:#4ecdc4;">V21 移动端适配 - 触屏支持</p>
   <button id="start-btn">开始游戏</button>
   <button id="load-save-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#27ae60,#2ecc71);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">📂 继续游戏</button>
   <button id="achievements-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#9b59b6,#8e44ad);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">🏆 成就</button>
@@ -6835,6 +6899,110 @@ function showNotification(message, type = 'success') {
   }, 2000);
 }
 
+// ===== 移动端适配 =====
+// Canvas响应式缩放
+function resizeCanvas() {
+  const canvas = document.getElementById('map-canvas');
+  if (!canvas) return;
+  
+  const container = document.getElementById('map-container');
+  const containerWidth = container.clientWidth - 40; // 减去padding
+  
+  // 计算缩放比例
+  const scale = Math.min(containerWidth / 800, 1);
+  const newWidth = Math.floor(800 * scale);
+  const newHeight = Math.floor(400 * scale);
+  
+  // 设置canvas CSS尺寸
+  canvas.style.width = newWidth + 'px';
+  canvas.style.height = newHeight + 'px';
+  
+  // 重新渲染地图（如果有游戏状态的话）
+  if (typeof gameState !== 'undefined' && gameState.inMap) {
+    renderMap();
+  }
+}
+
+// 横屏检测
+function checkLandscape() {
+  const isLandscape = window.innerWidth > window.innerHeight;
+  const isMobile = window.innerWidth <= 768;
+  
+  if (isMobile && !isLandscape) {
+    document.getElementById('landscape-warning').style.display = 'flex';
+    document.getElementById('game-container').style.display = 'none';
+  } else {
+    document.getElementById('landscape-warning').style.display = 'none';
+    document.getElementById('game-container').style.display = 'flex';
+  }
+}
+
+// 触屏事件转点击事件
+function addTouchSupport(element) {
+  element.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const clickEvent = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      view: window
+    });
+    touch.target.dispatchEvent(clickEvent);
+  }, { passive: false });
+}
+
+// 初始化移动端适配
+function initMobileSupport() {
+  // 窗口调整监听
+  window.addEventListener('resize', () => {
+    resizeCanvas();
+    checkLandscape();
+  });
+  
+  // 横屏检测
+  checkLandscape();
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      resizeCanvas();
+      checkLandscape();
+    }, 100);
+  });
+  
+  // 为canvas添加触屏支持
+  const canvas = document.getElementById('map-canvas');
+  if (canvas) {
+    canvas.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      
+      const clickEvent = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX: touch.clientX,
+        clientY: touch.clientY
+      });
+      canvas.dispatchEvent(clickEvent);
+    }, { passive: false });
+  }
+  
+  // 为卡牌添加触屏支持
+  document.querySelectorAll('.card').forEach(card => {
+    addTouchSupport(card);
+  });
+  
+  // 为按钮添加触屏支持
+  document.querySelectorAll('button').forEach(btn => {
+    addTouchSupport(btn);
+  });
+  
+  // 初始canvas缩放
+  setTimeout(resizeCanvas, 100);
+}
+
 // ===== 事件绑定 =====
 document.getElementById('start-btn').onclick = initGame;
 document.getElementById('start-btn-retry').onclick = initGame;
@@ -6876,6 +7044,11 @@ document.querySelectorAll('.sort-btn').forEach(btn => {
 // V17 确认对话框按钮事件
 document.getElementById('confirm-yes-btn').onclick = confirmRemoveCard;
 document.getElementById('confirm-no-btn').onclick = closeConfirmDialog;
+
+// 初始化移动端支持
+document.addEventListener('DOMContentLoaded', () => {
+  initMobileSupport();
+});
 </script>
 
 </body>
