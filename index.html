@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V29 — Roguelike变体</title>
+  <title>DBG卡牌游戏 V30 — Roguelike变体</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -240,6 +240,7 @@
     .card.skill { background: linear-gradient(145deg, #00008b, #4169e1); border: 2px solid #6495ed; }
     .card.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 2px solid #da70d6; }
     .card.curse { background: linear-gradient(145deg, #2d1b4e, #4a3f6b); border: 2px solid #8b008b; }
+    .card.fate { background: linear-gradient(145deg, #1b4e4e, #3f6b6b); border: 2px solid #00ffff; }
     .card.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 2px solid #00ff7f; }
     .card.status { background: linear-gradient(145deg, #4e4e4e, #6b6b6b); border: 2px solid #a0a0a0; }
     .card-cost {
@@ -331,6 +332,7 @@
     .upgrade-card.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 3px solid #da70d6; }
     .upgrade-card.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 3px solid #00ff7f; }
     .upgrade-card.curse { background: linear-gradient(145deg, #2d1b4e, #4a3f6b); border: 3px solid #8b008b; }
+    .upgrade-card.fate { background: linear-gradient(145deg, #1b4e4e, #3f6b6b); border: 3px solid #00ffff; }
     .upgrade-card .card-cost { top: -10px; left: -10px; }
     .upgrade-card .upgrade-badge {
       position: absolute;
@@ -451,6 +453,7 @@
     .reward-card.skill { background: linear-gradient(145deg, #00008b, #4169e1); border: 3px solid #6495ed; }
     .reward-card.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 3px solid #da70d6; }
     .reward-card.curse { background: linear-gradient(145deg, #2d1b4e, #4a3f6b); border: 3px solid #8b008b; }
+    .reward-card.fate { background: linear-gradient(145deg, #1b4e4e, #3f6b6b); border: 3px solid #00ffff; }
     .reward-card.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 3px solid #00ff7f; }
     .reward-card.status { background: linear-gradient(145deg, #4e4e4e, #6b6b6b); border: 3px solid #a0a0a0; }
 
@@ -488,6 +491,7 @@
     .shop-card.skill { background: linear-gradient(145deg, #00008b, #4169e1); border: 3px solid #6495ed; }
     .shop-card.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 3px solid #da70d6; }
     .shop-card.curse { background: linear-gradient(145deg, #2d1b4e, #4a3f6b); border: 3px solid #8b008b; }
+    .shop-card.fate { background: linear-gradient(145deg, #1b4e4e, #3f6b6b); border: 3px solid #00ffff; }
     .shop-card.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 3px solid #00ff7f; }
     .shop-card.status { background: linear-gradient(145deg, #4e4e4e, #6b6b6b); border: 3px solid #a0a0a0; }
     .shop-card .card-cost { top: -10px; left: -10px; }
@@ -650,6 +654,7 @@
     .sell-card.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 2px solid #da70d6; }
     .sell-card.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 2px solid #00ff7f; }
     .sell-card.curse { background: linear-gradient(145deg, #2d1b4e, #4a3f6b); border: 2px solid #8b008b; }
+    .sell-card.fate { background: linear-gradient(145deg, #1b4e4e, #3f6b6b); border: 2px solid #00ffff; }
     .sell-card .card-cost {
       position: absolute;
       top: -6px;
@@ -1258,6 +1263,7 @@
     .filter-btn.power.active { background: #8e44ad; border-color: #8e44ad; }
     .filter-btn.special.active { background: #27ae60; border-color: #27ae60; }
     .filter-btn.curse.active { background: #8b008b; border-color: #8b008b; }
+    .filter-btn.fate.active { background: #00ffff; border-color: #00ffff; color: #000; }
     .filter-btn.status.active { background: #555; border-color: #555; }
     #deck-preview-grid {
       display: flex;
@@ -1943,6 +1949,20 @@ const CARDS = {
   evasionAura:     { id: 'evasionAura',     name: '疾风光环', cost: 1, type: 'power', rarity: 'rare', effect: { evasionChance: 0.25 }, description: '25%几率闪避敌人攻击' },
   // 15. 衰弱光环 - weaken光环：降低敌人属性
   weakenAura:      { id: 'weakenAura',      name: '衰弱光环', cost: 2, type: 'power', rarity: 'rare', effect: { weakenAura: true, weakenRate: 1 }, description: '每回合敌人攻击力-30%' },
+  // ===== V30 新增诅咒系卡牌 =====
+  curse_of_pain:   { id: 'curse_of_pain',   name: '痛苦诅咒', cost: 0, type: 'curse', effect: { curseStartDamage: 3 }, description: '回合开始时受到3点伤害', curseTrigger: 'startOfTurn' },
+  curse_of_weak:   { id: 'curse_of_weak',   name: '虚弱诅咒', cost: 0, type: 'curse', effect: { curseWeakAttack: 0.3 }, description: '攻击力-30%', curseTrigger: 'permanent' },
+  dark_curse:      { id: 'dark_curse',      name: '黑暗诅咒', cost: 1, type: 'curse', effect: { curseVulnerable: 2 }, description: '敌方获得2层易伤', curseTrigger: 'onApply' },
+  death_curse:     { id: 'death_curse',     name: '死亡诅咒', cost: 2, type: 'curse', effect: { curseLifesteal: 0.05 }, description: '每回合流失5%最大生命', curseTrigger: 'startOfTurn' },
+  poison_dart:     { id: 'poison_dart',     name: '毒镖',     cost: 1, type: 'curse', effect: { cursePoison: 10 }, description: '敌方中毒10层', curseTrigger: 'onApply' },
+  fear:            { id: 'fear',            name: '恐惧',     cost: 0, type: 'curse', effect: { curseSkipAttack: 1 }, description: '敌方下回合无法攻击', curseTrigger: 'onApply' },
+  // ===== V30 新增命运系卡牌 =====
+  fortune_strike:  { id: 'fortune_strike',  name: '命运打击', cost: 1, type: 'fate', effect: { fateDamageMin: 3, fateDamageMax: 15 }, description: '造成3-15点随机伤害', fateType: 'damage' },
+  chaotic_shield:  { id: 'chaotic_shield',  name: '混沌护盾', cost: 1, type: 'fate', effect: { fateShieldMin: 5, fateShieldMax: 15 }, description: '获得5-15点随机护甲', fateType: 'shield' },
+  gamble_all:      { id: 'gamble_all',      name: '孤注一掷', cost: 2, type: 'fate', effect: { fateGambleDamage: 20, fateGambleSelfDamage: 15 }, description: '50%造成20伤害，50%受到15伤害', fateType: 'gamble' },
+  dice_roll:       { id: 'dice_roll',       name: '命运骰子', cost: 0, type: 'fate', effect: { fateDice: true }, description: '随机：+2攻击/-2攻击/+3护甲/+5生命', fateType: 'random' },
+  wild_swing:      { id: 'wild_swing',      name: '蛮横挥击', cost: 1, type: 'fate', effect: { fateDamageMin: 2, fateDamageMax: 12, fateRandomTarget: true }, description: '造成2-12点伤害，随机目标', fateType: 'damage' },
+  unpredictable:   { id: 'unpredictable',   name: '难以预测', cost: 0, type: 'fate', effect: { fateRandomBenefit: true }, description: '随机执行：抽2张/获得3能量/恢复10生命', fateType: 'random' },
 };
 
 const NEW_CARDS_POOL = [
@@ -3557,6 +3577,38 @@ const ENEMIES = {
     maxEntropy: 30,
     voidFormActive: false,
   },
+  // ===== V30 第8章：永恒虚空（最终章节）新增敌人 =====
+  // 时间系敌人
+  timeWraith: { id: 'timeWraith', name: '时间幽灵', hp: 80, intents: ['attack', 'timeSlow', 'buff'], special: 'timeSlow', cooldownReduction: 1 },
+  // 空间系敌人
+  spaceFiend: { id: 'spaceFiend', name: '空间恶魔', hp: 120, isElite: true, intents: ['attack', 'spaceWarp', 'defend'], special: 'spaceWarp' },
+  // 概念系敌人
+  voidAngel: { id: 'voidAngel', name: '虚空天使', hp: 100, intents: ['attack', 'giveCurse', 'buff'], special: 'giveCurse' },
+  // V30 Boss：克洛诺斯（时间之神，3阶段Boss）
+  chronos: {
+    id: 'chronos',
+    name: '克洛诺斯',
+    hp: 500,
+    isBoss: true,
+    intents: ['attack', 'timeSlow', 'timeRewind', 'timeFreeze', 'timeAccelerate', 'timeCollapse'],
+    special: 'timeSlow',
+    bossPhase: 1,         // 1=普通攻击+时间减速, 2=时间回溯+时间冻结+时间加速, 3=终极时间回溯+时间崩坏+费用+1
+    timeSlowTurns: 0,
+    phase1Threshold: 350,  // 500-350 HP
+    phase2Threshold: 200,  // 350-200 HP
+    hasUsedPhase3Revive: false,
+    turnCostIncrease: 0,  // 永久费用增加
+  },
+  // V30 真终局Boss：熵（宇宙终极存在）
+  entropy: {
+    id: 'entropy',
+    name: '熵',
+    hp: 300,
+    isBoss: true,
+    intents: ['entropyBlast', 'voidConsume', 'absoluteZero', 'phaseShift'],
+    special: 'entropyBlast',
+    bossPhase: 1,  // 随回合数增加阶段
+  },
 };
 
 // ===== V20 Boss意图权重 =====
@@ -3588,6 +3640,18 @@ const BOSS_PHASE_WEIGHTS = {
     1: { chaosPulse: 40, realitySwap: 35, debuff: 25 },           // 阶段1：混沌脉冲为主
     2: { realitySwap: 45, entropy: 35, debuff: 20 },            // 阶段2：虚实交换为主
     3: { entropy: 55, chaosPulse: 30, debuff: 15 },              // 阶段3：万物归零为主
+  },
+  // V30 克洛诺斯Boss意图权重（3阶段）
+  chronos: {
+    1: { attack: 50, timeSlow: 50 },                              // 阶段1：普通攻击+时间减速
+    2: { timeRewind: 35, timeFreeze: 35, timeAccelerate: 30 },    // 阶段2：时间回溯+时间冻结+时间加速
+    3: { timeCollapse: 40, timeRewind: 35, attack: 25 },         // 阶段3：时间崩坏+终极时间回溯+攻击
+  },
+  // V30 熵Boss意图权重（3阶段）
+  entropy: {
+    1: { entropyBlast: 50, voidConsume: 30, phaseShift: 20 },
+    2: { voidConsume: 40, absoluteZero: 35, entropyBlast: 25 },
+    3: { absoluteZero: 45, entropyBlast: 35, phaseShift: 20 },
   },
 };
 
@@ -3627,6 +3691,10 @@ const INTENT_WEIGHTS = {
   nothingPhantom:    { attack: 45, evade: 30, debuff: 25 },
   voidTendril:       { attack: 35, constrict: 40, defend: 25 },
   oblivionHound:     { attack: 40, packHunt: 35, heavy: 25 },
+  // V30 永恒虚空敌人意图权重
+  timeWraith:       { attack: 45, timeSlow: 35, buff: 20 },
+  spaceFiend:       { attack: 40, spaceWarp: 40, defend: 20 },
+  voidAngel:        { attack: 40, giveCurse: 35, buff: 25 },
 };
 
 // ===== 地图数据 =====
@@ -3860,6 +3928,32 @@ const FLOORS = [
       ['f10c3', 'f10b1'], ['f10c2', 'f10c3'], ['f10e1', 'f10c2'],
       ['f10c2', 'f10t1'], ['f10t1', 'f10e2'], ['f10e2', 'f10m1'],
       ['f10c2', 'f10p1'], ['f10p1', 'f10s1'],
+    ]
+  },
+  // V30 第11层：永恒虚空（Chapter 8 - 最终章节）
+  {
+    id: 11,
+    name: '永恒虚空',
+    chapter: 8,
+    nodes: [
+      { id: 'f11r1', type: 'rest',       name: '休息',      x: 80,  y: 200, enemy: null },
+      { id: 'f11e1', type: 'elite',      name: '精英战',    x: 220, y: 100, enemy: 'spaceFiend' },
+      { id: 'f11c1', type: 'combat',     name: '战斗',      x: 220, y: 300, enemy: 'timeWraith' },
+      { id: 'f11p1', type: 'campfire',   name: '篝火',      x: 300, y: 200, enemy: null },
+      { id: 'f11c2', type: 'combat',     name: '战斗',      x: 400, y: 200, enemy: 'voidAngel' },
+      { id: 'f11t1', type: 'treasure',   name: '宝箱',      x: 350, y: 320, enemy: null },
+      { id: 'f11e2', type: 'elite',      name: '精英战',    x: 400, y: 350, enemy: 'timeWraith' },
+      { id: 'f11m1', type: 'mystery',    name: '随机',      x: 480, y: 300, enemy: null },
+      { id: 'f11s1', type: 'shop',       name: '商店',      x: 550, y: 100, enemy: null },
+      { id: 'f11c3', type: 'combat',     name: '战斗',      x: 550, y: 300, enemy: 'spaceFiend' },
+      { id: 'f11b1', type: 'boss',       name: '最终Boss',   x: 700, y: 200, enemy: 'chronos' },
+    ],
+    edges: [
+      ['f11r1', 'f11e1'], ['f11e1', 'f11c1'], ['f11c1', 'f11c2'],
+      ['f11c2', 'f11e2'], ['f11e2', 'f11s1'], ['f11s1', 'f11c3'],
+      ['f11c3', 'f11b1'], ['f11c2', 'f11c3'], ['f11e1', 'f11c2'],
+      ['f11c2', 'f11t1'], ['f11t1', 'f11e2'], ['f11e2', 'f11m1'],
+      ['f11c2', 'f11p1'], ['f11p1', 'f11s1'],
     ]
   },
 ];
@@ -5248,7 +5342,8 @@ function getCardTypeName(type) {
     'power': '能力',
     'curse': '诅咒',
     'special': '特殊',
-    'status': '状态'
+    'status': '状态',
+    'fate': '命运'
   };
   return types[type] || type;
 }
@@ -6930,8 +7025,131 @@ function playCard(card, index) {
       dealDamageToPlayer(effect.curseDamage, false);
       addLog(`${card.name}: 受到 ${effect.curseDamage} 点伤害`, 'damage');
     }
+    // V30 新诅咒牌效果处理
+    if (effect.curseStartDamage) {
+      // 回合开始时触发伤害的效果已在curses列表中，将在回合开始时处理
+      addLog(`${card.name}: 回合开始时将受到${effect.curseStartDamage}点伤害`, 'debuff');
+    }
+    if (effect.curseWeakAttack) {
+      // 永久攻击力减少
+      applyDebuffToPlayer('weak', 1, 99);
+      addLog(`${card.name}: 永久攻击力-30%`, 'debuff');
+    }
+    if (effect.curseVulnerable) {
+      // 敌方获得易伤
+      applyDebuffToEnemy('vulnerable', effect.curseVulnerable, 2);
+      addLog(`${card.name}: 敌人获得${effect.curseVulnerable}层易伤`, 'debuff');
+    }
+    if (effect.curseLifesteal) {
+      // 生命流失效果
+      const流失Amount = Math.floor(gameState.playerMaxHp * effect.curseLifesteal);
+      dealDamageToPlayer(流失Amount, false);
+      addLog(`${card.name}: 流失${流失Amount}点生命`, 'damage');
+    }
+    if (effect.cursePoison) {
+      // 敌方中毒
+      gameState.poisonStacks += effect.cursePoison;
+      addLog(`${card.name}: 敌人中毒${effect.cursePoison}层`, 'debuff');
+    }
+    if (effect.curseSkipAttack) {
+      // 敌方跳过攻击
+      gameState.skipEnemyNextTurn = true;
+      addLog(`${card.name}: 敌人下回合无法攻击`, 'debuff');
+    }
     // 诅咒加入玩家诅咒列表
     gameState.curses.push({ ...card });
+  }
+
+  // V30 命运系卡牌处理
+  if (card.type === 'fate') {
+    audioManager.play('fate');
+    const effect = card.effect;
+    
+    if (effect.fateDamageMin && effect.fateDamageMax) {
+      // 命运打击：随机伤害
+      const damage = effect.fateDamageMin + Math.floor(Math.random() * (effect.fateDamageMax - effect.fateDamageMin + 1));
+      dealDamageToEnemy(damage);
+      addLog(`${card.name}: 造成 ${damage} 点随机伤害！`, 'damage');
+    }
+    
+    if (effect.fateShieldMin !== undefined && effect.fateShieldMax !== undefined) {
+      // 混沌护盾：随机护甲
+      const shield = effect.fateShieldMin + Math.floor(Math.random() * (effect.fateShieldMax - effect.fateShieldMin + 1));
+      gameState.playerShield += shield;
+      animateShieldGain();
+      showDamageNumber(shield, 'shield', 'player-area');
+      addLog(`${card.name}: 获得 ${shield} 点随机护甲！`, 'block');
+    }
+    
+    if (effect.fateGambleDamage && effect.fateGambleSelfDamage) {
+      // 孤注一掷：50%成功50%失败
+      if (Math.random() > 0.5) {
+        dealDamageToEnemy(effect.fateGambleDamage);
+        addLog(`${card.name}: 运气不错！造成 ${effect.fateGambleDamage} 点伤害！`, 'damage');
+      } else {
+        dealDamageToPlayer(effect.fateGambleSelfDamage, false);
+        addLog(`${card.name}: 运气不佳！受到 ${effect.fateGambleSelfDamage} 点伤害！`, 'damage');
+      }
+    }
+    
+    if (effect.fateDice) {
+      // 命运骰子：随机效果
+      const diceResult = Math.floor(Math.random() * 4);
+      const diceOptions = [
+        { type: 'attackBuff', value: 2, text: '攻击力+2' },
+        { type: 'attackDebuff', value: -2, text: '攻击力-2' },
+        { type: 'shield', value: 3, text: '护甲+3' },
+        { type: 'heal', value: 5, text: '生命+5' },
+      ];
+      const result = diceOptions[diceResult];
+      if (result.type === 'attackBuff') {
+        gameState.nextAttackMult += result.value * 0.1;
+        addLog(`${card.name}: ${result.text}！`, 'info');
+      } else if (result.type === 'attackDebuff') {
+        gameState.nextAttackMult = Math.max(0.1, gameState.nextAttackMult + result.value * 0.1);
+        addLog(`${card.name}: ${result.text}！`, 'debuff');
+      } else if (result.type === 'shield') {
+        gameState.playerShield += result.value;
+        animateShieldGain();
+        showDamageNumber(result.value, 'shield', 'player-area');
+        addLog(`${card.name}: ${result.text}！`, 'block');
+      } else if (result.type === 'heal') {
+        const healAmt = Math.min(result.value, gameState.playerMaxHp - gameState.playerHp);
+        gameState.playerHp += healAmt;
+        showDamageNumber(healAmt, 'heal', 'player-area');
+        addLog(`${card.name}: ${result.text}！`, 'heal');
+      }
+    }
+    
+    if (effect.fateRandomTarget && effect.fateDamageMin && effect.fateDamageMax) {
+      // 蛮横挥击：随机目标+随机伤害
+      const damage = effect.fateDamageMin + Math.floor(Math.random() * (effect.fateDamageMax - effect.fateDamageMin + 1));
+      // 随机目标可以是玩家自己或敌人
+      if (Math.random() > 0.5) {
+        dealDamageToEnemy(damage);
+        addLog(`${card.name}: 命中敌人！造成 ${damage} 点伤害！`, 'damage');
+      } else {
+        dealDamageToPlayer(damage, false);
+        addLog(`${card.name}: 命中自己！受到 ${damage} 点伤害！`, 'damage');
+      }
+    }
+    
+    if (effect.fateRandomBenefit) {
+      // 难以预测：随机执行三种效果之一
+      const benefitRoll = Math.floor(Math.random() * 3);
+      if (benefitRoll === 0) {
+        drawCards(2);
+        addLog(`${card.name}: 抽2张牌！`, 'info');
+      } else if (benefitRoll === 1) {
+        gameState.energy += 3;
+        addLog(`${card.name}: 获得3能量！`, 'info');
+      } else {
+        const healAmt = Math.min(10, gameState.playerMaxHp - gameState.playerHp);
+        gameState.playerHp += healAmt;
+        showDamageNumber(healAmt, 'heal', 'player-area');
+        addLog(`${card.name}: 恢复${healAmt}生命！`, 'heal');
+      }
+    }
   }
 
   // V4 状态牌处理
@@ -7670,9 +7888,24 @@ function checkEnemyDeath() {
       gameState.shadowMinions = 0;
       gameState.annihilationCharges = 0;
 
-      // V20 检查是否通关（击败第7层Boss = 通关）
-      if (gameState.currentFloor >= 7) {
-        // V24 章节3完成（最终章节）
+      // V27 大天使长/阿兹莫丹/混沌之神Boss阶段重置
+      gameState.archangelPhase = 1;
+      gameState.azmodanPhase = 1;
+      gameState.chaosGodPhase = 1;
+
+      // V30 克洛诺斯Boss阶段重置
+      gameState.chronosPhase = 1;
+      gameState.chronosTurnCostIncrease = 0;
+
+      // V30 检查是否通关第8章Boss（克洛诺斯）
+      if (gameState.currentFloor === 11 && gameState.enemyId === 'chronos') {
+        // 击败克洛诺斯！显示真终局选项
+        setTimeout(() => showTrueEndingChoice(), 500);
+        return true;
+      }
+      // V20 检查是否通关（击败第7层Boss = 通关章节7）
+      else if (gameState.currentFloor >= 7) {
+        // V24 章节完成
         gameState.totalChaptersCompleted++;
         // 完全胜利！
         setTimeout(() => showVictory(), 500);
@@ -7993,6 +8226,78 @@ function showGameOver() {
   document.getElementById('game-over-screen').classList.add('show');
   document.getElementById('game-over-stats').textContent = 
     `通关楼层: ${gameState.currentFloor} | 战斗胜利: ${gameState.totalBattlesWon} | 获得金币: ${gameState.totalGoldEarned}`;
+}
+
+// V30 真终局选项
+function showTrueEndingChoice() {
+  const content = `
+    <div style="text-align: center; padding: 40px;">
+      <h2 style="color: #ffd700; font-size: 32px; margin-bottom: 20px;">⏳ 击败克洛诺斯！</h2>
+      <p style="color: #ccc; font-size: 18px; margin-bottom: 30px;">你超越了时间的束缚，但宇宙的终极存在——熵，正在前方等待...</p>
+      <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+        <button onclick="startTrueEnding()" style="padding: 15px 40px; font-size: 18px; background: linear-gradient(145deg, #9b59b6, #8e44ad); border: none; border-radius: 25px; color: #fff; cursor: pointer; font-weight: bold;">
+          🌟 继续前行（进入真终局）
+        </button>
+        <button onclick="endGameNormally()" style="padding: 15px 40px; font-size: 18px; background: linear-gradient(145deg, #27ae60, #2ecc71); border: none; border-radius: 25px; color: #fff; cursor: pointer; font-weight: bold;">
+          🏠 就此结束（正常终局）
+        </button>
+      </div>
+    </div>
+  `;
+  document.getElementById('overlay-title').textContent = '🎊 永恒成就解锁！';
+  document.getElementById('reward-cards').innerHTML = content;
+  document.getElementById('overlay').classList.add('show');
+}
+
+// V30 开始真终局
+function startTrueEnding() {
+  document.getElementById('overlay').classList.remove('show');
+  // 初始化真终局状态
+  gameState.trueEndingMode = true;
+  gameState.entropyLevel = 0;
+  gameState.trueEndingRound = 0;
+  gameState.entropyBossPhase = 1;
+  
+  // 设置熵为敌人
+  gameState.enemyId = 'entropy';
+  gameState.enemy = { ...ENEMIES.entropy || { name: '熵', hp: 300, maxHp: 300, armor: 0 } };
+  gameState.enemyHp = 300;
+  gameState.enemyMaxHp = 300;
+  
+  addLog('🌌 熵出现了！宇宙终极存在！', 'damage');
+  audioManager.play('enemyDeath');
+  
+  startTrueEndingBattle();
+}
+
+// V30 正常结束游戏
+function endGameNormally() {
+  document.getElementById('overlay').classList.remove('show');
+  gameState.totalVictories = (gameState.totalVictories || 0) + 1;
+  gameState.totalChaptersCompleted++;
+  checkAchievements();
+  showVictory();
+}
+
+// V30 真终局战斗循环
+function startTrueEndingBattle() {
+  gameState.trueEndingRound++;
+  gameState.entropyBossPhase = Math.min(3, 1 + Math.floor(gameState.trueEndingRound / 3));
+  
+  // 熵每回合变强
+  const hpIncrease = gameState.trueEndingRound * 50;
+  gameState.enemyMaxHp = 300 + hpIncrease;
+  gameState.enemyHp = gameState.enemyMaxHp;
+  
+  addLog(`🌌 第${gameState.trueEndingRound}轮：熵的生命力提升至${gameState.enemyMaxHp}！`, 'info');
+  
+  // 初始化回合
+  gameState.energy = gameState.maxEnergy;
+  gameState.playerShield = 0;
+  gameState.turnStart();
+  
+  renderUI();
+  checkEnemyDeath();
 }
 
 function showVictory() {
