@@ -2017,6 +2017,99 @@
     .deck-card-item .card-name { font-weight: bold; margin: 4px 0 2px 0; font-size: 12px; }
     .deck-card-item .card-type { font-size: 10px; opacity: 0.8; }
     .deck-card-item .card-count { font-size: 10px; color: #ffd700; margin-top: 2px; }
+    /* V52 融合卡牌样式 */
+    .deck-card-item.fused {
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.8), inset 0 0 10px rgba(255, 215, 0, 0.3);
+      border: 2px solid #ffd700 !important;
+    }
+    .deck-card-item.fuseable {
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0, 255, 127, 0.5);
+      border: 2px solid #00ff7f !important;
+    }
+    .deck-card-item.fuseable:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(0, 255, 127, 0.8);
+    }
+    .fuse-badge {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: linear-gradient(145deg, #ff00ff, #ff66ff);
+      color: #fff;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(255, 0, 255, 0.6);
+      z-index: 10;
+    }
+    .fuse-hint {
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      color: #00ff7f;
+      white-space: nowrap;
+    }
+    #fuse-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    #fuse-overlay.show { display: flex; }
+    #fuse-title { font-size: 24px; color: #ff00ff; margin-bottom: 15px; }
+    #fuse-cards { display: flex; gap: 30px; margin-bottom: 20px; }
+    .fuse-slot {
+      width: 140px;
+      height: 180px;
+      border: 3px dashed #ff00ff;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,0,255,0.1);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .fuse-slot:hover { background: rgba(255,0,255,0.2); }
+    .fuse-slot.filled { border-style: solid; background: rgba(255,215,0,0.2); }
+    .fuse-slot .placeholder { color: #888; font-size: 14px; text-align: center; }
+    #fuse-result { display: none; text-align: center; }
+    #fuse-result.show { display: block; }
+    #fuse-confirm-btn {
+      padding: 12px 40px;
+      font-size: 18px;
+      background: linear-gradient(145deg, #ff00ff, #cc00cc);
+      border: none;
+      border-radius: 25px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 15px;
+    }
+    #fuse-confirm-btn:hover { transform: scale(1.05); }
+    #fuse-confirm-btn:disabled { background: #555; cursor: not-allowed; }
+    #fuse-cancel-btn {
+      padding: 10px 30px;
+      font-size: 16px;
+      background: #555;
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      cursor: pointer;
+      margin-left: 10px;
+    }
     #close-deck-preview-btn {
       margin-top: 15px;
       padding: 10px 30px;
@@ -2573,6 +2666,87 @@
     }
     .gacha-btn:hover { transform: scale(1.05); }
     .gacha-btn:disabled { background: #555; color: #888; cursor: not-allowed; transform: none; }
+
+    /* V52 卡牌等级+星级升级系统样式 */
+    .card-stars { font-size: 10px; color: #ffd700; margin-bottom: 2px; }
+    .card-level { font-size: 10px; color: #4ecdc4; margin-bottom: 2px; font-weight: bold; }
+
+    #upgrade-panel-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 120;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      padding: 20px;
+    }
+    #upgrade-panel-overlay.show { display: flex; }
+    #upgrade-panel-title { font-size: 24px; color: #ffd700; margin-bottom: 15px; }
+    #upgrade-panel-cards {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .upgrade-panel-card {
+      width: 150px;
+      padding: 15px;
+      border-radius: 12px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .upgrade-panel-card .card-cost { top: -10px; left: -10px; }
+    .upgrade-panel-card.attack { background: linear-gradient(145deg, #8b0000, #cd5c5c); border: 3px solid #ff6347; }
+    .upgrade-panel-card.skill { background: linear-gradient(145deg, #00008b, #4169e1); border: 3px solid #6495ed; }
+    .upgrade-panel-card.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 3px solid #da70d6; }
+    .upgrade-action-btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      background: linear-gradient(145deg, #f39c12, #e67e22);
+      border: none;
+      border-radius: 15px;
+      color: #000;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.2s;
+    }
+    .upgrade-action-btn:hover:not(:disabled) { transform: scale(1.05); }
+    .upgrade-action-btn:disabled { background: #555; color: #888; cursor: not-allowed; }
+
+    #deck-management-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 115;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      padding: 20px;
+    }
+    #deck-management-overlay.show { display: flex; }
+    #deck-management-title { font-size: 24px; color: #ffd700; margin-bottom: 15px; }
+    #deck-management-cards {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-height: 65vh;
+      overflow-y: auto;
+      padding: 10px;
+    }
+    .management-card .card-info { font-size: 10px; color: #aaa; margin-top: 4px; }
+
+    /* 升级后边框发光效果 */
+    .card-lv1 { box-shadow: 0 0 8px rgba(46,204,113,0.5); }
+    .card-lv2 { box-shadow: 0 0 10px rgba(52,152,219,0.6); }
+    .card-lv3 { box-shadow: 0 0 12px rgba(155,89,182,0.7); }
+    .card-lv4 { box-shadow: 0 0 14px rgba(231,76,60,0.8); }
+    .card-lv5 { box-shadow: 0 0 16px rgba(243,156,18,0.9); }
   </style>
 </head>
 <body>
@@ -2774,6 +2948,7 @@
     <div id="controls">
       <span id="deck-info">牌组: <span id="deck-count">13</span> | 弃牌堆: <span id="discard-count">0</span></span>
       <button id="deck-preview-btn" style="padding:8px 16px;font-size:14px;background:linear-gradient(145deg,#3498db,#2980b9);border:none;border-radius:15px;color:#fff;cursor:pointer;font-weight:bold;">🃏 牌组</button>
+      <button id="deck-manage-btn" style="padding:8px 16px;font-size:14px;background:linear-gradient(145deg,#9b59b6,#8e44ad);border:none;border-radius:15px;color:#fff;cursor:pointer;font-weight:bold;" onclick="openDeckManagement()">⚡ 强化</button>
       <button id="end-turn">结束回合</button>
     </div>
   </div>
@@ -2917,9 +3092,30 @@
     <button class="sort-btn" data-sort="cost">按费用</button>
     <button class="sort-btn" data-sort="name">按名称</button>
     <button class="sort-btn" data-sort="upgrade">按升级</button>
+    <span style="color:#666;margin-left:10px;">|</span>
+    <button class="fuse-filter-btn" data-filter="fuse" style="padding:6px 14px;font-size:13px;border:2px solid #ff00ff;border-radius:15px;background:#330033;color:#ff66ff;cursor:pointer;">🔥 融合</button>
   </div>
   <div id="deck-preview-grid"></div>
   <button id="close-deck-preview-btn">关闭</button>
+</div>
+
+<!-- V52 卡牌融合遮罩 -->
+<div id="fuse-overlay">
+  <div id="fuse-title">🔥 卡牌融合</div>
+  <div id="fuse-cards">
+    <div class="fuse-slot" id="fuse-slot-1">
+      <span class="placeholder">选择第一张卡牌<br>(点击卡牌)</span>
+    </div>
+    <div class="fuse-slot" id="fuse-slot-2">
+      <span class="placeholder">选择第二张卡牌<br>(点击卡牌)</span>
+    </div>
+  </div>
+  <div id="fuse-result">
+    <div id="fuse-result-card"></div>
+    <div style="color:#aaa;font-size:12px;margin-top:10px;">⚠️ 融合后原卡牌将消失</div>
+    <button id="fuse-confirm-btn" disabled>融合</button>
+  </div>
+  <button id="fuse-cancel-btn">取消</button>
 </div>
 
 <!-- V17 确认移除卡牌对话框 -->
@@ -3836,6 +4032,283 @@ function upgradeCard(card) {
   upgraded.description = `${card.description} ${stars}`;
   
   return upgraded;
+}
+
+// V52: 检查卡牌是否可以融合（同名且未融合过）
+function canFuseCard(card) {
+  if (!card) return false;
+  if (card.fused) return false; // 已融合的卡牌不能再融合
+  return true;
+}
+
+// V52: 融合两张卡牌，返回融合后的新卡牌
+function fuseCards(card1, card2) {
+  if (!canFuseCard(card1) || !canFuseCard(card2)) return null;
+  if (card1.id !== card2.id) return null; // 必须同名
+  
+  // 创建融合卡牌，属性翻倍，费用+1
+  const fusedCard = {
+    ...card1,
+    id: card1.id + '_fused_' + Date.now(),
+    name: card1.name + '+',
+    cost: (card1.cost || 0) + 1,
+    fused: true,
+    fusedFrom: [card1.id, card2.id],
+    upgradeLevel: Math.min((card1.upgradeLevel || 0) + 1, card1.maxUpgradeLevel || 3),
+    // 效果值翻倍
+    effect: { ...card1.effect },
+    description: card1.description + ' [融合]'
+  };
+  
+  // 翻倍效果值
+  const effect = fusedCard.effect;
+  if (effect.damage) effect.damage *= 2;
+  if (effect.block) effect.block *= 2;
+  if (effect.heal) effect.heal *= 2;
+  if (effect.draw) effect.draw *= 2;
+  if (effect.hits) effect.hits *= 2;
+  if (effect.thorns) effect.thorns *= 2;
+  if (effect.energy) effect.energy *= 2;
+  if (effect.lifesteal) effect.lifesteal = Math.min(1, effect.lifesteal * 2);
+  if (effect.nextAttackMult) effect.nextAttackMult *= 2;
+  if (effect.nextCrit) effect.nextCrit *= 2;
+  if (effect.poisonStacks) effect.poisonStacks *= 2;
+  if (effect.burnStacks) effect.burnStacks *= 2;
+  if (effect.burnDamage) effect.burnDamage *= 2;
+  if (effect.vulnerableStacks) effect.vulnerableStacks *= 2;
+  if (effect.weakStacks) effect.weakStacks *= 2;
+  if (effect.bleedStacks) effect.bleedStacks *= 2;
+  if (effect.auraBurn) effect.auraBurn *= 2;
+  if (effect.auraBurnDuration) effect.auraBurnDuration *= 2;
+  if (effect.lifestealAura) effect.lifestealAura = Math.min(1, effect.lifestealAura * 2);
+  if (effect.thornsAura) effect.thornsAura *= 2;
+  if (effect.blockAura) effect.blockAura *= 2;
+  if (effect.startOfTurnDraw) effect.startOfTurnDraw *= 2;
+  if (effect.vampiricAura) effect.vampiricAura = Math.min(1, effect.vampiricAura * 2);
+  if (effect.extraEnergy) effect.extraEnergy *= 2;
+  if (effect.fateDamageMin) effect.fateDamageMin *= 2;
+  if (effect.fateDamageMax) effect.fateDamageMax *= 2;
+  if (effect.fateShieldMin) effect.fateShieldMin *= 2;
+  if (effect.fateShieldMax) effect.fateShieldMax *= 2;
+  if (effect.fateGambleDamage) effect.fateGambleDamage *= 2;
+  
+  return fusedCard;
+}
+
+// V52: 融合系统状态
+let fuseState = {
+  slot1: null, // 第一张选中的卡牌
+  slot2: null, // 第二张选中的卡牌
+  selectingSlot: 1 // 当前正在选择哪个槽位
+};
+
+// V52: 在背包界面显示可融合卡牌（同名卡牌多张）
+function getFuseableCards() {
+  const deck = gameState.deck || [];
+  const cardCounts = {};
+  deck.forEach(card => {
+    if (!card.fused) {
+      if (!cardCounts[card.id]) cardCounts[card.id] = [];
+      cardCounts[card.id].push(card);
+    }
+  });
+  
+  // 返回有2张或以上的可融合卡牌
+  const fuseable = [];
+  Object.values(cardCounts).forEach(cards => {
+    if (cards.length >= 2) {
+      fuseable.push(...cards);
+    }
+  });
+  return fuseable;
+}
+
+// V52: 处理点击卡牌进行融合选择
+function handleFuseCardClick(card) {
+  if (!canFuseCard(card)) return;
+  
+  if (fuseState.selectingSlot === 1) {
+    fuseState.slot1 = card;
+    fuseState.selectingSlot = 2;
+    updateFuseSlots();
+  } else if (fuseState.selectingSlot === 2) {
+    // 如果点击的是同一张卡或者不同名的卡，提示错误
+    if (card.id === fuseState.slot1.id) {
+      fuseState.slot2 = card;
+      fuseState.selectingSlot = 0;
+      updateFuseSlots();
+      showFuseResult();
+    } else {
+      addLog('融合需要两张同名卡牌！', 'debuff');
+    }
+  }
+}
+
+// V52: 更新融合槽位显示
+function updateFuseSlots() {
+  const slot1El = document.getElementById('fuse-slot-1');
+  const slot2El = document.getElementById('fuse-slot-2');
+  
+  if (fuseState.slot1) {
+    slot1El.classList.add('filled');
+    slot1El.innerHTML = createFuseSlotCardHTML(fuseState.slot1);
+  } else {
+    slot1El.classList.remove('filled');
+    slot1El.innerHTML = '<span class="placeholder">选择第一张卡牌<br>(点击卡牌)</span>';
+  }
+  
+  if (fuseState.slot2) {
+    slot2El.classList.add('filled');
+    slot2El.innerHTML = createFuseSlotCardHTML(fuseState.slot2);
+  } else {
+    slot2El.classList.remove('filled');
+    slot2El.innerHTML = '<span class="placeholder">选择第二张卡牌<br>(点击卡牌)</span>';
+  }
+}
+
+// V52: 创建融合槽位卡牌HTML
+function createFuseSlotCardHTML(card) {
+  const bgColors = {
+    attack: 'linear-gradient(145deg, #8b0000, #cd5c5c)',
+    skill: 'linear-gradient(145deg, #00008b, #4169e1)',
+    power: 'linear-gradient(145deg, #4b0082, #9370db)',
+    special: 'linear-gradient(145deg, #1b4e2d, #3f6b4a)',
+    curse: 'linear-gradient(145deg, #2d1b4e, #4a3f6b)',
+    status: 'linear-gradient(145deg, #4e4e4e, #6b6b6b)'
+  };
+  return `
+    <div class="reward-card ${card.type}" style="width:120px;padding:10px;position:relative;">
+      <div class="card-cost">${card.cost}</div>
+      <div class="card-name">${card.name}</div>
+      <div class="card-type">${card.type}</div>
+    </div>
+  `;
+}
+
+// V52: 显示融合结果预览
+function showFuseResult() {
+  const resultDiv = document.getElementById('fuse-result');
+  const resultCardDiv = document.getElementById('fuse-result-card');
+  const confirmBtn = document.getElementById('fuse-confirm-btn');
+  
+  if (fuseState.slot1 && fuseState.slot2) {
+    const fused = fuseCards(fuseState.slot1, fuseState.slot2);
+    if (fused) {
+      resultCardDiv.innerHTML = createFuseResultCardHTML(fused);
+      resultDiv.classList.add('show');
+      confirmBtn.disabled = false;
+    }
+  }
+}
+
+// V52: 创建融合结果卡牌HTML
+function createFuseResultCardHTML(card) {
+  const bgColors = {
+    attack: 'linear-gradient(145deg, #8b0000, #cd5c5c)',
+    skill: 'linear-gradient(145deg, #00008b, #4169e1)',
+    power: 'linear-gradient(145deg, #4b0082, #9370db)',
+    special: 'linear-gradient(145deg, #1b4e2d, #3f6b4a)',
+    curse: 'linear-gradient(145deg, #2d1b4e, #4a3f6b)',
+    status: 'linear-gradient(145deg, #4e4e4e, #6b6b6b)'
+  };
+  return `
+    <div class="reward-card ${card.type}" style="width:140px;padding:15px;position:relative;background:${bgColors[card.type]};border:3px solid #ffd700;box-shadow:0 0 20px rgba(255,215,0,0.8);">
+      <div class="card-cost">${card.cost}</div>
+      <div class="fuse-badge">F</div>
+      <div class="card-name" style="color:#ffd700;font-size:14px;">${card.name}</div>
+      <div class="card-type">${card.type}</div>
+      <div class="card-effect" style="font-size:10px;margin-top:5px;">${card.description}</div>
+    </div>
+    <div style="color:#ff66ff;font-size:12px;margin-top:10px;">→ 属性翻倍，费用+1</div>
+  `;
+}
+
+// V52: 执行融合
+function executeFuse() {
+  if (!fuseState.slot1 || !fuseState.slot2) return;
+  
+  const fused = fuseCards(fuseState.slot1, fuseState.slot2);
+  if (!fused) return;
+  
+  // 从牌组移除原卡牌（各一张）
+  let removed = 0;
+  gameState.deck = gameState.deck.filter(c => {
+    if (removed < 2 && c.id === fuseState.slot1.id) {
+      removed++;
+      return false;
+    }
+    return true;
+  });
+  
+  // 添加融合卡牌
+  gameState.deck.push(fused);
+  
+  addLog(`🔥 卡牌融合成功！获得 ${fused.name}`, 'buff');
+  
+  // 关闭融合界面并刷新
+  closeFuseOverlay();
+  renderDeckCards(currentDeckFilter, currentDeckSort);
+}
+
+// V52: 关闭融合界面
+function closeFuseOverlay() {
+  document.getElementById('fuse-overlay').classList.remove('show');
+  fuseState = { slot1: null, slot2: null, selectingSlot: 1 };
+  document.getElementById('fuse-result').classList.remove('show');
+  document.getElementById('fuse-confirm-btn').disabled = true;
+  updateFuseSlots();
+}
+
+// V52: 渲染融合模式下的卡牌列表
+function renderFuseModeCards() {
+  const grid = document.getElementById('deck-preview-grid');
+  const fuseableCards = getFuseableCards();
+  
+  // 去重显示
+  const seen = new Set();
+  const uniqueFuseable = [];
+  fuseableCards.forEach(card => {
+    if (!seen.has(card.id)) {
+      seen.add(card.id);
+      uniqueFuseable.push(card);
+    }
+  });
+  
+  grid.innerHTML = '';
+  
+  if (uniqueFuseable.length === 0) {
+    grid.innerHTML = '<div style="color:#aaa;text-align:center;padding:40px;font-size:14px;">牌组中没有可融合的卡牌<br><small>（需要2张以上同名卡牌才能融合）</small></div>';
+    return;
+  }
+  
+  uniqueFuseable.forEach(card => {
+    const div = document.createElement('div');
+    div.className = `deck-card-item fuseable ${card.type}`;
+    const bgColors = {
+      attack: 'linear-gradient(145deg, #8b0000, #cd5c5c)',
+      skill: 'linear-gradient(145deg, #00008b, #4169e1)',
+      power: 'linear-gradient(145deg, #4b0082, #9370db)',
+      special: 'linear-gradient(145deg, #1b4e2d, #3f6b4a)',
+      curse: 'linear-gradient(145deg, #2d1b4e, #4a3f6b)',
+      status: 'linear-gradient(145deg, #4e4e4e, #6b6b6b)'
+    };
+    div.style.background = bgColors[card.type] || '#333';
+    div.style.border = '2px solid #00ff7f';
+    
+    const deck = gameState.deck || [];
+    const count = deck.filter(c => c.id === card.id && !c.fused).length;
+    
+    div.innerHTML = `
+      <div class="card-cost">${card.cost}</div>
+      <div class="card-name">${card.name}</div>
+      <div class="card-type">${card.type}</div>
+      <div class="card-count">x${count} 可融合</div>
+      <div class="fuse-hint">点击选择</div>
+    `;
+    
+    div.onclick = () => handleFuseCardClick(card);
+    grid.appendChild(div);
+  });
 }
 
 // V42: 能量石奖励系统
@@ -14807,6 +15280,20 @@ window.addEventListener('offline', updateOnlineStatus);
 
 <!-- Toast通知容器 -->
 <div id="toast-container"></div>
+
+<!-- 升级面板 - 等级+星级升级 -->
+<div id="upgrade-panel-overlay">
+  <div id="upgrade-panel-title">⚡ 卡牌强化</div>
+  <div id="upgrade-panel-cards"></div>
+  <button class="upgrade-action-btn" style="margin-top:15px" onclick="closeUpgradePanel()">关闭</button>
+</div>
+
+<!-- 卡组管理界面 -->
+<div id="deck-management-overlay">
+  <div id="deck-management-title">📚 卡组管理</div>
+  <div id="deck-management-cards"></div>
+  <button class="upgrade-action-btn" style="margin-top:15px" onclick="closeDeckManagement()">关闭</button>
+</div>
 
 </body>
 </html>
