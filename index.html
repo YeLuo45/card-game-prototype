@@ -6858,7 +6858,142 @@ const EVENTS = {
   },
 };
 
-// 随机触发子事件（用于mystery_fate选项）
+  // V59 新增祝福事件
+  blessing_strength: {
+    id: 'blessing_strength',
+    name: '力量圣坛',
+    type: 'mystery',
+    icon: '💪',
+    description: '神圣的光芒环绕着你，感受到无穷的力量涌入体内。',
+    options: [
+      { text: '接受祝福 (+3永久攻击)', effect: () => { gameState.permanentAttackBonus = (gameState.permanentAttackBonus || 0) + 3; return '攻击力永久+3！'; } },
+      { text: '接受赐福 (+5最大HP)', effect: () => { gameState.playerMaxHp += 5; gameState.playerHp += 5; return '最大HP+5！'; } },
+    ],
+  },
+  blessing_energy: {
+    id: 'blessing_energy',
+    name: '能量泉涌',
+    type: 'mystery',
+    icon: '⚡',
+    description: '魔法的能量在你体内涌动，似乎永远也不会枯竭。',
+    options: [
+      { text: '吸收能量 (+1能量/回合)', effect: () => { gameState.bonusEnergyPerTurn = (gameState.bonusEnergyPerTurn || 0) + 1; return '每回合能量+1！'; } },
+      { text: '能量转化 (+20HP)', effect: () => { gameState.playerHp = Math.min(gameState.playerHp + 20, gameState.playerMaxHp); return '吸收能量，恢复20HP'; } },
+    ],
+  },
+  blessing_draw: {
+    id: 'blessing_draw',
+    name: '智慧古树',
+    type: 'mystery',
+    icon: '🌳',
+    description: '古老的树木低语着知识的奥秘，你的思维变得更加敏捷。',
+    options: [
+      { text: '学习智慧 (+1抽牌)', effect: () => { gameState.bonusDrawPerTurn = (gameState.bonusDrawPerTurn || 0) + 1; return '每回合多抽1张牌！'; } },
+      { text: '获得知识 (+1随机卡牌)', effect: () => { addCardToDeck(getRandomCard()); return '获得1张随机卡牌！'; } },
+    ],
+  },
+
+  // V59 新增诅咒事件
+  curse_weak: {
+    id: 'curse_weak',
+    name: '虚弱领域',
+    type: 'mystery',
+    icon: '😈',
+    description: '一股邪恶的气息侵蚀着你的身体，让你感到前所未有的虚弱...',
+    options: [
+      { text: '净化 (-30金币)', effect: () => { if (gameState.gold >= 30) { gameState.gold -= 30; return '支付30金币净化了诅咒'; } else { return '金币不足，诅咒生效'; } }, cost: 30 },
+      { text: '强行通过', effect: () => { gameState.tempWeak = 3; return '获得3回合虚弱'; } },
+      { text: '献祭生命 (抵消诅咒)', effect: () => { if (gameState.playerHp > 15) { gameState.playerHp -= 15; return '献祭15HP抵消了诅咒'; } else { gameState.tempWeak = 3; return 'HP不足，诅咒生效'; } } },
+    ],
+  },
+  curse_vulnerable: {
+    id: 'curse_vulnerable',
+    name: '脆弱诅咒',
+    type: 'mystery',
+    icon: '💔',
+    description: '一个恶毒的魔法让你更容易受伤，你的防御似乎变得脆弱了...',
+    options: [
+      { text: '支付保护费 (-25金币)', effect: () => { if (gameState.gold >= 25) { gameState.gold -= 25; return '支付金币解除了诅咒'; } else { return '金币不足，诅咒生效'; } }, cost: 25 },
+      { text: '承受诅咒', effect: () => { gameState.tempVulnerable = 3; return '获得3回合易伤'; } },
+    ],
+  },
+
+  // V59 新增伏击事件
+  ambush_elite: {
+    id: 'ambush_elite',
+    name: '精英伏击',
+    type: 'elite',
+    icon: '⚠️',
+    description: '你走在路上，突然一群精英怪物从暗处冲出，拦住了你的去路！',
+    options: [
+      { text: '正面迎战!', effect: () => { gameState.forcedElite = true; gameState.eliteDamageBonus = 1.3; return '精英难度+30%！'; } },
+      { text: '逃跑 (-15金币)', effect: () => { if (gameState.gold >= 15) { gameState.gold -= 15; return '扔下金币成功逃脱'; } else { gameState.forcedElite = true; gameState.eliteDamageBonus = 1.5; return '金币不足，被迫战斗！'; } }, cost: 15 },
+    ],
+  },
+  ambush_bandit: {
+    id: 'ambush_bandant',
+    name: '强盗拦截',
+    type: 'mystery',
+    icon: '🗡️',
+    description: '一伙强盗从树林中窜出，要求你交出身上值钱的东西...',
+    options: [
+      { text: '交出30金币', effect: () => { if (gameState.gold >= 30) { gameState.gold -= 30; return '破财消灾...'; } else { gameState.gold = 0; return '金币被全部抢走'; } }, cost: 30 },
+      { text: '战斗!', effect: () => { const goldGain = Math.floor(Math.random() * 20) + 10; gameState.gold += goldGain; return `战胜强盗！获得${goldGain}金币奖励`; } },
+      { text: '交出1张卡牌', effect: () => { if (gameState.deck.length > 3) { removeRandomCard(); return '被迫交出1张卡牌'; } else { return '卡牌不足，强盗不满离开'; } } },
+    ],
+  },
+
+  // V59 新增宝藏事件
+  treasure_relic: {
+    id: 'treasure_relic',
+    name: '遗物宝箱',
+    type: 'treasure',
+    icon: '👑',
+    description: '一个闪烁着神秘光芒的宝箱，里面似乎装着强大的遗物...',
+    options: [
+      { text: '打开宝箱 (获得遗物)', effect: () => { const relic = getRandomRelic(); if (addRelic(relic)) { return `获得了 ${relic.name}！`; } else { return '背包已满，无法获得'; } } },
+      { text: '检查后再开 (可能陷阱)', effect: () => { if (Math.random() > 0.3) { const relic = getRandomRelic(); addRelic(relic); return `安全获得 ${relic.name}！`; } else { const dmg = Math.floor(Math.random() * 10) + 5; gameState.playerHp -= dmg; return `触发陷阱！受到${dmg}点伤害`; } } },
+    ],
+  },
+  treasure_giant: {
+    id: 'treasure_giant',
+    name: '巨人宝藏',
+    type: 'treasure',
+    icon: '💎',
+    description: '一个巨人的尸体旁散落着闪闪发光的财宝，但似乎还有守护者...',
+    options: [
+      { text: '全拿! (+80金币)', effect: () => { gameState.gold += 80; return '获得80金币！'; } },
+      { text: '小心拿 (+40金币, +1遗物)', effect: () => { gameState.gold += 40; const relic = getRandomRelic(); addRelic(relic); return '获得40金币和遗物！'; } },
+      { text: '离开 (太危险)', effect: () => { return '你决定不去冒险...'; } },
+    ],
+  },
+
+  // V59 新增命运抉择
+  fate_choice: {
+    id: 'fate_choice',
+    name: '命运三岔路',
+    type: 'mystery',
+    icon: '🔮',
+    description: '三条道路在你面前交汇，每一条都通向未知的命运...',
+    options: [
+      { text: '左道 (+30金币)', effect: () => { gameState.gold += 30; return '发现金币堆，+30'; } },
+      { text: '中道 (+15HP)', effect: () => { gameState.playerHp = Math.min(gameState.playerHp + 15, gameState.playerMaxHp); return '遇到好心人，+15HP'; } },
+      { text: '右道 (随机事件)', effect: () => { return triggerRandomSubEvent(); } },
+    ],
+  },
+  fate_timeWarp: {
+    id: 'fate_timeWarp',
+    name: '时空裂隙',
+    type: 'mystery',
+    icon: '🌀',
+    description: '一道扭曲的时空裂缝出现在你面前，似乎可以带你到任何地方...',
+    options: [
+      { text: '进入裂隙 (随机传送到节点)', effect: () => { gameState.skipToNextNode = true; return '时空错乱，传送到下一个节点！'; } },
+      { text: '窥视未来 (查看下一个节点)', effect: () => { return '你感知到了下一个节点的信息...（功能待实现）'; } },
+      { text: '离开', effect: () => { return '你决定不去触碰禁忌...'; } },
+    ],
+  },
+};
 function triggerRandomSubEvent() {
   const subEvents = [
     () => { gameState.gold += 20; return '发现隐藏金币，+20'; },
