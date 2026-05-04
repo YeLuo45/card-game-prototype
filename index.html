@@ -250,7 +250,7 @@
       font-size: 12px;
       position: relative;
     }
-    .card:hover { transform: translateY(-8px); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+    .card:hover { transform: translateY(-50px) scale(1.08); z-index: 100; box-shadow: 0 15px 40px rgba(0,0,0,0.5), 0 0 20px rgba(255,215,0,0.3); }
     .card.attack { background: linear-gradient(145deg, #8b0000, #cd5c5c); border: 2px solid #ff6347; }
     .card.skill { background: linear-gradient(145deg, #00008b, #4169e1); border: 2px solid #6495ed; }
     .card.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 2px solid #da70d6; }
@@ -2279,6 +2279,85 @@
       0% { opacity: 0; transform: translateX(-50px) rotate(-10deg); }
       100% { opacity: 1; transform: translateX(0) rotate(0deg); }
     }
+    
+    /* V52 新增抽牌动画 */
+    @keyframes cardDraw {
+      0% { transform: translateX(-300px) translateY(-50px) rotate(-15deg); opacity: 0; }
+      60% { opacity: 1; }
+      100% { transform: translateX(0) translateY(0) rotate(0deg); opacity: 1; }
+    }
+    .card-drawn { animation: cardDraw 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    
+    /* V52 弃牌动画 */
+    @keyframes cardDiscard {
+      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(80px) rotate(20deg); opacity: 0; }
+    }
+    .card-discard { animation: cardDiscard 0.3s ease-in forwards; }
+    
+    /* V52 挥砍特效 */
+    @keyframes slashEffect {
+      0% { transform: scaleX(0.3) scaleY(0.5); opacity: 1; filter: brightness(2); }
+      50% { transform: scaleX(1) scaleY(1); opacity: 1; filter: brightness(1.5); }
+      100% { transform: scaleX(1.3) scaleY(1.2); opacity: 0; filter: brightness(1); }
+    }
+    .slash-effect {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+      animation: slashEffect 0.25s ease-out forwards;
+      pointer-events: none;
+    }
+    
+    /* V52 暴击闪光 */
+    @keyframes criticalFlash {
+      0%, 100% { filter: brightness(1) saturate(1); }
+      25% { filter: brightness(2.5) saturate(1.5) hue-rotate(-10deg); }
+      50% { filter: brightness(1.5) saturate(1.2); }
+    }
+    .critical-hit { animation: criticalFlash 0.4s ease-out; }
+    
+    /* V52 护盾获得光晕 */
+    @keyframes shieldGain {
+      0% { transform: scale(1); filter: brightness(1); }
+      30% { transform: scale(1.15); filter: brightness(1.5) drop-shadow(0 0 15px rgba(100,149,237,0.9)); }
+      100% { transform: scale(1); filter: brightness(1); }
+    }
+    .shield-gain { animation: shieldGain 0.5s ease-out; }
+    
+    /* V52 Buff图标脉冲 */
+    @keyframes buffPulse {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.15); filter: brightness(1.3) drop-shadow(0 0 5px rgba(255,255,100,0.7)); }
+    }
+    .buff-icon { animation: buffPulse 1.2s ease-in-out infinite; }
+    
+    /* V52 Debuff图标警示 */
+    @keyframes debuffPulse {
+      0%, 100% { opacity: 0.7; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.1); filter: brightness(1.2); }
+    }
+    .debuff-icon { animation: debuffPulse 0.8s ease-in-out infinite; }
+    
+    /* V52 能量球发光 */
+    @keyframes energyOrbGlow {
+      0%, 100% { box-shadow: 0 0 8px rgba(255,215,0,0.6), 0 0 15px rgba(255,215,0,0.3); }
+      50% { box-shadow: 0 0 15px rgba(255,215,0,1), 0 0 30px rgba(255,215,0,0.7), 0 0 45px rgba(255,215,0,0.4); }
+    }
+    .energy-orb { animation: energyOrbGlow 1.8s ease-in-out infinite; }
+    
+    /* V52 能量不足时卡牌暗淡 */
+    .card-unplayable { filter: brightness(0.5) saturate(0.6); cursor: not-allowed; }
+    .card-unplayable:hover { transform: translateY(0) !important; }
+    
+    /* V52 治愈特效 */
+    @keyframes healRipple {
+      0% { box-shadow: inset 0 0 0 0 rgba(46,204,113,0); }
+      50% { box-shadow: inset 0 0 30px 10px rgba(46,204,113,0.4); }
+      100% { box-shadow: inset 0 0 0 0 rgba(46,204,113,0); }
+    }
+    .heal-effect { animation: healRipple 0.6s ease-out; }
 
     /* V18 随机事件遮罩 */
     #event-overlay {
@@ -10514,6 +10593,8 @@ function startPlayerTurn() {
 }
 
 function drawCards(n) {
+  // V52: Track the index where new cards start for animation
+  const startIndex = gameState.hand.length;
   for (let i = 0; i < n; i++) {
     if (gameState.drawPile.length === 0) {
       if (gameState.discardPile.length === 0) break;
@@ -10526,6 +10607,11 @@ function drawCards(n) {
       gameState.hand.push(card);
       audioManager.play('draw');
     }
+  }
+  // V52: Mark newly drawn cards for animation
+  gameState.newlyDrawnIndices = [];
+  for (let i = startIndex; i < gameState.hand.length; i++) {
+    gameState.newlyDrawnIndices.push(i);
   }
 }
 
@@ -10540,8 +10626,23 @@ function playCard(card, index) {
   gameState.energy -= card.cost;
   animateEnergySpend();
   audioManager.play('energy');
-  gameState.hand.splice(index, 1);
-  gameState.discardPile.push(card);
+  
+  // V52: Add discard animation before removing card
+  const handContainer = document.getElementById('hand');
+  if (handContainer && handContainer.children[index]) {
+    const cardEl = handContainer.children[index];
+    cardEl.classList.add('card-discard');
+  }
+  
+  // Delay the actual card removal for animation
+  setTimeout(() => {
+    const cardIndex = gameState.hand.findIndex(c => c.id === card.id);
+    if (cardIndex !== -1) {
+      gameState.hand.splice(cardIndex, 1);
+      gameState.discardPile.push(card);
+    }
+    renderUI();
+  }, 280);
 
   // V35 卡牌使用追踪: 使用时记录
   const cardType = card.type || 'special';
@@ -10760,6 +10861,12 @@ function playCard(card, index) {
       const healAmount = Math.min(effect.heal, gameState.playerMaxHp - gameState.playerHp);
       gameState.playerHp += healAmount;
       showDamageNumber(healAmount, 'heal', 'player-area');
+      // V52: Add heal effect animation
+      const playerArea = document.getElementById('player-area');
+      if (playerArea) {
+        playerArea.classList.add('heal-effect');
+        setTimeout(() => playerArea.classList.remove('heal-effect'), 600);
+      }
       audioManager.play('heal');
       addLog(`治疗 ${healAmount} 点生命`, 'heal');
       // V15 removeDebuff (healingWave)
@@ -11158,6 +11265,21 @@ function dealDamageToEnemy(damage) {
       }
     }
     flashEnemy();
+    // V52: Add slash effect on damage
+    const enemyArea = document.getElementById('enemy-area');
+    if (enemyArea) {
+      const slashEl = document.createElement('div');
+      slashEl.className = 'slash-effect';
+      slashEl.style.left = '0';
+      slashEl.style.top = '0';
+      enemyArea.appendChild(slashEl);
+      setTimeout(() => slashEl.remove(), 250);
+    }
+    // V52: Add critical flash for critical hits
+    if (isCritical && enemyArea) {
+      enemyArea.classList.add('critical-hit');
+      setTimeout(() => enemyArea.classList.remove('critical-hit'), 400);
+    }
     showDamageNumber(actualDamage, isCritical ? 'critical' : 'damage', 'enemy-area');
     addLog(`造成 ${actualDamage} 点伤害`, 'damage');
     // V6 遗物效果: 造成伤害时
@@ -13178,8 +13300,16 @@ function renderHand() {
   gameState.hand.forEach((card, index) => {
     const div = document.createElement('div');
     div.className = `card ${card.type}`;
-    if (gameState.energy < card.cost) div.classList.add('disabled');
-    else div.classList.add('playable');
+    // V52: Add card-drawn class to newly drawn cards for animation
+    if (gameState.newlyDrawnIndices && gameState.newlyDrawnIndices.includes(index)) {
+      div.classList.add('card-drawn');
+    }
+    if (gameState.energy < card.cost) {
+      div.classList.add('disabled');
+      div.classList.add('card-unplayable'); // V52: Add unplayable visual state
+    } else {
+      div.classList.add('playable');
+    }
     if (card.upgraded) div.classList.add(card.upgradeLevel >= 2 ? 'upgraded-2' : 'upgraded');
     
     div.innerHTML = `
@@ -13204,6 +13334,11 @@ function renderHand() {
     
     container.appendChild(div);
   });
+  
+  // V52: Clear newly drawn indices after animation frames are set
+  setTimeout(() => {
+    gameState.newlyDrawnIndices = [];
+  }, 400);
   
   updateHandPlayableState();
 }
