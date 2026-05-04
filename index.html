@@ -1308,6 +1308,101 @@
     .relic-choice .relic-name { font-weight: bold; font-size: 16px; color: #ffd700; margin-bottom: 8px; }
     .relic-choice .relic-desc { font-size: 12px; color: #ccc; }
 
+    /* V45 游戏主页落地页 */
+    #game-landing-page {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    #game-landing-page.show { display: flex; }
+    #landing-card {
+      background: linear-gradient(145deg, #1a1a2e, #16213e);
+      border: 2px solid #ffd700;
+      border-radius: 15px;
+      padding: 30px;
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+    }
+    #landing-card h2 {
+      color: #ffd700;
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+    .landing-section {
+      margin: 15px 0;
+      padding: 15px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
+    }
+    .landing-section h3 {
+      color: #4ecdc4;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    .landing-stats {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .landing-stat {
+      font-size: 16px;
+    }
+    .landing-stat.hp { color: #ff6b6b; }
+    .landing-stat.energy { color: #4ecdc4; }
+    .landing-stat.gold { color: #f39c12; }
+    .landing-pets, .landing-relics {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .landing-pet, .landing-relic {
+      font-size: 24px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .landing-pet:hover, .landing-relic:hover { transform: scale(1.2); }
+    .landing-cards-count {
+      color: #fff;
+      font-size: 16px;
+    }
+    #landing-enter-map {
+      margin-top: 20px;
+      padding: 15px 40px;
+      font-size: 20px;
+      background: linear-gradient(145deg, #27ae60, #2ecc71);
+      border: none;
+      border-radius: 25px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.2s;
+    }
+    #landing-enter-map:hover { transform: scale(1.05); }
+    #landing-return-title {
+      margin-top: 10px;
+      padding: 10px 30px;
+      font-size: 16px;
+      background: linear-gradient(145deg, #7f8c8d, #95a5a6);
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    #landing-return-title:hover { transform: scale(1.05); }
+
     /* V29 每日挑战遮罩 */
     #daily-overlay {
       display: none;
@@ -2441,7 +2536,38 @@
   </div>
 </div>
 
-<!-- V40 牌组选择模态框 -->
+<!-- V45 游戏主页落地页 -->
+<div id="game-landing-page">
+  <div id="landing-card">
+    <h2>🏠 第<span id="landing-chapter">1</span>章 - 第<span id="landing-floor">1</span>层</h2>
+    <div class="landing-section">
+      <h3>状态</h3>
+      <div class="landing-stats">
+        <span class="landing-stat hp">❤️ HP: <span id="landing-hp">80</span>/<span id="landing-max-hp">80</span></span>
+        <span class="landing-stat energy">⚡ 能量: <span id="landing-energy">3</span></span>
+        <span class="landing-stat gold">💰 金币: <span id="landing-gold">0</span></span>
+      </div>
+    </div>
+    <div class="landing-section">
+      <h3>🐾 宠物 (<span id="landing-pet-count">0</span>)</h3>
+      <div class="landing-pets" id="landing-pets"></div>
+    </div>
+    <div class="landing-section">
+      <h3>🎁 遗物 (<span id="landing-relic-count">0</span>)</h3>
+      <div class="landing-relics" id="landing-relics"></div>
+    </div>
+    <div class="landing-section">
+      <h3>🎴 卡组</h3>
+      <div class="landing-cards-count">
+        <span id="landing-deck-count">10</span> 张 | 已升级 <span id="landing-upgraded-count">0</span> 张
+      </div>
+    </div>
+    <button id="landing-enter-map">🗺️ 进入地图</button><br>
+    <button id="landing-return-title">🏠 返回首页</button>
+  </div>
+</div>
+
+<!-- V29 每日挑战遮罩 -->
 <div id="deck-select-modal">
   <h2>🎴 选择战斗牌组</h2>
   <div id="deck-cards-container"></div>
@@ -6788,9 +6914,12 @@ function selectStarterRelic(relic) {
   
   addLog(`选择遗物: ${relic.name}`, 'info');
   
-  // 初始化地图
+  // V45: 初始化地图但不显示，先显示落地页
   initMap();
   renderMap();
+  
+  // V45: 显示落地页
+  showGameLandingPage();
   
   // 更新UI
   updateUI();
@@ -6798,6 +6927,83 @@ function selectStarterRelic(relic) {
   
   // V19 显示快速存档按钮
   document.getElementById('quick-save-btn').classList.add('show');
+}
+
+// V45: 显示游戏主页落地页
+function showGameLandingPage() {
+  // 更新落地页内容
+  document.getElementById('landing-chapter').textContent = gameState.currentChapter || 1;
+  document.getElementById('landing-floor').textContent = gameState.currentFloor || 1;
+  document.getElementById('landing-hp').textContent = gameState.playerHp;
+  document.getElementById('landing-max-hp').textContent = gameState.playerMaxHp;
+  document.getElementById('landing-energy').textContent = gameState.energy;
+  document.getElementById('landing-gold').textContent = gameState.gold;
+  
+  // 宠物
+  const petCount = gameState.pets ? gameState.pets.length : 0;
+  document.getElementById('landing-pet-count').textContent = petCount;
+  const petsContainer = document.getElementById('landing-pets');
+  if (petCount > 0) {
+    petsContainer.innerHTML = gameState.pets.map(p => {
+      const petData = PETS[p.id];
+      return petData ? `<span class="landing-pet" title="${petData.name}: ${petData.description}">${petData.icon}</span>` : '';
+    }).join('');
+  } else {
+    petsContainer.innerHTML = '<span style="color:#888;">暂无宠物</span>';
+  }
+  
+  // 遗物
+  const relicCount = gameState.relics ? gameState.relics.length : 0;
+  document.getElementById('landing-relic-count').textContent = relicCount;
+  const relicsContainer = document.getElementById('landing-relics');
+  if (relicCount > 0) {
+    relicsContainer.innerHTML = gameState.relics.map(r => {
+      return `<span class="landing-relic" title="${r.name}: ${r.description}">${r.icon}</span>`;
+    }).join('');
+  } else {
+    relicsContainer.innerHTML = '<span style="color:#888;">暂无遗物</span>';
+  }
+  
+  // 卡组
+  document.getElementById('landing-deck-count').textContent = gameState.deck ? gameState.deck.length : 0;
+  const upgradedCount = gameState.deck ? gameState.deck.filter(c => c.upgradeLevel > 0).length : 0;
+  document.getElementById('landing-upgraded-count').textContent = upgradedCount;
+  
+  // 隐藏地图，显示落地页
+  document.getElementById('map-container').style.display = 'none';
+  document.getElementById('game-landing-page').classList.add('show');
+}
+
+// V45: 从落地页进入地图
+function enterMapFromLanding() {
+  document.getElementById('game-landing-page').classList.remove('show');
+  document.getElementById('map-container').style.display = 'block';
+  gameState.inMap = true;
+}
+
+// V45: 返回首页
+function returnToTitle() {
+  if (confirm('确定要返回首页吗？当前进度将丢失。')) {
+    // 隐藏所有覆盖层
+    document.getElementById('game-landing-page').classList.remove('show');
+    document.getElementById('map-container').style.display = 'none';
+    document.getElementById('game-container').style.display = 'none';
+    document.getElementById('battle-container').style.display = 'none';
+    document.getElementById('log-panel').style.display = 'none';
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('shop-overlay').classList.remove('show');
+    document.getElementById('relic-selection-overlay').classList.remove('show');
+    document.getElementById('deck-select-modal').classList.remove('show');
+    document.getElementById('quick-save-btn').classList.remove('show');
+    
+    // 显示开始界面
+    const startScreen = document.getElementById('start-screen');
+    startScreen.style.display = 'flex';
+    startScreen.style.opacity = '1';
+    
+    // 重置gameState
+    gameState = {};
+  }
 }
 
 // ===== V29 每日挑战系统 =====
@@ -13473,6 +13679,8 @@ document.getElementById('start-btn-retry').onclick = initGame;
 document.getElementById('start-btn-next').onclick = initGame;
 document.getElementById('end-turn').onclick = endTurn;
 document.getElementById('mute-btn').onclick = toggleMute;
+document.getElementById('landing-enter-map').onclick = enterMapFromLanding;
+document.getElementById('landing-return-title').onclick = returnToTitle;
 document.getElementById('map-canvas').onclick = handleMapClick;
 document.getElementById('node-preview-btn').onclick = enterNode;
 document.getElementById('shop-leave').onclick = leaveShop;
