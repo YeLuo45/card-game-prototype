@@ -11668,7 +11668,17 @@ function initGame() {
   // V29 显示遗物选择
   showStarterRelicSelection();
 
-  document.getElementById('start-screen').style.display = 'none';
+  // V41 切换效果：淡出开始画面
+  const startScreen = document.getElementById('start-screen');
+  startScreen.style.transition = 'opacity 0.4s ease-out';
+  startScreen.style.opacity = '0';
+  
+  setTimeout(() => {
+    startScreen.style.display = 'none';
+    startScreen.style.opacity = '';
+    startScreen.style.transition = '';
+  }, 400);
+
   document.getElementById('game-over-screen').classList.remove('show');
   document.getElementById('victory-screen').classList.remove('show');
   document.getElementById('game-container').style.display = 'block';
