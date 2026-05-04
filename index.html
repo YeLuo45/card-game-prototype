@@ -7703,14 +7703,21 @@ function showDeckPreview() {
 }
 
 // V40 牌组选择功能
+// V46: 修改为开始游戏流程的一部分
 function openDeckSelectModal() {
   selectedDeckId = selectedDeckId || 'basic';
   renderDeckOptions();
+  // V46: 开始游戏模式 - 隐藏取消按钮，修改确认按钮文字
+  document.getElementById('deck-select-cancel-btn').style.display = 'none';
+  document.getElementById('deck-select-confirm-btn').textContent = '开始游戏';
   document.getElementById('deck-select-modal').classList.add('show');
 }
 
 function closeDeckSelectModal() {
   document.getElementById('deck-select-modal').classList.remove('show');
+  // V46: 恢复按钮状态（牌组选择模态框可能被中途关闭）
+  document.getElementById('deck-select-cancel-btn').style.display = '';
+  document.getElementById('deck-select-confirm-btn').textContent = '确认选择';
 }
 
 function renderDeckOptions() {
@@ -7753,7 +7760,11 @@ function selectDeck(id) {
 }
 
 function confirmDeckSelection() {
+  // V46: 应用选中的牌组到 gameState
+  gameState.deck = getSelectedDeck();
   closeDeckSelectModal();
+  // V46: 自动进入遗物选择
+  showStarterRelicSelection();
 }
 
 // 渲染牌组卡牌
@@ -12779,23 +12790,25 @@ function updatePetsDisplay() {
   }).join(' ');
 }
 
-function initGame() {
+// V46: 新游戏开始流程 - 先初始化游戏状态，再打开牌组选择
+function startNewGame() {
   // 初始化音效系统
   audioManager.init();
-  
-  // V40 使用预设牌组（玩家选择的牌组）
-  const startingDeck = getSelectedDeck();
-  
+
   // V33 初始化章节状态
   initChapterEnemyPool(1);
   chapterState.currentChapter = 1;
-  
+
+  // V46: 先设置默认牌组（基础牌组），后续 confirmDeckSelection 会更新为用户选择的
+  selectedDeckId = 'basic';
+
+  // 初始化基础游戏状态
   gameState = {
     playerHp: 80,
     playerMaxHp: 80,
     playerShield: 0,
     gold: 0,
-    deck: startingDeck.map(c => ({ ...c, upgradeLevel: 0, maxUpgradeLevel: 3 })),
+    deck: getSelectedDeck().map(c => ({ ...c, upgradeLevel: 0, maxUpgradeLevel: 3 })),
     hand: [],
     drawPile: [],
     discardPile: [],
@@ -12820,20 +12833,16 @@ function initGame() {
     gameOver: false,
     battleLog: [],
     powerCardsPlayedThisCombat: {},
-    // V4 诅咒与特殊状态
     curses: [],
     dodgeNext: 0,
     nextCritMult: 1,
     skipEnemyNextTurn: false,
     poisonStacks: 0,
     bleedStacks: 0,
-    // V7 敌人特殊机制
     enemyThorns: 0,
     summonedMinions: 0,
-    // V11 遗物特殊状态
     guardianHornUsed: false,
     phoenixFeatherUsed: false,
-    // V15 新增状态
     burnStacks: 0,
     comboActive: false,
     nextTurnBlockBonus: 0,
@@ -12843,7 +12852,6 @@ function initGame() {
     thornsAuraValue: 0,
     blockAuraValue: 0,
     quickeningActive: false,
-    // V26 新增状态
     burnReflectActive: false,
     burnReflectValue: 0,
     reflectAuraActive: false,
@@ -12867,10 +12875,8 @@ function initGame() {
     selectedNode: null,
     totalBattlesWon: 0,
     totalGoldEarned: 0,
-    // V6 遗物系统
     relics: [],
     acquiredRelicIds: [],
-    // V9 成就系统
     unlockedAchievements: [],
     achievementStats: {
       totalEnemiesDefeated: 0,
@@ -12883,10 +12889,8 @@ function initGame() {
       speedruns: 0,
       maxCardsAddedInOneRun: 0,
     },
-    // V9 新增统计
     totalVictories: 0,
     totalChaptersCompleted: 0,
-    // V28 终局与周目系统
     ngPlus: 0,
     difficulty: 'normal',
     hiddenEndings: {},
@@ -12898,9 +12902,9 @@ function initGame() {
       enemiesDefeated: 0,
       cardsGained: 0,
       cardsSkipped: 0,
-      cardsPlayed: 0,           // V35 卡牌使用追踪
-      cardsDiscarded: 0,        // V35 卡牌弃置追踪
-      cardUsageByType: { attack: 0, defense: 0, skill: 0, power: 0, curse: 0, fate: 0, special: 0, status: 0 }, // V35 按类型统计
+      cardsPlayed: 0,
+      cardsDiscarded: 0,
+      cardUsageByType: { attack: 0, defense: 0, skill: 0, power: 0, curse: 0, fate: 0, special: 0, status: 0 },
       goldSpent: 0,
       goldEarned: 0,
       timePlayed: 0,
@@ -12920,7 +12924,6 @@ function initGame() {
       cards: {},
       relics: {}
     },
-    // V29 Roguelike变体
     dailySeed: null,
     runSeed: null,
     initialDeckSeed: null,
@@ -12931,29 +12934,23 @@ function initGame() {
     dailyAttempts: 0,
     dailyLastPlayed: null,
     isDailyChallenge: false,
-    // V25 宠物系统（漏掉字段补充）
     pets: [],
     ownedPetIds: [],
     petSkillCooldowns: {},
-    // V32 流派协同系统状态
     archetypeState: {},
-    // BossRush模式状态
     isBossRush: false,
     bossRushIndex: 0,
     bossRushBossesDefeated: 0,
   };
 
-  // V9 加载已解锁的成就
+  // 加载已解锁的成就
   loadAchievements();
-  
-  // V29 显示遗物选择
-  showStarterRelicSelection();
 
   // V41 切换效果：淡出开始画面
   const startScreen = document.getElementById('start-screen');
   startScreen.style.transition = 'opacity 0.4s ease-out';
   startScreen.style.opacity = '0';
-  
+
   setTimeout(() => {
     startScreen.style.display = 'none';
     startScreen.style.opacity = '';
@@ -12963,7 +12960,7 @@ function initGame() {
   document.getElementById('game-over-screen').classList.remove('show');
   document.getElementById('victory-screen').classList.remove('show');
   document.getElementById('game-container').style.display = 'block';
-  document.getElementById('map-container').style.display = 'none'; // V45: 不直接显示地图，由落地页控制
+  document.getElementById('map-container').style.display = 'none';
   document.getElementById('battle-container').style.display = 'none';
   document.getElementById('log-panel').style.display = 'none';
   document.getElementById('overlay').classList.remove('show');
@@ -12973,8 +12970,10 @@ function initGame() {
   initMap();
   renderMap();
 
-  // V19 显示快速存档按钮
   document.getElementById('quick-save-btn').classList.add('show');
+
+  // 打开牌组选择模态框
+  openDeckSelectModal();
 }
 
 // ===== V19 存档系统 =====
@@ -13682,7 +13681,9 @@ function hideTutorial() {
 }
 
 // ===== 事件绑定 =====
-document.getElementById('start-btn').onclick = initGame;
+// V46: 开始游戏按钮打开牌组选择（重新开始）
+document.getElementById('start-btn').onclick = startNewGame;
+// V46: 重玩和下一关直接重新开始（不重新选牌组）
 document.getElementById('start-btn-retry').onclick = initGame;
 document.getElementById('start-btn-next').onclick = initGame;
 document.getElementById('end-turn').onclick = endTurn;
