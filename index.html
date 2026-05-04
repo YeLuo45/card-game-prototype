@@ -1980,6 +1980,10 @@
     .filter-btn.curse.active { background: #8b008b; border-color: #8b008b; }
     .filter-btn.fate.active { background: #00ffff; border-color: #00ffff; color: #000; }
     .filter-btn.status.active { background: #555; border-color: #555; }
+    .filter-btn.fuse.active { background: #9b59b6; border-color: #9b59b6; }
+    .fused-card { border: 3px solid #ffd700 !important; box-shadow: 0 0 15px #ffd700; }
+    .fuse-btn { background: #9b59b6; color: #fff; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer; margin-top: 5px; }
+    .fuse-btn:hover { background: #8e44ad; }
     #deck-preview-grid {
       display: flex;
       gap: 12px;
@@ -2913,6 +2917,7 @@
     <button class="filter-btn special" data-filter="special">特殊</button>
     <button class="filter-btn curse" data-filter="curse">诅咒</button>
     <button class="filter-btn status" data-filter="status">状态</button>
+    <button class="filter-btn fuse" data-filter="fuse" style="background:#9b59b6;border-color:#9b59b6;color:#fff;">🔥 融合</button>
     <span style="color:#666;margin-left:10px;">|</span>
     <button class="sort-btn active" data-sort="type">按类型</button>
     <button class="sort-btn" data-sort="cost">按费用</button>
@@ -8414,15 +8419,31 @@ function renderDeckCards(filter, sortBy) {
     // V17 升级标记
     const upgradeTag = card.upgraded ? (card.upgradeLevel >= 2 ? '★★' : '★') : '';
 
+    // V55 融合标记
+    const fuseTag = card.fused ? ' <span style="color:#ffd700;">⚡</span>' : '';
+
     div.innerHTML = `
       <div class="card-cost">${card.cost}</div>
-      <div class="card-name">${card.name}${upgradeTag}</div>
+      <div class="card-name">${card.name}${upgradeTag}${fuseTag}</div>
       <div class="card-type">${card.type}</div>
       <div class="card-count">x${cardCounts[card.id]}</div>
     `;
 
-    // V17 添加移除按钮（非基础牌）
-    if (!card.basic) {
+    // V55 融合模式：显示融合按钮
+    if (filter === 'fuse') {
+      const fuseBtn = document.createElement('button');
+      fuseBtn.className = 'fuse-btn';
+      fuseBtn.textContent = '🔥 融合';
+      fuseBtn.onclick = (e) => { e.stopPropagation(); fuseCardById(card.id); };
+      div.appendChild(fuseBtn);
+      div.classList.add('fused-card');
+    } else if (card.fused) {
+      // V55 非融合模式也显示融合标记
+      div.classList.add('fused-card');
+    }
+
+    // V17 添加移除按钮（非基础牌且非融合牌）
+    if (!card.basic && !card.fused) {
       const removeBtn = document.createElement('button');
       removeBtn.className = 'remove-card-btn';
       removeBtn.textContent = '×';
@@ -8437,7 +8458,136 @@ function renderDeckCards(filter, sortBy) {
 // 筛选牌组
 function filterDeck(deck, filter) {
   if (filter === 'all') return deck;
+  if (filter === 'fuse') {
+    // V55 融合筛选：只显示有2张以上同名卡的卡牌
+    const cardCounts = {};
+    deck.forEach(card => {
+      if (!cardCounts[card.id]) cardCounts[card.id] = 0;
+      cardCounts[card.id]++;
+    });
+    return deck.filter(card => cardCounts[card.id] >= 2 && !card.fused);
+  }
   return deck.filter(card => card.type === filter);
+}
+
+// V55 融合系统：检查卡牌是否可融合
+function canFuseCard(cardId) {
+  const deck = gameState.deck || [];
+  const cards = deck.filter(c => c.id === cardId && !c.fused);
+  return cards.length >= 2;
+}
+
+// V55 获取可融合的卡牌列表
+function getFuseableCards() {
+  const deck = gameState.deck || [];
+  const cardCounts = {};
+  deck.forEach(card => {
+    if (!card.fused) {
+      if (!cardCounts[card.id]) cardCounts[card.id] = { count: 0, card: card };
+      cardCounts[card.id].count++;
+    }
+  });
+  return Object.values(cardCounts).filter(c => c.count >= 2).map(c => c.card);
+}
+
+// V55 融合卡牌（通过卡牌ID）
+function fuseCardById(cardId) {
+  const deck = gameState.deck || [];
+  const cardsToFuse = deck.filter(c => c.id === cardId && !c.fused);
+
+  if (cardsToFuse.length < 2) {
+    addLog('融合失败：卡牌不足', 'error');
+    return;
+  }
+
+  // 找到要融合的两张卡
+  const card1 = cardsToFuse[0];
+  const card2 = cardsToFuse[1];
+
+  // 创建融合卡牌（属性翻倍，费用+1）
+  const fusedCard = {
+    ...card1,
+    uid: generateUid(),
+    fused: true,
+    cost: (card1.cost || 0) + 1,
+    // 数值属性翻倍
+    damage: card1.damage ? card1.damage * 2 : (card1.effect && card1.effect.damage ? card1.effect.damage * 2 : 0),
+    shield: card1.shield ? card1.shield * 2 : (card1.effect && card1.effect.shield ? card1.effect.shield * 2 : 0),
+    heal: card1.heal ? card1.heal * 2 : (card1.effect && card1.effect.heal ? card1.effect.heal * 2 : 0),
+    effect: card1.effect ? {
+      ...card1.effect,
+      damage: card1.effect.damage ? card1.effect.damage * 2 : 0,
+      shield: card1.effect.shield ? card1.effect.shield * 2 : 0,
+      heal: card1.effect.heal ? card1.effect.heal * 2 : 0,
+      value: card1.effect.value ? card1.effect.value * 2 : (card1.effect.damage || card1.effect.shield || card1.effect.heal || 0)
+    } : null,
+    description: card1.description ? card1.description + ' [融合]' : '[融合卡牌]',
+    // 保留原始信息用于显示
+    fusedFrom: card1.name,
+    name: card1.name + ' ⚡'
+  };
+
+  // 从牌组移除2张原卡
+  let removed = 0;
+  gameState.deck = gameState.deck.filter(c => {
+    if (c.uid === card1.uid && removed === 0) { removed++; return false; }
+    if (c.uid === card2.uid && removed === 1) { removed++; return false; }
+    return true;
+  });
+
+  // 添加融合卡
+  gameState.deck.push(fusedCard);
+
+  addLog(`融合成功：${fusedCard.name}`, 'success');
+
+  // V55: 显示融合动画效果
+  showFuseSuccessAnimation(fusedCard);
+
+  // 刷新界面
+  renderDeckCards(currentDeckFilter, currentDeckSort);
+
+  // 更新成就
+  gameState.achievementStats.cardsFused = (gameState.achievementStats.cardsFused || 0) + 1;
+}
+
+// V55 融合成功动画
+function showFuseSuccessAnimation(card) {
+  // 创建临时融合提示
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #9b59b6, #e74c3c);
+    color: #fff;
+    padding: 20px 40px;
+    border-radius: 10px;
+    font-size: 18px;
+    z-index: 10000;
+    box-shadow: 0 0 30px rgba(155, 89, 182, 0.8);
+    animation: fuseFlash 1.5s ease-out forwards;
+  `;
+  overlay.innerHTML = `🔥 融合成功！<br><strong>${card.name}</strong><br>费用+1 属性翻倍！`;
+  document.body.appendChild(overlay);
+
+  // 创建动画
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes fuseFlash {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+      30% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+      60% { transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // 1.5秒后移除
+  setTimeout(() => {
+    overlay.remove();
+    style.remove();
+  }, 1500);
 }
 
 // V17 卡牌移除相关变量
