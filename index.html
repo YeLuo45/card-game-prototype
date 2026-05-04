@@ -2814,6 +2814,7 @@
     <button class="reward-type-btn" data-type="sell">💰 出售</button>
   </div>
   <div id="reward-cards"></div>
+  <div id="deck-replace-area" style="display:none;"></div>
   <div id="reward-relics" style="display:none"></div>
   <div id="reward-upgrade" style="display:none"></div>
   <div id="reward-sell" style="display:none"></div>
@@ -3672,6 +3673,13 @@ const REWARD_POOLS = {
   rare: RARE_REWARD_POOL,
   all: [...COMMON_REWARD_POOL, ...RARE_REWARD_POOL]
 };
+
+// ===== V53 战斗后牌组构建系统 =====
+// 完整卡牌池（用于战斗后选择卡牌加入牌组）
+const CARD_POOL = [
+  ...REWARD_CARD_POOL,
+  ...SHOP_CARD_POOL.filter(c => !REWARD_CARD_POOL.some(r => r.id === c.id)),
+];
 
 const CURSE_CARDS_POOL = [
   CARDS.painCurse,
@@ -6474,10 +6482,146 @@ function addCardToDeck(card) {
   if (!card.uid) card.uid = generateUid();
   // V40: 添加升级相关属性
   const cardWithUpgrade = { ...card, upgradeLevel: 0, maxUpgradeLevel: 3 };
+  
+  // V53: 检查牌组是否已满，满了则显示替换界面
+  if (gameState.deck.length >= DECK_CONFIG.MAX_SIZE) {
+    showDeckReplaceChoice(cardWithUpgrade);
+    return;
+  }
+  
   gameState.deck.push(cardWithUpgrade);
   // V24 跟踪本局添加的卡牌数
   gameState.achievementStats.maxCardsAddedInOneRun = (gameState.achievementStats.maxCardsAddedInOneRun || 0) + 1;
+  if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
+    gameState.achievementStats.maxCardsOwned = gameState.deck.length;
+  }
   addLog(`获得卡牌: ${card.name}`, 'card');
+}
+
+// V53: 显示卡牌替换界面（当牌组已满时）
+let pendingReplaceCard = null; // 待替换的新卡牌
+
+function showDeckReplaceChoice(newCard) {
+  pendingReplaceCard = newCard;
+  
+  const deckReplaceArea = document.getElementById('deck-replace-area');
+  const rewardCards = document.getElementById('reward-cards');
+  
+  if (!deckReplaceArea) return;
+  
+  // 隐藏奖励卡牌区域，显示替换界面
+  rewardCards.style.display = 'none';
+  deckReplaceArea.style.display = 'block';
+  
+  // 更新标题提示
+  const overlayTitle = document.getElementById('overlay-title');
+  const overlaySubtitle = document.getElementById('overlay-subtitle');
+  if (overlayTitle) overlayTitle.textContent = '⚠️ 牌组已满！选择一张卡牌替换';
+  if (overlaySubtitle) overlaySubtitle.textContent = `新卡: ${newCard.name} | 替换后牌组仍为${DECK_CONFIG.MAX_SIZE}张`;
+  
+  // 显示新卡预览和当前牌组
+  deckReplaceArea.innerHTML = `
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin: 15px 0;">
+      <div style="color: #ffd700; font-size: 16px;">新卡牌预览:</div>
+      <div class="reward-card ${newCard.type}" style="width: 130px;">
+        <div class="card-cost">${newCard.cost}</div>
+        <div class="card-name">${newCard.name}</div>
+        <div class="card-type">${getCardTypeName(newCard.type)}</div>
+        <div class="card-effect">${newCard.description || ''}</div>
+      </div>
+      <div style="color: #ff6b6b; font-size: 14px;">点击下方你要替换的卡牌:</div>
+      <div id="deck-cards-to-replace" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-height: 300px; overflow-y: auto; padding: 10px;">
+      </div>
+      <button id="skip-replace-btn" style="padding: 8px 20px; background: #555; border: none; border-radius: 15px; color: #fff; cursor: pointer; font-size: 14px;">保留新卡，替换随机旧卡</button>
+    </div>
+  `;
+  
+  // 渲染牌组卡牌（可点击替换）
+  const deckContainer = document.getElementById('deck-cards-to-replace');
+  if (deckContainer) {
+    // 显示牌组中所有非basic的卡牌（基础卡不可替换）
+    const replaceableCards = gameState.deck.filter(c => !c.basic);
+    if (replaceableCards.length === 0) {
+      deckContainer.innerHTML = '<div style="color: #aaa; padding: 20px;">牌组中没有可替换的卡牌（基础卡不可替换）</div>';
+    } else {
+      replaceableCards.forEach((card) => {
+        const div = document.createElement('div');
+        div.className = `reward-card ${card.type}`;
+        div.style.width = '100px';
+        div.style.cursor = 'pointer';
+        div.innerHTML = `
+          <div class="card-cost">${card.cost}</div>
+          <div class="card-name" style="font-size: 11px;">${card.name}</div>
+          <div class="card-type" style="font-size: 9px;">${getCardTypeName(card.type)}</div>
+        `;
+        div.onclick = () => confirmReplace(card);
+        deckContainer.appendChild(div);
+      });
+    }
+  }
+  
+  // 跳过按钮：随机替换一张非基础卡
+  const skipBtn = document.getElementById('skip-replace-btn');
+  if (skipBtn) {
+    const replaceableCards = gameState.deck.filter(c => !c.basic);
+    if (replaceableCards.length === 0) {
+      skipBtn.style.display = 'none';
+    } else {
+      skipBtn.onclick = () => {
+        const randomCard = replaceableCards[Math.floor(Math.random() * replaceableCards.length)];
+        confirmReplace(randomCard);
+      };
+    }
+  }
+}
+
+// V53: 确认替换卡牌
+function confirmReplace(oldCard) {
+  if (!pendingReplaceCard) return;
+  
+  // 从牌组移除旧卡
+  const idx = gameState.deck.findIndex(c => c.uid === oldCard.uid);
+  if (idx !== -1) {
+    gameState.deck.splice(idx, 1);
+  }
+  
+  // 添加新卡
+  gameState.deck.push(pendingReplaceCard);
+  
+  // V24 跟踪本局添加的卡牌数
+  gameState.achievementStats.maxCardsAddedInOneRun = (gameState.achievementStats.maxCardsAddedInOneRun || 0) + 1;
+  if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
+    gameState.achievementStats.maxCardsOwned = gameState.deck.length;
+  }
+  
+  addLog(`替换卡牌: ${oldCard.name} → ${pendingReplaceCard.name}`, 'card');
+  audioManager.play('chestOpen');
+  
+  // 清除待替换状态
+  pendingReplaceCard = null;
+  
+  // 恢复奖励界面
+  finishDeckReplace();
+}
+
+// V53: 完成替换，恢复奖励界面流程
+function finishDeckReplace() {
+  const deckReplaceArea = document.getElementById('deck-replace-area');
+  const rewardCards = document.getElementById('reward-cards');
+  
+  if (deckReplaceArea) {
+    deckReplaceArea.style.display = 'none';
+    deckReplaceArea.innerHTML = '';
+  }
+  if (rewardCards) {
+    rewardCards.style.display = 'flex';
+  }
+  
+  // 恢复标题
+  const overlayTitle = document.getElementById('overlay-title');
+  const overlaySubtitle = document.getElementById('overlay-subtitle');
+  if (overlayTitle) overlayTitle.textContent = '🎉 战斗胜利！选择奖励卡牌';
+  if (overlaySubtitle) overlaySubtitle.textContent = `牌组：${gameState.deck.length}张 | 选择卡牌加入你的牌组`;
 }
 
 // ===== 游戏状态 =====
@@ -12637,14 +12781,11 @@ function selectRewardCard(card) {
     return;
   }
   
-  gameState.deck.push({ ...card, uid: generateUid() });
+  // V53: 使用addCardToDeck处理（自动检测牌组是否已满，触发替换界面）
+  addCardToDeck(card);
+  
   gameState.pendingSelectedCards.push(card);
   audioManager.play('chestOpen');
-
-  if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
-    gameState.achievementStats.maxCardsOwned = gameState.deck.length;
-  }
-  addLog(`获得新卡: ${card.name}`, 'info');
 
   // 从待选中移除（防止重选）
   gameState.pendingCardRewards = gameState.pendingCardRewards.filter(c => c !== card);
