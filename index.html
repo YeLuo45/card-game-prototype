@@ -5478,11 +5478,380 @@ const PETS = {
         applyDebuffToEnemy('poison', 10, 3);
         addLog('🐍 毒液喷射！敌人中毒10层！');
       }
-    },
-    cost: 140,
-    unlockWins: 12,
+  },
+  cost: 140,
+  unlockWins: 12,
+};
+
+// V56 宠物进化配置
+const PET_EVOLUTIONS = {
+  shadowBat: {
+    condition: 'killCount',
+    requirement: 15,
+    evolvesTo: 'shadowDemon',
+    name: '暗影恶魔',
+    icon: '👿',
+    description: '击杀15个敌人后进化',
+    statBonus: { hp: 1.5, attack: 1.3 },
+    newSkill: 'lifeSteal',
+    newEffect: { onKill: { effect: 'energy' }, lifesteal: 0.2 },
+    skillName: '暗影冲刺',
+    skillCost: 1,
+    skillCooldown: 2,
+    skillDesc: '对随机敌人造成6点伤害×2次，20%吸血'
+  },
+  shieldTurtle: {
+    condition: 'damageBlocked',
+    requirement: 100,
+    evolvesTo: 'ancientTurtle',
+    name: '远古巨龟',
+    icon: '🐢',
+    description: '累计格挡100点伤害后进化',
+    statBonus: { hp: 1.6, attack: 1.2 },
+    newSkill: '龟甲反击',
+    newEffect: { startOfCombatBlock: 12, startOfTurnBlock: 3, thorns: 3 },
+    skillName: '龟甲反击',
+    skillCost: 2,
+    skillCooldown: 3,
+    skillDesc: '获得12点护甲，反弹6点伤害'
+  },
+  goldMoth: {
+    condition: 'killCount',
+    requirement: 10,
+    evolvesTo: 'goldenButterfly',
+    name: '金色蝴蝶',
+    icon: '🦋',
+    description: '击杀10个敌人后进化',
+    statBonus: { hp: 1.4, attack: 1.4 },
+    newSkill: '金光闪烁',
+    newEffect: { onKill: { effect: 'gold' }, goldFind: 0.1 },
+    skillName: '金光闪烁',
+    skillCost: 1,
+    skillCooldown: 3,
+    skillDesc: '获得12金币，有击杀时三倍'
+  },
+  venomSnake: {
+    condition: 'damageDealt',
+    requirement: 300,
+    evolvesTo: 'viperKing',
+    name: '毒蟒之王',
+    icon: '🐍',
+    description: '累计造成300点伤害后进化',
+    statBonus: { hp: 1.5, attack: 1.5 },
+    newSkill: '毒液喷射',
+    newEffect: { onDamageDealt: { effect: 'poison', chance: 0.5, stacks: 5 } },
+    skillName: '毒液喷射',
+    skillCost: 2,
+    skillCooldown: 2,
+    skillDesc: '给敌人附加15层中毒'
+  },
+  battleBear: {
+    condition: 'battlesWon',
+    requirement: 8,
+    evolvesTo: 'warBear',
+    name: '战熊',
+    icon: '🐻',
+    description: '赢得8场战斗后进化',
+    statBonus: { hp: 1.6, attack: 1.4 },
+    newSkill: '怒吼',
+    newEffect: { startOfCombatBlock: 5, attackDamageMod: 0.2 },
+    skillName: '怒吼',
+    skillCost: 2,
+    skillCooldown: 2,
+    skillDesc: '本回合攻击力+80%，获得5护甲'
+  },
+  slime: {
+    condition: 'damageDealt',
+    requirement: 150,
+    evolvesTo: 'crystalSlime',
+    name: '水晶史莱姆',
+    icon: '💎',
+    description: '累计造成150点伤害后进化',
+    statBonus: { hp: 1.5, attack: 1.3 },
+    newSkill: '黏液攻击',
+    newEffect: { startOfTurnShield: 3, attackPoison: true },
+    skillName: '黏液攻击',
+    skillCost: 2,
+    skillCooldown: 2,
+    skillDesc: '造成5点伤害，减速2回合'
+  },
+  fireSprite: {
+    condition: 'damageDealt',
+    requirement: 200,
+    evolvesTo: 'infernoPhoenix',
+    name: '地狱凤凰',
+    icon: '🔥',
+    description: '累计造成200点伤害后进化',
+    statBonus: { hp: 1.6, attack: 1.5 },
+    newSkill: '火焰冲击',
+    newEffect: { attackDamageBonus: 4, burnDamage: 2 },
+    skillName: '火焰冲击',
+    skillCost: 2,
+    skillCooldown: 2,
+    skillDesc: '造成8点伤害，50%概率灼烧3层'
+  },
+  critOwl: {
+    condition: 'criticalHits',
+    requirement: 20,
+    evolvesTo: 'deathOwl',
+    name: '死神之鹰',
+    icon: '🦉',
+    description: '累计暴击20次后进化',
+    statBonus: { hp: 1.4, attack: 1.5, criticalChance: 0.2 },
+    newSkill: '致命打击',
+    newEffect: { criticalChance: 0.25, criticalMult: 0.5 },
+    skillName: '致命打击',
+    skillCost: 2,
+    skillCooldown: 3,
+    skillDesc: '本回合暴击率+50%，暴击伤害+100%'
+  },
+  thunderDragon: {
+    condition: 'damageDealt',
+    requirement: 400,
+    evolvesTo: 'stormDragon',
+    name: '风暴巨龙',
+    icon: '⚡',
+    description: '累计造成400点伤害后进化',
+    statBonus: { hp: 1.7, attack: 1.6 },
+    newSkill: '雷击',
+    newEffect: { startOfTurnEnergy: 1, paralyzeChance: 0.3 },
+    skillName: '雷击',
+    skillCost: 2,
+    skillCooldown: 2,
+    skillDesc: '造成12点伤害，50%概率麻痹2回合'
+  },
+  iceGolem: {
+    condition: 'damageBlocked',
+    requirement: 80,
+    evolvesTo: 'frostColossus',
+    name: '冰霜巨像',
+    icon: '🧊',
+    description: '累计格挡80点伤害后进化',
+    statBonus: { hp: 1.7, attack: 1.3, damageReduction: 2 },
+    newSkill: '冰冻打击',
+    newEffect: { damageReduction: 3, freezeChance: 0.3 },
+    skillName: '冰冻打击',
+    skillCost: 3,
+    skillCooldown: 2,
+    skillDesc: '造成6点伤害，冰冻2回合'
   }
 };
+
+// V56 宠物进化进度状态（跟踪每只宠物的进化条件进度）
+if (!gameState.petEvolutionProgress) {
+  gameState.petEvolutionProgress = {};
+}
+
+// V56 检查宠物是否可以进化
+function canEvolvePet(petId) {
+  const petConfig = PETS[petId];
+  const evolution = PET_EVOLUTIONS[petId];
+  if (!petConfig || !evolution) return false;
+  if (gameState.petEvolutionProgress[petId]?.evolved) return false;
+
+  const progress = gameState.petEvolutionProgress[petId] || {};
+  switch (evolution.condition) {
+    case 'killCount': return (progress.killCount || 0) >= evolution.requirement;
+    case 'damageDealt': return (progress.damageDealt || 0) >= evolution.requirement;
+    case 'damageBlocked': return (progress.damageBlocked || 0) >= evolution.requirement;
+    case 'battlesWon': return (progress.battlesWon || 0) >= evolution.requirement;
+    case 'criticalHits': return (progress.criticalHits || 0) >= evolution.requirement;
+    default: return false;
+  }
+}
+
+// V56 获取宠物进化进度
+function getEvolutionProgress(petId) {
+  const evolution = PET_EVOLUTIONS[petId];
+  if (!evolution) return null;
+
+  const progress = gameState.petEvolutionProgress[petId] || {};
+  const current = progress[evolution.condition] || 0;
+  return {
+    current,
+    requirement: evolution.requirement,
+    percentage: Math.min(100, Math.floor((current / evolution.requirement) * 100)),
+    evolved: progress.evolved || false
+  };
+}
+
+// V56 更新宠物进化进度
+function updatePetEvolutionProgress(petId, condition, value) {
+  if (!gameState.petEvolutionProgress[petId]) {
+    gameState.petEvolutionProgress[petId] = {};
+  }
+  if (!gameState.petEvolutionProgress[petId][condition]) {
+    gameState.petEvolutionProgress[petId][condition] = 0;
+  }
+  gameState.petEvolutionProgress[petId][condition] += value;
+
+  // 检查是否可以进化
+  if (canEvolvePet(petId)) {
+    showPetEvolutionAvailable(petId);
+  }
+}
+
+// V56 显示宠物可以进化
+function showPetEvolutionAvailable(petId) {
+  const evolution = PET_EVOLUTIONS[petId];
+  if (!evolution) return;
+
+  // 创建进化提示
+  const overlay = document.createElement('div');
+  overlay.id = 'evolution-available-overlay';
+  overlay.style.cssText = `
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7); z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+  `;
+  overlay.innerHTML = `
+    <div style="
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      border: 3px solid #ffd700;
+      border-radius: 15px;
+      padding: 30px;
+      text-align: center;
+      max-width: 400px;
+      box-shadow: 0 0 40px rgba(255, 215, 0, 0.5);
+    ">
+      <div style="font-size: 48px; margin-bottom: 15px;">${evolution.icon}</div>
+      <div style="color: #ffd700; font-size: 24px; margin-bottom: 10px;">宠物可以进化！</div>
+      <div style="color: #fff; font-size: 18px; margin-bottom: 20px;">
+        ${PETS[petId].name} → ${evolution.name}
+      </div>
+      <div style="color: #aaa; font-size: 14px; margin-bottom: 20px;">
+        ${evolution.description}
+      </div>
+      <button id="evolve-pet-btn" style="
+        background: linear-gradient(135deg, #9b59b6, #e74c3c);
+        color: #fff; border: none; padding: 12px 30px;
+        font-size: 18px; border-radius: 8px; cursor: pointer;
+        margin: 5px;
+      ">🔥 立即进化</button>
+      <button id="later-evolve-btn" style="
+        background: #555; color: #fff; border: none; padding: 12px 30px;
+        font-size: 16px; border-radius: 8px; cursor: pointer; margin: 5px;
+      ">稍后再说</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  document.getElementById('evolve-pet-btn').onclick = () => {
+    evolvePet(petId);
+    overlay.remove();
+  };
+  document.getElementById('later-evolve-btn').onclick = () => overlay.remove();
+}
+
+// V56 执行宠物进化
+function evolvePet(petId) {
+  const evolution = PET_EVOLUTIONS[petId];
+  if (!evolution || canEvolvePet(petId) === false) return;
+
+  const petConfig = PETS[petId];
+
+  // 更新宠物状态
+  if (!gameState.petEvolutionProgress[petId]) {
+    gameState.petEvolutionProgress[petId] = {};
+  }
+  gameState.petEvolutionProgress[petId].evolved = true;
+  gameState.petEvolutionProgress[petId].evolvedForm = evolution.evolvesTo;
+
+  // 更新宠物属性加成
+  if (!gameState.petStatsBonus) gameState.petStatsBonus = {};
+  gameState.petStatsBonus[petId] = {
+    hpMult: evolution.statBonus.hp,
+    attackMult: evolution.statBonus.attack,
+    evolved: true
+  };
+
+  // 应用新效果
+  if (evolution.newEffect) {
+    applyPetEvolutionEffect(petId, evolution.newEffect);
+  }
+
+  addLog(`🔥 ${petConfig.name} 进化为 ${evolution.name}！`, 'success');
+
+  // 刷新宠物界面
+  if (typeof renderPets === 'function') renderPets();
+  if (typeof updatePetUI === 'function') updatePetUI();
+
+  // 显示进化成功动画
+  showEvolutionSuccessAnimation(evolution);
+}
+
+// V56 应用宠物进化效果
+function applyPetEvolutionEffect(petId, newEffect) {
+  // 这里可以添加更复杂的进化效果应用逻辑
+  // 目前通过更新宠物状态来触发效果
+  if (!gameState.evolvedPetEffects) gameState.evolvedPetEffects = {};
+  gameState.evolvedPetEffects[petId] = newEffect;
+}
+
+// V56 进化成功动画
+function showEvolutionSuccessAnimation(evolution) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 80px;
+    z-index: 10000;
+    animation: evolveFlash 2s ease-out forwards;
+    pointer-events: none;
+  `;
+  overlay.textContent = evolution.icon;
+  document.body.appendChild(overlay);
+
+  const style = document.createElement('style');
+  style.id = 'evolution-anim-style';
+  style.textContent = `
+    @keyframes evolveFlash {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.3) rotate(0deg); }
+      30% { opacity: 1; transform: translate(-50%, -50%) scale(1.5) rotate(180deg); }
+      60% { transform: translate(-50%, -50%) scale(1.2) rotate(360deg); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5) rotate(720deg); }
+    }
+  `;
+  document.head.appendChild(style);
+
+  setTimeout(() => {
+    overlay.remove();
+    style.remove();
+  }, 2000);
+}
+
+// V56 在宠物面板显示进化进度
+function getPetEvolutionDisplay(petId) {
+  const evolution = PET_EVOLUTIONS[petId];
+  if (!evolution) return '';
+
+  const progress = getEvolutionProgress(petId);
+  if (!progress) return '';
+
+  if (progress.evolved) {
+    return `<span style="color:#ffd700;">⚡已进化</span>`;
+  }
+
+  return `<span style="color:#9b59b6;">${progress.current}/${progress.requirement} (${progress.percentage}%)</span>`;
+}
+
+// V56 宠物进化时更新技能
+function updatePetActiveSkill(petId) {
+  const evolution = PET_EVOLUTIONS[petId];
+  const progress = gameState.petEvolutionProgress[petId];
+  if (!evolution || !progress?.evolved) return;
+
+  const pet = gameState.pets?.find(p => p.id === petId);
+  if (pet && PETS[petId]) {
+    PETS[petId].activeSkill = {
+      name: evolution.skillName,
+      cost: evolution.skillCost,
+      cooldown: evolution.skillCooldown,
+      desc: evolution.skillDesc,
+      execute: PETS[petId].activeSkill?.execute || (() => {})
+    };
+  }
+}
 
 // 宠物池
 const PET_POOL = Object.values(PETS);
@@ -11599,6 +11968,22 @@ function dealDamageToEnemy(damage) {
       }
     });
 
+    // V56 宠物进化进度 - 造成伤害统计
+    getEquippedPets().forEach(pet => {
+      if (PET_EVOLUTIONS[pet.id]) {
+        updatePetEvolutionProgress(pet.id, 'damageDealt', actualDamage);
+      }
+    });
+
+    // V56 宠物进化进度 - 暴击统计
+    if (isCritical) {
+      getEquippedPets().forEach(pet => {
+        if (PET_EVOLUTIONS[pet.id] && PET_EVOLUTIONS[pet.id].condition === 'criticalHits') {
+          updatePetEvolutionProgress(pet.id, 'criticalHits', 1);
+        }
+      });
+    }
+
     // V11 血之誓言: 30%几率双倍伤害
     if (hasRelic('bloodOath') && Math.random() < 0.3) {
       gameState.enemyHp -= actualDamage;
@@ -12262,7 +12647,15 @@ function dealDamageToPlayer(damage, isEnemyAttack = true) {
     const blocked = Math.min(gameState.playerShield, damage);
     gameState.playerShield -= blocked;
     damage -= blocked;
-    if (blocked > 0) addLog(`护甲抵消 ${blocked} 点伤害`, 'block');
+    if (blocked > 0) {
+      addLog(`护甲抵消 ${blocked} 点伤害`, 'block');
+      // V56 宠物进化进度 - 格挡统计
+      getEquippedPets().forEach(pet => {
+        if (PET_EVOLUTIONS[pet.id]) {
+          updatePetEvolutionProgress(pet.id, 'damageBlocked', blocked);
+        }
+      });
+    }
   }
   
   if (gameState.thorns > 0 && isEnemyAttack) {
@@ -12439,10 +12832,20 @@ function checkEnemyDeath() {
         gameState.gold += 5;
         addLog(`🦋 击杀+5金币！`, 'info');
       }
+      // V56 宠物进化进度 - 击杀统计
+      if (PET_EVOLUTIONS[pet.id]) {
+        updatePetEvolutionProgress(pet.id, 'killCount', 1);
+      }
     });
     
     completeNode(gameState.currentNode);
     gameState.totalBattlesWon++;
+    // V56 宠物进化进度 - 战斗胜利统计
+    getEquippedPets().forEach(pet => {
+      if (PET_EVOLUTIONS[pet.id]) {
+        updatePetEvolutionProgress(pet.id, 'battlesWon', 1);
+      }
+    });
     // V9 成就统计更新
     gameState.achievementStats.totalEnemiesDefeated++;
     if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
