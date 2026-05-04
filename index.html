@@ -13944,6 +13944,184 @@ function hideTutorial() {
   document.getElementById('tutorial-highlight').innerHTML = '';
 }
 
+// V48: initGame - 用于retry/next，保持当前牌组和遗物，重新开始战斗
+function initGame() {
+  // 保存需要保留的状态
+  const savedDeck = gameState.deck || [];
+  const savedRelics = gameState.relics || [];
+  const savedAcquiredRelicIds = gameState.acquiredRelicIds || [];
+  const savedGold = gameState.gold || 0;
+  const savedAchievements = gameState.unlockedAchievements || [];
+  const savedAchievementStats = gameState.achievementStats || {};
+  const savedTotalVictories = gameState.totalVictories || 0;
+  const savedPets = gameState.pets || [];
+  const savedOwnedPetIds = gameState.ownedPetIds || [];
+  const savedPetSkillCooldowns = gameState.petSkillCooldowns || {};
+  const savedArchetype = gameState.archetype || 'strength';
+
+  // 重置游戏状态
+  gameState = {
+    playerHp: 80,
+    playerMaxHp: 80,
+    playerShield: 0,
+    gold: savedGold,
+    deck: savedDeck,
+    hand: [],
+    drawPile: [],
+    discardPile: [],
+    energy: 3,
+    maxEnergy: 3,
+    turn: 1,
+    enemy: null,
+    enemyHp: 0,
+    enemyMaxHp: 0,
+    enemyArmor: 0,
+    enemyIntent: null,
+    enemyIntentValue: 0,
+    playerDebuffs: [],
+    enemyDebuffs: [],
+    thorns: 0,
+    aoeDamage: 0,
+    burnChance: 0,
+    burnDamage: 0,
+    burnDuration: 0,
+    nextAttackMult: 1,
+    thornsActive: false,
+    gameOver: false,
+    battleLog: [],
+    powerCardsPlayedThisCombat: {},
+    curses: [],
+    dodgeNext: 0,
+    nextCritMult: 1,
+    skipEnemyNextTurn: false,
+    poisonStacks: 0,
+    bleedStacks: 0,
+    enemyThorns: 0,
+    summonedMinions: 0,
+    guardianHornUsed: false,
+    phoenixFeatherUsed: false,
+    burnStacks: 0,
+    comboActive: false,
+    nextTurnBlockBonus: 0,
+    auraBurnActive: false,
+    lifestealAuraActive: false,
+    thornsAuraActive: false,
+    thornsAuraValue: 0,
+    blockAuraValue: 0,
+    quickeningActive: false,
+    burnReflectActive: false,
+    burnReflectValue: 0,
+    reflectAuraActive: false,
+    reflectAuraValue: 0,
+    fortifyAuraActive: false,
+    fortifyAuraValue: 0,
+    evasionAuraActive: false,
+    evasionChance: 0,
+    weakenAuraActive: false,
+    weakenRate: 0,
+    enrageAuraActive: false,
+    enrageThreshold: 0.5,
+    enrageBonus: 0,
+    enemySilenceTurns: 0,
+    currentFloor: gameState.currentFloor || 1,
+    currentChapter: gameState.currentChapter || 1,
+    currentNode: null,
+    unlockedNodes: gameState.unlockedNodes || [],
+    completedNodes: gameState.completedNodes || [],
+    inMap: false,
+    selectedNode: null,
+    totalBattlesWon: savedTotalVictories,
+    totalGoldEarned: gameState.totalGoldEarned || 0,
+    relics: savedRelics,
+    acquiredRelicIds: savedAcquiredRelicIds,
+    unlockedAchievements: savedAchievements,
+    achievementStats: savedAchievementStats,
+    totalVictories: savedTotalVictories,
+    totalChaptersCompleted: gameState.totalChaptersCompleted || 0,
+    ngPlus: gameState.ngPlus || 0,
+    difficulty: gameState.difficulty || 'normal',
+    hiddenEndings: gameState.hiddenEndings || {},
+    statistics: gameState.statistics || {},
+    unlockedDifficulties: gameState.unlockedDifficulties || ['normal'],
+    petRetained: gameState.petRetained || null,
+    relicsRetained: gameState.relicsRetained || [],
+    gameStartTime: Date.now(),
+    runCardSkipCount: gameState.runCardSkipCount || 0,
+    runShopPurchaseCount: gameState.runShopPurchaseCount || 0,
+    runMaxHpLost: gameState.runMaxHpLost || 0,
+    runStartHp: gameState.runStartHp || 80,
+    guidebook: gameState.guidebook || { enemies: {}, cards: {}, relics: {} },
+    dailySeed: null,
+    runSeed: null,
+    initialDeckSeed: null,
+    initialRelicSeed: null,
+    mapSeed: null,
+    dailyCompleted: false,
+    dailyBestTime: null,
+    dailyAttempts: 0,
+    dailyLastPlayed: null,
+    isDailyChallenge: false,
+    pets: savedPets,
+    ownedPetIds: savedOwnedPetIds,
+    petSkillCooldowns: savedPetSkillCooldowns,
+    archetypeState: gameState.archetypeState || {},
+    isBossRush: false,
+    bossRushIndex: 0,
+    bossRushBossesDefeated: 0,
+  };
+
+  // 加载已解锁的成就
+  loadAchievements();
+
+  // 隐藏结束画面，显示战斗界面
+  document.getElementById('game-over-screen').classList.remove('show');
+  document.getElementById('victory-screen').classList.remove('show');
+  document.getElementById('game-container').style.display = 'block';
+  document.getElementById('map-container').style.display = 'none';
+  document.getElementById('battle-container').style.display = 'block';
+  document.getElementById('log-panel').style.display = 'block';
+
+  // 开始新战斗 - 使用随机普通敌人
+  startRandomBattle();
+}
+
+// V48: 开始随机战斗（用于retry/next）
+function startRandomBattle() {
+  // 从第1章敌人池获取随机敌人
+  const enemies = ['slime', 'skeleton', 'goblin', 'werewolf', 'orc'];
+  const enemyType = enemies[Math.floor(Math.random() * enemies.length)];
+  const enemy = JSON.parse(JSON.stringify(ENEMIES[enemyType]));
+
+  gameState.enemy = enemy;
+  gameState.enemyHp = enemy.maxHp;
+  gameState.enemyMaxHp = enemy.maxHp;
+  gameState.enemyArmor = 0;
+  gameState.enemyIntent = null;
+  gameState.enemyIntentValue = 0;
+  gameState.playerShield = 0;
+  gameState.hand = [];
+  gameState.drawPile = [...gameState.deck];
+  gameState.discardPile = [];
+  gameState.turn = 1;
+  gameState.energy = 3;
+  gameState.isPlayerTurn = true;
+
+  // 洗牌
+  shuffleDeck();
+
+  // 初始化手牌
+  for (let i = 0; i < 5; i++) {
+    drawCard();
+  }
+
+  // 显示战斗界面
+  updateBattleUI();
+  renderEnemy();
+  rollEnemyIntent();
+  updateHandDisplay();
+  addLog(`⚔️ 遭遇 ${enemy.name}！`, 'info');
+}
+
 // ===== 事件绑定 =====
 // V46: 开始游戏按钮打开牌组选择（重新开始）
 document.getElementById('start-btn').onclick = startNewGame;
