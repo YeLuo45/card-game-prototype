@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V47 — 游戏主页落地页</title>
+  <title>DBG卡牌游戏 V48 — 游戏主页落地页</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -1940,7 +1940,7 @@
     }
 
     /* V16 卡组预览样式 */
-    #deck-preview-overlay {
+    #deck-preview-modal {
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -1950,7 +1950,7 @@
       align-items: center;
       flex-direction: column;
     }
-    #deck-preview-overlay.show { display: flex; }
+    #deck-preview-modal.show { display: flex; }
     #deck-preview-title { font-size: 26px; color: #ffd700; margin-bottom: 10px; }
     #deck-preview-stats { font-size: 14px; color: #aaa; margin-bottom: 15px; }
     #deck-preview-filters {
@@ -2821,7 +2821,7 @@
 </div>
 
 <!-- V16 卡组预览遮罩 -->
-<div id="deck-preview-overlay">
+<div id="deck-preview-modal">
   <div id="deck-preview-title">🃏 牌组预览</div>
   <div id="deck-preview-stats"></div>
   <div id="archetype-stats" style="display:none; font-size:13px; color:#aaa; margin-bottom:10px; padding:5px 10px; background:rgba(0,0,0,0.3); border-radius:6px;"></div>
@@ -7717,7 +7717,70 @@ function showDeckPreview() {
   });
 
   renderDeckCards('all', 'type');
-  document.getElementById('deck-preview-overlay').classList.add('show');
+  document.getElementById('deck-preview-modal').classList.add('show');
+}
+
+// V48 卡组预览面板 - 打开模态框
+function openDeckPreview() {
+  document.getElementById('deck-preview-modal').style.display = 'flex';
+  renderDeckPreview();
+}
+
+// V48 卡组预览面板 - 关闭模态框
+function closeDeckPreview() {
+  document.getElementById('deck-preview-modal').style.display = 'none';
+}
+
+// V48 卡组预览面板 - 渲染牌组内容
+function renderDeckPreview() {
+  const stats = document.getElementById('deck-preview-stats');
+  const deck = gameState.deck || [];
+
+  // 统计各类型卡牌数量
+  const attackCount = deck.filter(c => c.type === 'attack').length;
+  const skillCount = deck.filter(c => c.type === 'skill').length;
+  const powerCount = deck.filter(c => c.type === 'power').length;
+  const specialCount = deck.filter(c => c.type === 'special').length;
+  const curseCount = deck.filter(c => c.type === 'curse').length;
+  const statusCount = deck.filter(c => c.type === 'status').length;
+
+  // 显示总卡牌数和类型统计
+  const deckSize = `${deck.length}/${DECK_CONFIG.MAX_SIZE}`;
+  if (deck.length >= DECK_CONFIG.WARNING_THRESHOLD) {
+    stats.innerHTML = `<span style="color:#e74c3c;">⚠️ 牌组已满${deckSize}张</span> | 攻击:${attackCount} 技能:${skillCount} 能力:${powerCount} 特殊:${specialCount} 诅咒:${curseCount} 状态:${statusCount}`;
+  } else {
+    stats.textContent = `牌组规模: ${deckSize} | 攻击:${attackCount} 技能:${skillCount} 能力:${powerCount} 特殊:${specialCount} 诅咒:${curseCount} 状态:${statusCount}`;
+  }
+
+  // 流派协同显示
+  const archetypeData = getArchetypeDisplayData();
+  const archetypeStats = document.getElementById('archetype-stats');
+  if (archetypeStats) {
+    if (archetypeData.length > 0) {
+      archetypeStats.innerHTML = archetypeData.map(a =>
+        `<span style="color:${a.color};">${a.icon}${a.name}[${a.count}](${a.level}阶:${a.effect.name})</span>`
+      ).join(' ');
+      archetypeStats.style.display = 'block';
+    } else {
+      archetypeStats.innerHTML = '<span style="color:#888;">无激活流派(集齐3张同流派卡牌激活)</span>';
+      archetypeStats.style.display = 'block';
+    }
+  }
+
+  // 重置筛选器
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.dataset.filter === 'all') btn.classList.add('active');
+  });
+
+  // 重置排序按钮
+  document.querySelectorAll('.sort-btn').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.dataset.sort === 'type') btn.classList.add('active');
+  });
+
+  // 渲染牌组卡片
+  renderDeckCards('all', 'type');
 }
 
 // V40 牌组选择功能
@@ -13928,9 +13991,7 @@ document.getElementById('close-save-btn').onclick = hideSaveSlots;
 document.getElementById('quick-save-btn').onclick = showQuickSave;
 // V16 卡组预览按钮
 document.getElementById('deck-preview-btn').onclick = showDeckPreview;
-document.getElementById('close-deck-preview-btn').onclick = () => {
-  document.getElementById('deck-preview-overlay').classList.remove('show');
-};
+document.getElementById('close-deck-preview-btn').onclick = closeDeckPreview;
 // V16 筛选按钮事件
 document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.onclick = () => {
