@@ -4979,6 +4979,16 @@ const PETS = {
     icon: '🐕',
     description: '每场战斗开始时获得5点护甲',
     effect: { startOfCombatBlock: 5 },
+    activeSkill: {
+      name: '忠诚护盾',
+      cost: 1,
+      cooldown: 3,
+      desc: '立即获得6点护甲',
+      execute: (petId) => {
+        gameState.playerShield += 6;
+        addLog('🐕 忠诚护盾！');
+      }
+    },
     cost: 100,
   },
   // 商店折扣 - 商店物品9折
@@ -5035,6 +5045,16 @@ const PETS = {
     icon: '🦊',
     description: '开启宝箱时金币+30%',
     effect: { chestGoldBonus: 0.3 },
+    activeSkill: {
+      name: '狐狸狡计',
+      cost: 1,
+      cooldown: 5,
+      desc: '本回合敌人攻击-50%',
+      execute: (petId) => {
+        gameState.enemyAttackMod = 0.5;
+        addLog('🦊 狐狸狡计！敌人攻击减半！');
+      }
+    },
     cost: 90,
   },
   // 升级折扣 - 卡牌升级费用-20%
@@ -5044,6 +5064,16 @@ const PETS = {
     icon: '🐢',
     description: '卡牌升级费用-20%',
     effect: { upgradeDiscount: 0.2 },
+    activeSkill: {
+      name: '缓慢进化',
+      cost: 2,
+      cooldown: 4,
+      desc: '本回合使用卡牌费用-1',
+      execute: (petId) => {
+        gameState.costReductionThisTurn = 1;
+        addLog('🐢 缓慢进化！本回合费用-1！');
+      }
+    },
     cost: 110,
   },
   // 战斗护盾 - 战斗开始时额外获得3点护甲（可叠加）
@@ -5053,6 +5083,16 @@ const PETS = {
     icon: '🐻',
     description: '每场战斗开始时额外获得3点护甲',
     effect: { startOfCombatBlock: 3 },
+    activeSkill: {
+      name: '怒吼',
+      cost: 2,
+      cooldown: 3,
+      desc: '本回合攻击力+50%',
+      execute: (petId) => {
+        gameState.attackDamageMod *= 1.5;
+        addLog('🐻 怒吼！攻击力+50%！');
+      }
+    },
     cost: 80,
   },
   // V44 新宠物：史莱姆 - 主动"黏液攻击" 被动"黏液护盾"
@@ -5150,6 +5190,89 @@ const PETS = {
     },
     cost: 0,
     unlockWins: 25, // 25胜解锁
+  },
+  // V49 新宠物：暗影蝙蝠 - 击杀回复能量
+  shadowBat: {
+    id: 'shadowBat',
+    name: '暗影蝙蝠',
+    icon: '🦇',
+    description: '击杀敌人后回复1能量',
+    effect: { onKill: { effect: 'energy' } },
+    activeSkill: {
+      name: '暗影冲刺',
+      cost: 1,
+      cooldown: 2,
+      desc: '对随机敌人造成4点伤害×2次',
+      execute: (petId) => {
+        for(let i=0;i<2;i++) dealDamageToEnemy(4);
+        addLog('🦇 暗影冲刺！');
+      }
+    },
+    cost: 130,
+    unlockWins: 10,
+  },
+  // V49 新宠物：护盾龟 - 战斗开始高护甲
+  shieldTurtle: {
+    id: 'shieldTurtle',
+    name: '护盾龟',
+    icon: '🐢',
+    description: '战斗开始时获得8点护甲，每回合额外获得2点护甲',
+    effect: { startOfCombatBlock: 8, startOfTurnBlock: 2 },
+    activeSkill: {
+      name: '龟甲反击',
+      cost: 2,
+      cooldown: 3,
+      desc: '获得10点护甲，下回合敌人攻击时反弹5点伤害',
+      execute: (petId) => {
+        gameState.playerShield += 10;
+        gameState.thorns += 5;
+        addLog('🐢 龟甲反击！');
+      }
+    },
+    cost: 100,
+    unlockWins: 3,
+  },
+  // V49 新宠物：金币蛾 - 击杀金币加成
+  goldMoth: {
+    id: 'goldMoth',
+    name: '金币蛾',
+    icon: '🦋',
+    description: '每击杀一个敌人，金币+5',
+    effect: { onKill: { effect: 'gold' } },
+    activeSkill: {
+      name: '金光闪烁',
+      cost: 1,
+      cooldown: 4,
+      desc: '获得8金币，有击杀时双倍',
+      execute: (petId) => {
+        let gold = 8;
+        if(gameState.lastKillThisTurn) gold *= 2;
+        gameState.gold += gold;
+        addLog('🦋 金光闪烁！获得'+gold+'金币！');
+      }
+    },
+    cost: 110,
+    unlockWins: 8,
+  },
+  // V49 新宠物：毒液蛇 - 攻击附加中毒
+  venomSnake: {
+    id: 'venomSnake',
+    name: '毒液蛇',
+    icon: '🐍',
+    description: '攻击时30%概率给敌人附加3层中毒',
+    effect: { onDamageDealt: { effect: 'poison', chance: 0.3, stacks: 3 } },
+    activeSkill: {
+      name: '毒液喷射',
+      cost: 2,
+      cooldown: 2,
+      desc: '给敌人附加10层中毒',
+      execute: (petId) => {
+        applyDebuffToEnemy('poison', 10, 3);
+        addLog('🐍 毒液喷射！敌人中毒10层！');
+      }
+    },
+    cost: 140,
+    unlockWins: 12,
   }
 };
 
@@ -6205,6 +6328,11 @@ let gameState = {
   enemyDebuffs: [],
   thorns: 0,
   aoeDamage: 0,
+  // V49 宠物主动技能状态
+  enemyAttackMod: 1, // 敌人攻击倍率
+  attackDamageMod: 1, // 玩家攻击伤害倍率
+  costReductionThisTurn: 0, // 本回合费用减免
+  lastKillThisTurn: false, // 本回合是否击杀过敌人
   burnChance: 0,
   burnDamage: 0,
   burnDuration: 0,
@@ -6421,6 +6549,11 @@ function applyPetEffect(trigger, context = {}) {
           gameState.energy += effect.startOfTurnEnergy;
           addLog(`宠物 ${petData.name} 提供 ${effect.startOfTurnEnergy} 能量`, 'info');
         }
+        // V49 护盾龟被动：每回合获得护甲
+        if (effect.startOfTurnBlock) {
+          gameState.playerShield += effect.startOfTurnBlock;
+          addLog(`宠物 ${petData.name} 提供 ${effect.startOfTurnBlock} 护盾`, 'block');
+        }
         break;
       case 'onAttack':
         // 暴击率加成（暴击猫头鹰）
@@ -6456,6 +6589,12 @@ function applyPetEffect(trigger, context = {}) {
         if (effect.upgradeDiscount) {
           context.upgradeDiscount = (context.upgradeDiscount || 0) + effect.upgradeDiscount;
         }
+        break;
+      case 'onKill':
+        // V49 击杀触发 - 在checkEnemyDeath中处理能量和金币奖励
+        break;
+      case 'onDamageDealt':
+        // V49 造成伤害触发 - 在dealDamageToEnemy中处理
         break;
     }
   });
@@ -10181,6 +10320,12 @@ function startPlayerTurn() {
     }
   });
 
+  // V49 重置宠物主动技能状态
+  gameState.enemyAttackMod = 1;
+  gameState.attackDamageMod = 1;
+  gameState.costReductionThisTurn = 0;
+  gameState.lastKillThisTurn = false;
+
   // V11 冰霜之心: 10%几率获得1能量
   if (hasRelic('frostHeart') && Math.random() < 0.1) {
     gameState.energy += 1;
@@ -10900,6 +11045,17 @@ function dealDamageToEnemy(damage) {
     addLog(`造成 ${actualDamage} 点伤害`, 'damage');
     // V6 遗物效果: 造成伤害时
     applyRelicEffect('onDamage', { damage: actualDamage });
+
+    // V49 宠物造成伤害效果处理（毒液蛇等）
+    getEquippedPets().forEach(pet => {
+      const petData = PETS[pet.id];
+      if (!petData || !petData.effect || !petData.effect.onDamageDealt) return;
+      const onDamageEffect = petData.effect.onDamageDealt;
+      if (onDamageEffect.effect === 'poison' && Math.random() < onDamageEffect.chance) {
+        applyDebuffToEnemy('poison', onDamageEffect.stacks, 3);
+        addLog(`🐍 毒液蛇使敌人中毒${onDamageEffect.stacks}层！`, 'debuff');
+      }
+    });
 
     // V11 血之誓言: 30%几率双倍伤害
     if (hasRelic('bloodOath') && Math.random() < 0.3) {
@@ -11700,6 +11856,22 @@ function checkEnemyDeath() {
       gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + healAmount);
       addLog(`生命之泉触发！恢复${healAmount}HP`, 'heal');
     }
+    
+    // V49 宠物击杀效果处理
+    gameState.lastKillThisTurn = true;
+    getEquippedPets().forEach(pet => {
+      const petData = PETS[pet.id];
+      if (!petData || !petData.effect || !petData.effect.onKill) return;
+      const onKillEffect = petData.effect.onKill;
+      if (onKillEffect.effect === 'energy') {
+        gameState.energy += 1;
+        addLog(`🦇 击杀回复1能量！`, 'info');
+      } else if (onKillEffect.effect === 'gold') {
+        gameState.gold += 5;
+        addLog(`🦋 击杀+5金币！`, 'info');
+      }
+    });
+    
     completeNode(gameState.currentNode);
     gameState.totalBattlesWon++;
     // V9 成就统计更新
