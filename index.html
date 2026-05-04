@@ -87,6 +87,17 @@
     .energy { color: #4ecdc4; }
     .shield { color: #a8e6cf; }
     .turn { color: #ffd93d; }
+    .energy-stone { color: #f39c12; }
+
+    /* V42 卡牌升级边框颜色 */
+    .card-lv0 { border-color: #555; }
+    .card-lv1 { border-color: #2ecc71; }
+    .card-lv2 { border-color: #3498db; }
+    .card-lv3 { border-color: #9b59b6; }
+    .upgrade-btn { background: #f39c12; color: #000; padding: 2px 6px; border: none; border-radius: 8px; cursor: pointer; font-size: 10px; font-weight: bold; }
+    .upgrade-btn:hover { background: #e67e22; }
+    .upgrade-btn:disabled { background: #555; color: #888; cursor: not-allowed; }
+    .card-upgrade-badge { position: absolute; top: -8px; right: -8px; background: #f39c12; color: #000; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
 
     /* 地图区域 */
     #map-container {
@@ -2095,6 +2106,62 @@
       0%, 100% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.6), 0 0 10px #ffd700; }
       50% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.6), 0 0 20px #ffd700; }
     }
+
+    /* V42 扭蛋抽卡界面 */
+    #gacha-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.95);
+      z-index: 700;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #gacha-modal.show { display: flex; }
+    #gacha-modal h2 { font-size: 28px; color: #f39c12; margin-bottom: 20px; }
+    #gacha-cards {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .gacha-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 2px solid #f39c12;
+    }
+    .gacha-card:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(243,156,18,0.5); }
+    #gacha-close-btn {
+      margin-top: 15px;
+      padding: 10px 30px;
+      font-size: 16px;
+      background: #555;
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      cursor: pointer;
+    }
+    #gacha-close-btn:hover { background: #666; }
+
+    /* V42 扭蛋按钮 */
+    .gacha-btn {
+      background: linear-gradient(145deg, #f39c12, #e67e22);
+      color: #000;
+      border: none;
+      border-radius: 15px;
+      padding: 8px 15px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+    .gacha-btn:hover { transform: scale(1.05); }
+    .gacha-btn:disabled { background: #555; color: #888; cursor: not-allowed; transform: none; }
   </style>
 </head>
 <body>
@@ -2215,6 +2282,7 @@
       <span class="energy">⚡ 能量: <span id="energy">3</span>/3</span>
       <span class="shield">🛡️ 护甲: <span id="shield">0</span></span>
       <span class="turn">🔄 回合: <span id="turn">1</span></span>
+      <span id="energy-stones-display" style="color:#f39c12;">⚡石: <span id="energy-stones">0</span></span>
       <button id="mute-btn" style="padding:4px 10px;font-size:12px;background:#555;border:none;border-radius:10px;color:#fff;cursor:pointer;margin-left:10px;">🔊 音效</button>
     </div>
 
@@ -3256,6 +3324,111 @@ function upgradeCard(card) {
   upgraded.description = `${card.description} ${stars}`;
   
   return upgraded;
+}
+
+// V42: 能量石奖励系统
+function giveEnergyStonesReward(isElite, isBoss) {
+  if (isBoss) {
+    // Boss: 100%获得2-4能量石
+    const stones = randomInt(2, 4);
+    gameState.energyStones += stones;
+    addLog(`💎 击败Boss获得 ${stones} 能量石！`, 'info');
+  } else if (isElite) {
+    // 精英: 100%获得1-3能量石
+    const stones = randomInt(1, 3);
+    gameState.energyStones += stones;
+    addLog(`💎 击败精英获得 ${stones} 能量石！`, 'info');
+  } else {
+    // 普通战斗: 50%概率获得1能量石
+    if (Math.random() < 0.5) {
+      gameState.energyStones += 1;
+      addLog(`💎 战斗胜利获得 1 能量石！`, 'info');
+    }
+  }
+  renderUI();
+}
+
+// V42: 扭蛋抽卡系统 - 生成随机卡牌
+function generateGachaCards(count) {
+  const pool = Object.values(CARDS);
+  const shuffled = shuffle([...pool]);
+  return shuffled.slice(0, count);
+}
+
+// V42: 打开扭蛋界面
+function openGachaModal() {
+  if (gameState.energyStones < 10) {
+    showToast('能量石不足！需要10能量石');
+    return;
+  }
+  gameState.energyStones -= 10;
+  renderUI();
+  
+  // 生成3张随机卡牌
+  const cards = generateGachaCards(3);
+  
+  const modal = document.getElementById('gacha-modal');
+  const container = document.getElementById('gacha-cards');
+  
+  container.innerHTML = cards.map((card, idx) => `
+    <div class="gacha-card" onclick="selectGachaCard(${idx})" style="cursor:pointer;padding:15px;background:rgba(0,0,0,0.5);border-radius:10px;text-align:center;min-width:120px;">
+      <div style="font-size:12px;color:#ffd700;margin-bottom:5px;">${card.type === 'attack' ? '⚔️' : card.type === 'skill' ? '🛡️' : '✨'} ${card.name}</div>
+      <div style="font-size:10px;color:#ccc;">${card.description}</div>
+      <div style="font-size:10px;color:#4ecdc4;margin-top:5px;">费用: ${card.cost}</div>
+    </div>
+  `).join('');
+  
+  // 保存待选择的卡牌
+  window.pendingGachaCards = cards;
+  
+  modal.classList.add('show');
+}
+
+// V42: 选择扭蛋卡牌
+function selectGachaCard(index) {
+  if (!window.pendingGachaCards || !window.pendingGachaCards[index]) return;
+  
+  const card = window.pendingGachaCards[index];
+  addCardToDeck(card);
+  
+  document.getElementById('gacha-modal').classList.remove('show');
+  window.pendingGachaCards = null;
+  
+  showToast(`获得卡牌: ${card.name}！`);
+  renderUI();
+}
+
+// V42: 关闭扭蛋界面
+function closeGachaModal() {
+  document.getElementById('gacha-modal').classList.remove('show');
+  window.pendingGachaCards = null;
+}
+
+// V42: 消耗1能量石升级卡牌
+function upgradeCardWithStone(card, cardIndex) {
+  if (gameState.energyStones < 1) {
+    showToast('能量石不足！需要1能量石');
+    return;
+  }
+  if ((card.upgradeLevel || 0) >= (card.maxUpgradeLevel || 3)) {
+    showToast('已达最高升级等级！');
+    return;
+  }
+  
+  gameState.energyStones -= 1;
+  
+  // 找到牌组中的卡牌并升级
+  const deckCard = gameState.deck[cardIndex];
+  const upgraded = upgradeCard(deckCard);
+  gameState.deck[cardIndex] = upgraded;
+  
+  addLog(`卡牌 ${upgraded.name} 升级到 Lv${upgraded.upgradeLevel}！`, 'buff');
+  renderUI();
+  
+  // 如果在牌组管理界面，刷新显示
+  if (document.getElementById('deck-manager-overlay').classList.contains('show')) {
+    showDeckManager();
+  }
 }
 
 // 检查卡牌是否有升级
@@ -5484,6 +5657,8 @@ let gameState = {
   playerMaxHp: 80,
   playerShield: 0,
   gold: 0,
+  // V42 能量石
+  energyStones: 0,
   // 牌组
   deck: [],
   hand: [],
@@ -10353,6 +10528,9 @@ function checkEnemyDeath() {
       addLog(`获得 ${goldReward} 金币奖励！`, 'info');
     }
     
+    // V42 能量石奖励
+    giveEnergyStonesReward(isElite, node && node.type === 'boss');
+    
     setTimeout(() => {
       showRewardSelection();
     }, 500);
@@ -11277,6 +11455,7 @@ function renderUI() {
   document.getElementById('shield').textContent = gameState.playerShield;
   document.getElementById('player-shield').textContent = gameState.playerShield;
   document.getElementById('turn').textContent = gameState.turn;
+  document.getElementById('energy-stones').textContent = gameState.energyStones;
   document.getElementById('deck-count').textContent = gameState.deck.length;
   document.getElementById('discard-count').textContent = gameState.discardPile.length;
   
@@ -12513,8 +12692,16 @@ function updateOnlineStatus() {
 
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
-document.addEventListener('DOMContentLoaded', showOfflineIndicator);
+}
 </script>
+
+<!-- V42 扭蛋抽卡模态框 -->
+<div id="gacha-modal">
+  <h2>⚡ 扭蛋抽奖</h2>
+  <p style="color:#aaa;margin-bottom:15px;">选择一张卡牌加入你的牌组</p>
+  <div id="gacha-cards"></div>
+  <button id="gacha-close-btn" onclick="closeGachaModal()">关闭</button>
+</div>
 
 </body>
 </html>
