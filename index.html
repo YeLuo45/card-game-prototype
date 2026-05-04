@@ -2719,6 +2719,7 @@
       <span id="relics-header" style="color:#ffd700;font-size:14px;">🎁 遗物: <span id="relics-count">0</span></span>
       <span id="pets-header" style="color:#4ecdc4;font-size:14px;cursor:pointer;" onclick="showPetsShop()">🐾 宠物: <span id="pets-count">0</span></span>
       <span id="achievements-header" style="color:#9b59b6;font-size:14px;cursor:pointer;" onclick="showAchievements()">🏆 成就: <span id="achievements-count">0</span></span>
+      <span id="guidebook-header" style="color:#3498db;font-size:14px;cursor:pointer;" onclick="showCardGuidebook()">📖 图鉴: <span id="guidebook-count">0</span></span>
     </div>
     <canvas id="map-canvas" width="800" height="400"></canvas>
     <div id="node-preview">
@@ -9108,6 +9109,246 @@ function loadAchievements() {
   } catch {}
 }
 
+// ===== V57 卡牌图鉴系统 =====
+// 初始化图鉴（如果不存在）
+function initGuidebook() {
+  if (!gameState.guidebook) {
+    gameState.guidebook = { enemies: {}, cards: {}, relics: {} };
+  }
+  if (!gameState.guidebook.cards) {
+    gameState.guidebook.cards = {};
+  }
+}
+
+// V57 发现一张卡牌
+function discoverCard(cardId) {
+  initGuidebook();
+  if (!gameState.guidebook.cards[cardId]) {
+    gameState.guidebook.cards[cardId] = {
+      discovered: true,
+      timesPlayed: 0,
+      timesDiscarded: 0,
+      timesDrawn: 0,
+      firstDiscovered: new Date().toLocaleString('zh-CN')
+    };
+    // 更新图鉴计数显示
+    updateGuidebookCount();
+    // 检查图鉴成就
+    checkGuidebookAchievements();
+  }
+}
+
+// V57 增加卡牌使用统计
+function trackCardPlayed(cardId) {
+  initGuidebook();
+  if (!gameState.guidebook.cards[cardId]) {
+    discoverCard(cardId);
+  }
+  gameState.guidebook.cards[cardId].timesPlayed++;
+}
+
+function trackCardDiscarded(cardId) {
+  initGuidebook();
+  if (!gameState.guidebook.cards[cardId]) {
+    discoverCard(cardId);
+  }
+  gameState.guidebook.cards[cardId].timesDiscarded++;
+}
+
+function trackCardDrawn(cardId) {
+  initGuidebook();
+  if (!gameState.guidebook.cards[cardId]) {
+    discoverCard(cardId);
+  }
+  gameState.guidebook.cards[cardId].timesDrawn++;
+}
+
+// V57 更新图鉴计数显示
+function updateGuidebookCount() {
+  initGuidebook();
+  const count = Object.keys(gameState.guidebook.cards).length;
+  const countEl = document.getElementById('guidebook-count');
+  if (countEl) countEl.textContent = count;
+}
+
+// V57 获取所有卡牌池（用于图鉴显示）
+function getAllCardsForGuidebook() {
+  const cards = [];
+  // 从REWARD_CARD_POOL获取
+  if (typeof REWARD_CARD_POOL !== 'undefined') {
+    REWARD_CARD_POOL.forEach(c => {
+      if (!cards.find(x => x.id === c.id)) cards.push(c);
+    });
+  }
+  // 从SHOP_CARD_POOL获取
+  if (typeof SHOP_CARD_POOL !== 'undefined') {
+    SHOP_CARD_POOL.forEach(c => {
+      if (!cards.find(x => x.id === c.id)) cards.push(c);
+    });
+  }
+  return cards;
+}
+
+// V57 获取卡牌稀有度
+function getCardRarity(cardId) {
+  // 基于费用判断稀有度
+  const card = findCardById(cardId);
+  if (!card) return 'common';
+  const cost = card.cost || 0;
+  if (cost >= 4) return 'legendary';
+  if (cost >= 3) return 'rare';
+  return 'common';
+}
+
+function findCardById(cardId) {
+  // 在所有卡牌池中查找
+  if (typeof CARDS !== 'undefined' && CARDS[cardId]) return CARDS[cardId];
+  if (typeof REWARD_CARD_POOL !== 'undefined') {
+    const found = REWARD_CARD_POOL.find(c => c.id === cardId);
+    if (found) return found;
+  }
+  if (typeof SHOP_CARD_POOL !== 'undefined') {
+    const found = SHOP_CARD_POOL.find(c => c.id === cardId);
+    if (found) return found;
+  }
+  return null;
+}
+
+// V57 显示卡牌图鉴
+function showCardGuidebook() {
+  initGuidebook();
+  const allCards = getAllCardsForGuidebook();
+  const discovered = Object.keys(gameState.guidebook.cards).length;
+  const total = allCards.length;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'guidebook-overlay';
+  overlay.style.cssText = `
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.95); z-index: 300;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 20px; overflow-y: auto;
+  `;
+
+  const rarityColors = { common: '#aaa', rare: '#3498db', epic: '#9b59b6', legendary: '#f39c12' };
+
+  overlay.innerHTML = `
+    <div style="color: #ffd700; font-size: 24px; margin-bottom: 15px;">📖 卡牌图鉴</div>
+    <div style="color: #888; margin-bottom: 15px;">已收集: ${discovered}/${total} (${Math.floor(discovered/total*100)}%)</div>
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+      <button class="guidebook-filter-btn active" data-filter="all" style="padding:8px 16px;background:#3498db;border:none;border-radius:5px;color:#fff;cursor:pointer;">全部</button>
+      <button class="guidebook-filter-btn" data-filter="common" style="padding:8px 16px;background:#555;border:none;border-radius:5px;color:#fff;cursor:pointer;">普通</button>
+      <button class="guidebook-filter-btn" data-filter="rare" style="padding:8px 16px;background:#555;border:none;border-radius:5px;color:#fff;cursor:pointer;">稀有</button>
+      <button class="guidebook-filter-btn" data-filter="epic" style="padding:8px 16px;background:#555;border:none;border-radius:5px;color:#fff;cursor:pointer;">史诗</button>
+      <button class="guidebook-filter-btn" data-filter="legendary" style="padding:8px 16px;background:#555;border:none;border-radius:5px;color:#fff;cursor:pointer;">传说</button>
+    </div>
+    <div id="guidebook-cards" style="display:flex;flex-wrap:wrap;gap:10px;max-width:900px;justify-content:center;"></div>
+    <button id="close-guidebook-btn" style="margin-top:20px;padding:10px 30px;background:#555;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:16px;">关闭</button>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // 渲染卡牌
+  function renderCards(filter = 'all') {
+    const container = document.getElementById('guidebook-cards');
+    const filtered = filter === 'all' ? allCards : allCards.filter(c => getCardRarity(c.id) === filter);
+    container.innerHTML = '';
+    filtered.forEach(card => {
+      const isDiscovered = gameState.guidebook.cards[card.id];
+      const rarity = getCardRarity(card.id);
+      const div = document.createElement('div');
+      div.style.cssText = `
+        width: 120px; padding: 10px; border-radius: 8px;
+        background: ${isDiscovered ? 'linear-gradient(145deg, #2a2a3a, #1a1a2a)' : '#1a1a1a'};
+        border: 2px solid ${isDiscovered ? rarityColors[rarity] : '#333'};
+        opacity: ${isDiscovered ? 1 : 0.4};
+        cursor: ${isDiscovered ? 'pointer' : 'default'};
+        text-align: center;
+      `;
+      div.innerHTML = `
+        <div style="font-size:20px;">${isDiscovered ? (card.icon || '🃏') : '❓'}</div>
+        <div style="color:${isDiscovered ? '#fff' : '#666'};font-size:12px;margin:5px 0;">${isDiscovered ? card.name : '???'}</div>
+        <div style="color:${rarityColors[rarity]};font-size:10px;">${rarity === 'common' ? '普通' : rarity === 'rare' ? '稀有' : rarity === 'epic' ? '史诗' : '传说'}</div>
+        ${isDiscovered ? `<div style="color:#888;font-size:10px;">费用: ${card.cost || 0}</div>` : ''}
+      `;
+      if (isDiscovered) {
+        div.onclick = () => showCardGuidebookDetail(card);
+      }
+      container.appendChild(div);
+    });
+  }
+
+  renderCards();
+
+  // 筛选按钮事件
+  overlay.querySelectorAll('.guidebook-filter-btn').forEach(btn => {
+    btn.onclick = () => {
+      overlay.querySelectorAll('.guidebook-filter-btn').forEach(b => b.style.background = '#555');
+      btn.style.background = '#3498db';
+      renderCards(btn.dataset.filter);
+    };
+  });
+
+  document.getElementById('close-guidebook-btn').onclick = () => overlay.remove();
+  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+}
+
+// V57 显示卡牌详情
+function showCardGuidebookDetail(card) {
+  const data = gameState.guidebook.cards[card.id] || {};
+  const rarity = getCardRarity(card.id);
+  const rarityNames = { common: '普通', rare: '稀有', epic: '史诗', legendary: '传说' };
+  const rarityColors = { common: '#aaa', rare: '#3498db', epic: '#9b59b6', legendary: '#f39c12' };
+
+  const detail = document.createElement('div');
+  detail.style.cssText = `
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border: 3px solid ${rarityColors[rarity]};
+    border-radius: 15px; padding: 25px; z-index: 400;
+    min-width: 300px; text-align: center;
+  `;
+  detail.innerHTML = `
+    <div style="font-size:48px;margin-bottom:10px;">${card.icon || '🃏'}</div>
+    <div style="color:${rarityColors[rarity]};font-size:20px;margin-bottom:10px;">${card.name}</div>
+    <div style="color:#888;font-size:12px;margin-bottom:15px;">${rarityNames[rarity]} | 费用: ${card.cost || 0}</div>
+    <div style="color:#fff;font-size:14px;margin-bottom:15px;">${card.description || card.effect || '无描述'}</div>
+    <div style="color:#666;font-size:12px;margin-bottom:10px;">使用次数: ${data.timesPlayed || 0} | 弃置次数: ${data.timesDiscarded || 0}</div>
+    <div style="color:#666;font-size:12px;margin-bottom:15px;">抽到次数: ${data.timesDrawn || 0}</div>
+    ${data.firstDiscovered ? `<div style="color:#555;font-size:11px;">首次发现: ${data.firstDiscovered}</div>` : ''}
+    <button id="close-detail-btn" style="margin-top:15px;padding:8px 20px;background:#555;border:none;border-radius:5px;color:#fff;cursor:pointer;">关闭</button>
+  `;
+  document.body.appendChild(detail);
+  document.getElementById('close-detail-btn').onclick = () => detail.remove();
+}
+
+// V57 检查图鉴相关成就
+function checkGuidebookAchievements() {
+  const discovered = Object.keys(gameState.guidebook.cards).length;
+  const achievements = [
+    { id: 'cardCollector10', count: 10, name: '初试收藏' },
+    { id: 'cardCollector25', count: 25, name: '小有收藏' },
+    { id: 'cardCollector50', count: 50, name: '收藏达人' },
+    { id: 'cardCollector100', count: 100, name: '收藏家' },
+  ];
+  achievements.forEach(a => {
+    if (discovered >= a.count && !gameState.unlockedAchievements.includes(a.id)) {
+      unlockAchievement(a.id);
+    }
+  });
+}
+
+// V57 在卡牌相关操作时追踪
+function trackCardAction(cardId, action) {
+  if (!cardId) return;
+  switch (action) {
+    case 'play': trackCardPlayed(cardId); break;
+    case 'discard': trackCardDiscarded(cardId); break;
+    case 'draw': trackCardDrawn(cardId); break;
+    case 'discover': discoverCard(cardId); break;
+  }
+}
+
 // ===== V43 Roguelike进度系统 =====
 // 进度数据Key
 const PROGRESS_KEY = 'dbg_progress';
@@ -10305,6 +10546,9 @@ function buyShopCard(index) {
   gameState.gold -= price;
   gameState.deck.push({ ...card });
   gameState.boughtCardIndices.push(index);
+
+  // V57 图鉴追踪：商店购买卡牌
+  trackCardAction(card.id, 'discover');
 
   // 更新最大卡牌数
   if (gameState.deck.length > gameState.achievementStats.maxCardsOwned) {
@@ -13333,10 +13577,13 @@ function selectRewardCard(card) {
     addLog(`${card.name}已达3张上限，无法获得！`, 'debuff');
     return;
   }
-  
+
   // V53: 使用addCardToDeck处理（自动检测牌组是否已满，触发替换界面）
   addCardToDeck(card);
-  
+
+  // V57 图鉴追踪：奖励获得卡牌
+  trackCardAction(card.id, 'discover');
+
   gameState.pendingSelectedCards.push(card);
   audioManager.play('chestOpen');
 
