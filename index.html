@@ -6163,6 +6163,21 @@ function addCardToDeck(card) {
 }
 
 // ===== 游戏状态 =====
+let comboPlayedCards = [];  // V39 Combo追踪
+let lastComboTriggered = null;  // V39 Combo追踪
+
+// V39 Combo系统存根函数
+function checkCombo() {
+  // Combo系统未完整实现，返回null
+  return null;
+}
+function applyComboEffect(combo) {
+  // Combo系统未完整实现
+}
+function showComboNotification(combo) {
+  // Combo系统未完整实现
+}
+
 let gameState = {
   // 玩家属性
   playerHp: 80,
@@ -13958,6 +13973,7 @@ function initGame() {
   const savedOwnedPetIds = gameState.ownedPetIds || [];
   const savedPetSkillCooldowns = gameState.petSkillCooldowns || {};
   const savedArchetype = gameState.archetype || 'strength';
+  const savedTutorial = gameState.tutorial || {};
 
   // 重置游戏状态
   gameState = {
@@ -14068,6 +14084,7 @@ function initGame() {
     isBossRush: false,
     bossRushIndex: 0,
     bossRushBossesDefeated: 0,
+    tutorial: savedTutorial,
   };
 
   // 加载已解锁的成就
