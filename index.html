@@ -2958,16 +2958,16 @@ const CARDS = {
   // 15. 衰弱光环 - weaken光环：降低敌人属性
   weakenAura:      { id: 'weakenAura',      name: '衰弱光环', cost: 2, type: 'power', rarity: 'rare', effect: { weakenAura: true, weakenRate: 1 }, description: '每回合敌人攻击力-30%' },
   // ===== V30 新增诅咒系卡牌 =====
-  curse_of_pain:   { id: 'curse_of_pain',   name: '痛苦诅咒', cost: 0, type: 'curse', archetype: 'inferno', effect: { curseStartDamage: 3 }, description: '回合开始时受到3点伤害', curseTrigger: 'startOfTurn' },
-  curse_of_weak:   { id: 'curse_of_weak',   name: '虚弱诅咒', cost: 0, type: 'curse', effect: { curseWeakAttack: 0.3 }, description: '攻击力-30%', curseTrigger: 'permanent' },
-  dark_curse:      { id: 'dark_curse',      name: '黑暗诅咒', cost: 1, type: 'curse', effect: { curseVulnerable: 2 }, description: '敌方获得2层易伤', curseTrigger: 'onApply' },
-  death_curse:     { id: 'death_curse',     name: '死亡诅咒', cost: 2, type: 'curse', effect: { curseLifesteal: 0.05 }, description: '每回合流失5%最大生命', curseTrigger: 'startOfTurn' },
-  poison_dart:     { id: 'poison_dart',     name: '毒镖',     cost: 1, type: 'curse', archetype: 'toxic', effect: { cursePoison: 10 }, description: '敌方中毒10层', curseTrigger: 'onApply' },
-  fear:            { id: 'fear',            name: '恐惧',     cost: 0, type: 'curse', effect: { curseSkipAttack: 1 }, description: '敌方下回合无法攻击', curseTrigger: 'onApply' },
+  curse_of_pain:   { id: 'curse_of_pain',   name: '痛苦诅咒', cost: 0, type: 'curse', archetype: 'inferno', effect: { curseStartDamage: 3 }, description: '回合开始时受到3点伤害', curseTrigger: 'startOfTurn', maxUpgradeLevel: 5 },
+  curse_of_weak:   { id: 'curse_of_weak',   name: '虚弱诅咒', cost: 0, type: 'curse', effect: { curseWeakAttack: 0.3 }, description: '攻击力-30%', curseTrigger: 'permanent', maxUpgradeLevel: 5 },
+  dark_curse:      { id: 'dark_curse',      name: '黑暗诅咒', cost: 1, type: 'curse', effect: { curseVulnerable: 2 }, description: '敌方获得2层易伤', curseTrigger: 'onApply', maxUpgradeLevel: 5 },
+  death_curse:     { id: 'death_curse',     name: '死亡诅咒', cost: 2, type: 'curse', effect: { curseLifesteal: 0.05 }, description: '每回合流失5%最大生命', curseTrigger: 'startOfTurn', maxUpgradeLevel: 5 },
+  poison_dart:     { id: 'poison_dart',     name: '毒镖',     cost: 1, type: 'curse', archetype: 'toxic', effect: { cursePoison: 10 }, description: '敌方中毒10层', curseTrigger: 'onApply', maxUpgradeLevel: 5 },
+  fear:            { id: 'fear',            name: '恐惧',     cost: 0, type: 'curse', effect: { curseSkipAttack: 1 }, description: '敌方下回合无法攻击', curseTrigger: 'onApply', maxUpgradeLevel: 5 },
   // ===== V30 新增命运系卡牌 =====
-  fortune_strike:  { id: 'fortune_strike',  name: '命运打击', cost: 1, type: 'fate', effect: { fateDamageMin: 3, fateDamageMax: 15 }, description: '造成3-15点随机伤害', fateType: 'damage' },
-  chaotic_shield:  { id: 'chaotic_shield',  name: '混沌护盾', cost: 1, type: 'fate', effect: { fateShieldMin: 5, fateShieldMax: 15 }, description: '获得5-15点随机护甲', fateType: 'shield' },
-  gamble_all:      { id: 'gamble_all',      name: '孤注一掷', cost: 2, type: 'fate', effect: { fateGambleDamage: 20, fateGambleSelfDamage: 15 }, description: '50%造成20伤害，50%受到15伤害', fateType: 'gamble' },
+  fortune_strike:  { id: 'fortune_strike',  name: '命运打击', cost: 1, type: 'fate', effect: { fateDamageMin: 3, fateDamageMax: 15 }, description: '造成3-15点随机伤害', fateType: 'damage', maxUpgradeLevel: 5 },
+  chaotic_shield:  { id: 'chaotic_shield',  name: '混沌护盾', cost: 1, type: 'fate', effect: { fateShieldMin: 5, fateShieldMax: 15 }, description: '获得5-15点随机护甲', fateType: 'shield', maxUpgradeLevel: 5 },
+  gamble_all:      { id: 'gamble_all',      name: '孤注一掷', cost: 2, type: 'fate', effect: { fateGambleDamage: 20, fateGambleSelfDamage: 15 }, description: '50%造成20伤害，50%受到15伤害', fateType: 'gamble', maxUpgradeLevel: 5 },
   dice_roll:       { id: 'dice_roll',       name: '命运骰子', cost: 0, type: 'fate', archetype: 'swift', effect: { fateDice: true }, description: '随机：+2攻击/-2攻击/+3护甲/+5生命', fateType: 'random' },
   wild_swing:      { id: 'wild_swing',      name: '蛮横挥击', cost: 1, type: 'fate', effect: { fateDamageMin: 2, fateDamageMax: 12, fateRandomTarget: true }, description: '造成2-12点伤害，随机目标', fateType: 'damage' },
   unpredictable:   { id: 'unpredictable',   name: '难以预测', cost: 0, type: 'fate', archetype: 'swift', effect: { fateRandomBenefit: true }, description: '随机执行：抽2张/获得3能量/恢复10生命', fateType: 'random' },
@@ -2977,7 +2977,7 @@ const CARDS = {
   lifedrain:       { id: 'lifedrain',       name: '生命吸取', cost: 3, type: 'attack', effect: { damage: 8, lifesteal: 1 }, description: '造成8点伤害，回复1HP' },
   drawplus:        { id: 'drawplus',        name: '抽牌+1',   cost: 1, type: 'skill', effect: { draw: 1 }, description: '抽1张牌' },
   doubleattack:    { id: 'doubleattack',    name: '双重攻击', cost: 2, type: 'attack', effect: { damage: 6, doubleAttack: 0.3 }, description: '造成6点伤害，30%概率攻击两次' },
-  energyplus:      { id: 'energyplus',      name: '能量充沛', cost: 0, type: 'power', effect: { extraEnergy: 1 }, description: '每回合额外获得1能量' }
+  energyplus:      { id: 'energyplus',      name: '能量充沛', cost: 0, type: 'power', effect: { extraEnergy: 1 }, description: '每回合额外获得1能量', maxUpgradeLevel: 5 }
 };
 
 // ===== V32 流派协同系统 =====
@@ -3654,6 +3654,22 @@ const CARD_UPGRADES = {
   armoredSoul: { thornsAura: 4, blockAura: 3, upgradedThornsAura: 6, upgradedBlockAura: 5, description: '回合结束获得3护甲和4点荆棘', upgradedDescription: '回合结束获得5护甲和6点荆棘' },
   quickening: { startOfTurnDraw: 1, upgradedStartOfTurnDraw: 2, description: '每回合开始时抽1张牌', upgradedDescription: '每回合开始时抽2张牌' },
   vampiricAura: { vampiricAura: 30, upgradedVampiricAura: 50, description: '攻击时30%几率偷取敌人生命', upgradedDescription: '攻击时50%几率偷取敌人生命' },
+
+  // === V30 诅咒系卡牌升级 ===
+  curse_of_pain: { curseStartDamage: 3, upgradedCurseStartDamage: 5, description: '回合开始时受到3点伤害', upgradedDescription: '回合开始时受到5点伤害' },
+  curse_of_weak: { curseWeakAttack: 0.3, upgradedCurseWeakAttack: 0.45, description: '攻击力-30%', upgradedDescription: '攻击力-45%' },
+  dark_curse: { curseVulnerable: 2, upgradedCurseVulnerable: 3, description: '敌方获得2层易伤', upgradedDescription: '敌方获得3层易伤' },
+  death_curse: { curseLifesteal: 0.05, upgradedCurseLifesteal: 0.08, description: '每回合流失5%最大生命', upgradedDescription: '每回合流失8%最大生命' },
+  poison_dart: { cursePoison: 10, upgradedCursePoison: 15, description: '敌方中毒10层', upgradedDescription: '敌方中毒15层' },
+  fear: { curseSkipAttack: 1, upgradedCurseSkipAttack: 2, description: '敌方下回合无法攻击', upgradedDescription: '敌方下回合无法攻击' },
+
+  // === V30 命运系卡牌升级 ===
+  fortune_strike: { fateDamageMin: 3, fateDamageMax: 15, upgradedFateDamageMin: 5, upgradedFateDamageMax: 20, description: '造成3-15点随机伤害', upgradedDescription: '造成5-20点随机伤害' },
+  chaotic_shield: { fateShieldMin: 5, fateShieldMax: 15, upgradedFateShieldMin: 8, upgradedFateShieldMax: 22, description: '获得5-15点随机护甲', upgradedDescription: '获得8-22点随机护甲' },
+  gamble_all: { fateGambleDamage: 20, fateGambleSelfDamage: 15, upgradedFateGambleDamage: 28, upgradedFateGambleSelfDamage: 10, description: '50%造成20伤害，50%受到15伤害', upgradedDescription: '50%造成28伤害，50%受到10伤害' },
+
+  // === V31 能量系卡牌升级 ===
+  energyplus: { extraEnergy: 1, upgradedExtraEnergy: 2, description: '每回合额外获得1能量', upgradedDescription: '每回合额外获得2能量' }
 };
 
 // 升级卡牌的函数 - V40 支持多级升级，效果+15%每级
@@ -3710,6 +3726,8 @@ function upgradeCard(card) {
     if (upgraded.effect.blockAura) upgraded.effect.blockAura = Math.floor((card.effect.blockAura || 0) * scaleFactor);
     if (upgraded.effect.startOfTurnDraw) upgraded.effect.startOfTurnDraw = Math.ceil((card.effect.startOfTurnDraw || 0) * scaleFactor);
     if (upgraded.effect.vampiricAura) upgraded.effect.vampiricAura = Math.min(1, (card.effect.vampiricAura || 0) * scaleFactor);
+    // V51: energyplus extraEnergy upgrade
+    if (upgraded.effect.extraEnergy) upgraded.effect.extraEnergy = Math.ceil((card.effect.extraEnergy || 0) * scaleFactor);
   } else if (card.type === 'special' || card.type === 'fate') {
     if (upgraded.effect.damage) upgraded.effect.damage = Math.floor((card.effect.damage || 0) * scaleFactor);
     if (upgraded.effect.lifesteal) upgraded.effect.lifesteal = Math.min(1, (card.effect.lifesteal || 0) * scaleFactor);
@@ -3717,6 +3735,21 @@ function upgradeCard(card) {
     if (upgraded.effect.energyGain) upgraded.effect.energyGain = Math.ceil((card.effect.energyGain || 0) * scaleFactor);
     if (upgraded.effect.dodgeChance) upgraded.effect.dodgeChance = Math.min(1, (card.effect.dodgeChance || 0) * scaleFactor);
     if (upgraded.effect.draw) upgraded.effect.draw = Math.ceil((card.effect.draw || 0) * scaleFactor);
+    // V51: fate card upgrades
+    if (upgraded.effect.fateDamageMin) upgraded.effect.fateDamageMin = Math.floor((card.effect.fateDamageMin || 0) * scaleFactor);
+    if (upgraded.effect.fateDamageMax) upgraded.effect.fateDamageMax = Math.floor((card.effect.fateDamageMax || 0) * scaleFactor);
+    if (upgraded.effect.fateShieldMin) upgraded.effect.fateShieldMin = Math.floor((card.effect.fateShieldMin || 0) * scaleFactor);
+    if (upgraded.effect.fateShieldMax) upgraded.effect.fateShieldMax = Math.floor((card.effect.fateShieldMax || 0) * scaleFactor);
+    if (upgraded.effect.fateGambleDamage) upgraded.effect.fateGambleDamage = Math.floor((card.effect.fateGambleDamage || 0) * scaleFactor);
+    if (upgraded.effect.fateGambleSelfDamage) upgraded.effect.fateGambleSelfDamage = Math.floor((card.effect.fateGambleSelfDamage || 0) * scaleFactor);
+  } else if (card.type === 'curse') {
+    // V51: curse card upgrades
+    if (upgraded.effect.curseStartDamage) upgraded.effect.curseStartDamage = Math.floor((card.effect.curseStartDamage || 0) * scaleFactor);
+    if (upgraded.effect.curseWeakAttack) upgraded.effect.curseWeakAttack = (card.effect.curseWeakAttack || 0) * scaleFactor;
+    if (upgraded.effect.curseVulnerable) upgraded.effect.curseVulnerable = Math.ceil((card.effect.curseVulnerable || 0) * scaleFactor);
+    if (upgraded.effect.curseLifesteal) upgraded.effect.curseLifesteal = (card.effect.curseLifesteal || 0) * scaleFactor;
+    if (upgraded.effect.cursePoison) upgraded.effect.cursePoison = Math.ceil((card.effect.cursePoison || 0) * scaleFactor);
+    if (upgraded.effect.curseSkipAttack) upgraded.effect.curseSkipAttack = Math.ceil((card.effect.curseSkipAttack || 0) * scaleFactor);
   }
   
   // 更新描述（显示当前等级）
