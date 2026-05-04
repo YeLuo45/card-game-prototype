@@ -2363,6 +2363,9 @@
   </div>
   <div id="reward-cards"></div>
   <div id="reward-relics" style="display:none"></div>
+  <div id="reward-extra">
+    <button id="gacha-from-reward-btn" class="gacha-btn" style="display:none" onclick="openGachaModal()">⚡ 扭蛋抽奖 (消耗10⚡石)</button>
+  </div>
   <button id="skip-reward-btn" style="margin-top: 15px; padding: 10px 30px; font-size: 16px; background: #555; border: none; border-radius: 20px; color: #fff; cursor: pointer;">跳过奖励</button>
 </div>
 
@@ -10688,6 +10691,12 @@ function showRewardScreen() {
   const subtitle = document.getElementById('overlay-subtitle');
   if (subtitle) {
     subtitle.textContent = '选择卡牌加入你的牌组（当前牌组：' + (gameState.deck?.length || 0) + '张）';
+  }
+
+  // V42 显示扭蛋按钮（如果有足够能量石）
+  const gachaBtn = document.getElementById('gacha-from-reward-btn');
+  if (gachaBtn) {
+    gachaBtn.style.display = gameState.energyStones >= 10 ? 'inline-block' : 'none';
   }
 
   document.getElementById('overlay').classList.add('show');
