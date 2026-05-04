@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V45 — 游戏主页落地页</title>
+  <title>DBG卡牌游戏 V47 — 游戏主页落地页</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -2731,9 +2731,13 @@
   <div id="reward-types">
     <button class="reward-type-btn active" data-type="card">🃏 卡牌</button>
     <button class="reward-type-btn" data-type="relic">🎁 遗物</button>
+    <button class="reward-type-btn" data-type="upgrade">⬆️ 升级</button>
+    <button class="reward-type-btn" data-type="sell">💰 出售</button>
   </div>
   <div id="reward-cards"></div>
   <div id="reward-relics" style="display:none"></div>
+  <div id="reward-upgrade" style="display:none"></div>
+  <div id="reward-sell" style="display:none"></div>
   <div id="reward-extra">
     <button id="gacha-from-reward-btn" class="gacha-btn" style="display:none" onclick="openGachaModal()">⚡ 扭蛋抽奖 (消耗10⚡石)</button>
   </div>
@@ -11820,18 +11824,201 @@ function showRewardScreen() {
   }
 }
 
-// V31: 切换奖励标签页
+// V31: 切换奖励标签页 (V47: 添加升级/出售Tab)
 function switchRewardTab(tab) {
   document.querySelectorAll('.reward-type-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.type === tab);
   });
   document.getElementById('reward-cards').style.display = tab === 'card' ? 'flex' : 'none';
   document.getElementById('reward-relics').style.display = tab === 'relic' ? 'flex' : 'none';
+  document.getElementById('reward-upgrade').style.display = tab === 'upgrade' ? 'flex' : 'none';
+  document.getElementById('reward-sell').style.display = tab === 'sell' ? 'flex' : 'none';
 
-  // 切换tab时同步更新跳过按钮文字
+  // V47: 切换tab时同步更新跳过按钮文字和显示
   const skipBtn = document.getElementById('skip-reward-btn');
   if (skipBtn) {
-    skipBtn.textContent = tab === 'card' ? '跳过卡牌' : '跳过遗物';
+    if (tab === 'upgrade') {
+      skipBtn.textContent = '完成升级';
+    } else if (tab === 'sell') {
+      skipBtn.textContent = '完成出售';
+    } else {
+      skipBtn.textContent = tab === 'card' ? '跳过卡牌' : '跳过遗物';
+    }
+  }
+
+  // V47: 渲染升级/出售Tab内容
+  if (tab === 'upgrade') {
+    renderUpgradeTab();
+  } else if (tab === 'sell') {
+    renderSellTab();
+  }
+}
+
+// V47: 渲染升级Tab UI
+function renderUpgradeTab() {
+  const container = document.getElementById('reward-upgrade');
+  if (!container) return;
+
+  const deck = gameState.deck || [];
+  // 筛选可升级的卡牌（upgradeLevel < maxUpgradeLevel，默认maxUpgradeLevel=3）
+  const upgradableCards = deck.filter(card => (card.upgradeLevel || 0) < (card.maxUpgradeLevel || 3));
+
+  container.innerHTML = '';
+
+  // V47: 显示金币余额
+  const goldDiv = document.createElement('div');
+  goldDiv.style.cssText = 'text-align:center;margin-bottom:15px;color:#ffd700;font-size:16px;';
+  goldDiv.innerHTML = `💰 当前金币: ${gameState.gold || 0}`;
+  container.appendChild(goldDiv);
+
+  if (upgradableCards.length === 0) {
+    container.innerHTML += '<div style="color:#aaa;text-align:center;padding:30px;font-size:14px;">牌组中没有可升级的卡牌<br><small>（升级后显示在这里）</small></div>';
+    return;
+  }
+
+  upgradableCards.forEach((card, idx) => {
+    const currentLevel = card.upgradeLevel || 0;
+    const maxLevel = card.maxUpgradeLevel || 3;
+    const stars = '★'.repeat(currentLevel) + '☆'.repeat(maxLevel - currentLevel);
+
+    const div = document.createElement('div');
+    div.className = `reward-card ${card.type}`;
+    div.style.position = 'relative';
+    div.innerHTML = `
+      <div class="card-cost">${card.cost}</div>
+      <div class="card-name">${card.name}</div>
+      <div class="card-type">${getCardTypeName(card.type)}</div>
+      <div class="card-effect">${getCardDescriptionForUpgrade(card, currentLevel)}</div>
+      <div class="upgrade-level" style="position:absolute;top:5px;right:5px;font-size:12px;color:#ffd700;">${stars}</div>
+      <button class="upgrade-btn" style="position:absolute;bottom:5px;right:5px;padding:4px 10px;background:#4CAF50;border:none;border-radius:12px;color:#fff;font-size:12px;cursor:pointer;">升级</button>
+    `;
+    div.querySelector('.upgrade-btn').onclick = (e) => {
+      e.stopPropagation();
+      upgradeCardInReward(card);
+    };
+    container.appendChild(div);
+  });
+}
+
+// V47: 根据卡牌等级获取描述
+function getCardDescriptionForUpgrade(card, upgradeLevel) {
+  const baseCards = {
+    'strike': { base: 6, step: 1, suffix: '伤害' },
+    'heavyStrike': { base: 12, step: 2, suffix: '伤害' },
+    'defend': { base: 5, step: 1, suffix: '护甲' },
+    'harden': { base: 8, step: 1, suffix: '护甲' },
+    'ironWall': { base: 12, step: 1, suffix: '护甲' },
+    'firstAid': { base: 6, step: 4, suffix: '治疗' },
+    'healingWave': { base: 12, step: 6, suffix: '治疗' },
+  };
+
+  // 检查是否是bash（易伤）
+  if (card.id === 'bash' || card.name === '猛击') {
+    const damages = [8, 10, 12, 14];
+    return `造成${damages[upgradeLevel]}伤害+易伤`;
+  }
+
+  // 检查是否是focus（集中）
+  if (card.id === 'focus' || card.name === '集中') {
+    const energies = [1, 2, 3, 4];
+    return `+${energies[upgradeLevel]}能量`;
+  }
+
+  // 检查是否有基础数据
+  const baseData = baseCards[card.id];
+  if (baseData) {
+    const value = baseData.base + upgradeLevel * baseData.step;
+    return `${card.description.split('造成')[0] && card.description.includes('伤害') ? '造成' : ''}${value}${baseData.suffix}`;
+  }
+
+  // 其他卡牌使用通用升级公式
+  return card.description;
+}
+
+// V47: 在奖励界面升级卡牌
+function upgradeCardInReward(card) {
+  const deckIndex = gameState.deck.findIndex(c => c.uid === card.uid);
+  if (deckIndex === -1) return;
+
+  const currentLevel = card.upgradeLevel || 0;
+  const maxLevel = card.maxUpgradeLevel || 3;
+  if (currentLevel >= maxLevel) return;
+
+  // 使用通用upgradeCard函数
+  const upgradedCard = upgradeCard(gameState.deck[deckIndex]);
+  gameState.deck[deckIndex] = upgradedCard;
+
+  addLog(`升级卡牌: ${card.name} → Lv.${currentLevel + 1}`, 'info');
+  showToast(`${card.name} 已升级到 Lv.${currentLevel + 1}！`);
+
+  // 刷新升级Tab
+  renderUpgradeTab();
+}
+
+// V47: 渲染出售Tab UI
+function renderSellTab() {
+  const container = document.getElementById('reward-sell');
+  if (!container) return;
+
+  const deck = gameState.deck || [];
+
+  container.innerHTML = '';
+
+  // V47: 显示金币余额
+  const goldDiv = document.createElement('div');
+  goldDiv.style.cssText = 'text-align:center;margin-bottom:15px;color:#ffd700;font-size:16px;';
+  goldDiv.innerHTML = `💰 当前金币: ${gameState.gold || 0} | 每张卡牌售价 8 金币`;
+  container.appendChild(goldDiv);
+
+  if (deck.length === 0) {
+    container.innerHTML += '<div style="color:#aaa;text-align:center;padding:30px;font-size:14px;">牌组为空，无法出售</div>';
+    return;
+  }
+
+  deck.forEach((card, idx) => {
+    const div = document.createElement('div');
+    div.className = `reward-card ${card.type}`;
+    div.style.position = 'relative';
+    const stars = (card.upgradeLevel || 0) > 0 ? ' ★'.repeat(card.upgradeLevel) : '';
+    div.innerHTML = `
+      <div class="card-cost">${card.cost}</div>
+      <div class="card-name">${card.name}${stars}</div>
+      <div class="card-type">${getCardTypeName(card.type)}</div>
+      <div class="card-effect">${card.description}</div>
+      <button class="sell-btn" style="position:absolute;bottom:5px;right:5px;padding:4px 10px;background:#e74c3c;border:none;border-radius:12px;color:#fff;font-size:12px;cursor:pointer;">出售 8💰</button>
+    `;
+    div.querySelector('.sell-btn').onclick = (e) => {
+      e.stopPropagation();
+      sellCardFromReward(card);
+    };
+    container.appendChild(div);
+  });
+}
+
+// V47: 在奖励界面出售卡牌
+function sellCardFromReward(card) {
+  const deckIndex = gameState.deck.findIndex(c => c.uid === card.uid);
+  if (deckIndex === -1) return;
+
+  const sellPrice = 8;
+  gameState.gold = (gameState.gold || 0) + sellPrice;
+  const soldCard = gameState.deck.splice(deckIndex, 1)[0];
+
+  addLog(`出售卡牌: ${soldCard.name}，获得 ${sellPrice} 金币`, 'info');
+  showToast(`${soldCard.name} 已出售，获得 ${sellPrice}💰`);
+
+  // 更新金币显示
+  updateGoldDisplayInReward();
+
+  // 刷新出售Tab
+  renderSellTab();
+}
+
+// V47: 更新奖励界面的金币显示
+function updateGoldDisplayInReward() {
+  const goldDiv = document.querySelector('#reward-sell > div');
+  if (goldDiv && goldDiv.style.color === 'rgb(255, 215, 0)') {
+    goldDiv.innerHTML = `💰 当前金币: ${gameState.gold || 0} | 每张卡牌售价 8 金币`;
   }
 }
 
