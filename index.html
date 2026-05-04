@@ -4874,6 +4874,31 @@ const RELICS = {
     description: '战斗开始时抽1张牌',
     effect: { startOfCombatDraw: 1 },
   },
+  // ===== V50 新增普通遗物（3种）=====
+  copperBracelet: {
+    id: 'copperBracelet',
+    name: '铜制手镯',
+    icon: '🪢',
+    rarity: 'common',
+    description: '初始护甲+3',
+    effect: { startOfCombatBlock: 3 },
+  },
+  hunterEye: {
+    id: 'hunterEye',
+    name: '猎人之眼',
+    icon: '👁️',
+    rarity: 'common',
+    description: '攻击伤害+5%',
+    effect: { damageBonusPercent: 5 },
+  },
+  healingCharm: {
+    id: 'healingCharm',
+    name: '恢复护符',
+    icon: '💚',
+    rarity: 'common',
+    description: '每回合回复1点生命',
+    effect: { perTurnHeal: 1 },
+  },
   // 稀有遗物（5种）
   ironcladBadge: {
     id: 'ironcladBadge',
@@ -4915,6 +4940,39 @@ const RELICS = {
     description: '战斗开始获得8点护甲',
     effect: { startOfCombatBlock: 8 },
   },
+  // ===== V50 新增稀有遗物（4种）=====
+  bloodRageSeal: {
+    id: 'bloodRageSeal',
+    name: '血怒之印',
+    icon: '🩸',
+    rarity: 'rare',
+    description: '生命低于50%时，攻击伤害+50%',
+    effect: { lowHpDamageBonus: 0.5, lowHpThreshold: 0.5 },
+  },
+  thornsBrooch: {
+    id: 'thornsBrooch',
+    name: '荆棘胸针',
+    icon: '🌹',
+    rarity: 'rare',
+    description: '受到攻击时，敌人受到3点反弹伤害',
+    effect: { thornsDamage: 3 },
+  },
+  energyRecycler: {
+    id: 'energyRecycler',
+    name: '能量回收器',
+    icon: '♻️',
+    rarity: 'rare',
+    description: '每回合结束，回收1点未使用的能量',
+    effect: { energyRecycle: 1 },
+  },
+  venomNecklace: {
+    id: 'venomNecklace',
+    name: '毒牙项链',
+    icon: '🦴',
+    rarity: 'rare',
+    description: '攻击时30%概率附加5层中毒',
+    effect: { attackPoisonChance: 0.3, attackPoisonStacks: 5 },
+  },
   // 史诗遗物（4种）
   berserkerSoul: {
     id: 'berserkerSoul',
@@ -4947,6 +5005,31 @@ const RELICS = {
     rarity: 'legendary',
     description: '受到伤害的20%转化为攻击力',
     effect: { damageToAttackPercent: 20 },
+  },
+  // ===== V50 新增传说遗物（3种）=====
+  blackTortoise: {
+    id: 'blackTortoise',
+    name: '玄武甲',
+    icon: '🐢',
+    rarity: 'legendary',
+    description: '护甲效果+30%，护甲不会在回合结束时清零',
+    effect: { blockBonusPercent: 30, armorDoesNotDecay: true },
+  },
+  battleHelmet: {
+    id: 'battleHelmet',
+    name: '战意头盔',
+    icon: '⛑️',
+    rarity: 'legendary',
+    description: '每击杀一个敌人，攻击力+2（可叠加）',
+    effect: { attackDamageStack: 2 },
+  },
+  lifeSiphon: {
+    id: 'lifeSiphon',
+    name: '生命虹吸',
+    icon: '💉',
+    rarity: 'legendary',
+    description: '造成伤害时，20%伤害转化为生命',
+    effect: { damageLifestealPercent: 0.2 },
   },
 };
 
@@ -6953,12 +7036,13 @@ function applyRelicEffect(trigger, context = {}) {
           context.bonusDamage = (context.bonusDamage || 0) + effect.attackDamageStack;
           addLog(`遗物 ${relic.name} 攻击+${effect.attackDamageStack}伤害`, 'info');
         }
-        // 低血量额外伤害
+        // 低血量额外伤害（V50 血怒之印：生命低于50%时，攻击伤害+50%）
         if (effect.lowHpDamageBonus) {
           const hpPercent = gameState.playerHp / gameState.playerMaxHp;
-          if (hpPercent <= effect.lowHpThreshold) {
-            context.bonusDamage = (context.bonusDamage || 0) + effect.lowHpDamageBonus;
-            addLog(`遗物 ${relic.name} 低血量加成 +${effect.lowHpDamageBonus} 伤害`, 'info');
+          if (hpPercent <= (effect.lowHpThreshold || 0.5)) {
+            const bonusDmg = Math.floor((context.damage || 0) * effect.lowHpDamageBonus);
+            context.bonusDamage = (context.bonusDamage || 0) + bonusDmg;
+            addLog(`遗物 ${relic.name} 低血量加成 +${Math.round(effect.lowHpDamageBonus * 100)}% 伤害`, 'info');
           }
         }
         // 血量损失伤害加成（每失去10%生命+2伤害）
@@ -11072,6 +11156,16 @@ function dealDamageToEnemy(damage) {
       addLog('暗影匕首触发！敌人获得3层易伤', 'debuff');
     }
 
+    // V50 生命虹吸: 造成伤害时，20%伤害转化为生命
+    if (hasRelic('lifeSiphon') && actualDamage > 0) {
+      const heal = Math.floor(actualDamage * RELICS.lifeSiphon.effect.damageLifestealPercent);
+      if (heal > 0) {
+        gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + heal);
+        showDamageNumber(heal, 'heal', 'player-area');
+        addLog(`💉 生命虹吸回复 ${heal} 点生命`, 'heal');
+      }
+    }
+
     // V7 暗影刺客反击机制
     if (gameState.enemyThorns > 0) {
       const thornsDmg = gameState.enemyThorns;
@@ -11164,6 +11258,16 @@ function endTurn() {
     gameState.energy = 0;
   }
 
+  // V50 能量回收器：每回合结束，回收1点未使用的能量
+  if (hasRelic('energyRecycler')) {
+    const recycleAmount = RELICS.energyRecycler.effect.energyRecycle;
+    if (gameState.energy > 0) {
+      const amount = Math.min(recycleAmount, gameState.energy);
+      gameState.energy -= amount;
+      addLog(`♻️ 能量回收器回收 ${amount} 点能量`, 'info');
+    }
+  }
+
   processDebuffs('player');
   
   // V35 卡牌弃置追踪: 回合结束弃置手牌
@@ -11214,10 +11318,10 @@ function endTurn() {
 
   startPlayerTurn();
 
-  // V34 无限护甲：回合开始时恢复上回合护甲
-  if (hasRelic('infiniteArmor') && savedShield > 0) {
+  // V34 无限护甲 / V50 玄武甲：回合开始时恢复上回合护甲
+  if ((hasRelic('infiniteArmor') || hasRelic('blackTortoise')) && savedShield > 0) {
     gameState.playerShield = savedShield;
-    addLog(`无限护甲效果：保留 ${savedShield} 点护甲`, 'block');
+    addLog(`护甲保留效果：保留 ${savedShield} 点护甲`, 'block');
   }
 }
 
@@ -11720,6 +11824,13 @@ function dealDamageToPlayer(damage, isEnemyAttack = true) {
     showDamageNumber(damage, 'damage', 'player-area');
     audioManager.play('enemyAttack');
     addLog(`受到 ${damage} 点伤害`, 'damage');
+
+    // V50 荆棘胸针：受到攻击时，敌人受到3点反弹伤害
+    if (hasRelic('thornsBrooch') && isEnemyAttack) {
+      const thornsBroochDamage = RELICS.thornsBrooch.effect.thornsDamage;
+      dealDamageToEnemy(thornsBroochDamage);
+      addLog(`🌹 荆棘胸针反弹 ${thornsBroochDamage} 点伤害`, 'damage');
+    }
 
     // V34 遗物效果：受到伤害时触发（攻击吸收）
     applyRelicEffect('onDamage', { damage });
