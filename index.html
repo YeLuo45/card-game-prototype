@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V39 — Combo系统/宠物技能集成</title>
+  <title>DBG卡牌游戏 V43 — Roguelike进度系统</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -1607,6 +1607,158 @@
     }
     #close-achievements-btn:hover { border-color: #ffd700; transform: scale(1.05); }
 
+    /* V43 Roguelike进度系统样式 */
+    #progress-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 340px;
+      height: 100%;
+      background: rgba(0,0,0,0.95);
+      z-index: 800;
+      display: none;
+      flex-direction: column;
+      padding: 20px;
+      overflow-y: auto;
+      border-left: 2px solid #ffd700;
+    }
+    #progress-panel.show { display: flex; }
+    #progress-title {
+      font-size: 24px;
+      color: #ffd700;
+      margin-bottom: 15px;
+      text-align: center;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #333;
+    }
+    #progress-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: #555;
+      border: none;
+      color: #fff;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    #progress-close:hover { background: #777; }
+    .progress-section { margin-bottom: 20px; }
+    .progress-section-title {
+      font-size: 14px;
+      color: #ffd700;
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #444;
+    }
+    .progress-stats {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+    .progress-stat { text-align: center; }
+    .progress-stat-value {
+      font-size: 22px;
+      font-weight: bold;
+      color: #ffd700;
+    }
+    .progress-stat-label { font-size: 11px; color: #aaa; }
+    .unlockable-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+      font-size: 13px;
+    }
+    .unlockable-card.unlocked {
+      background: rgba(46,204,113,0.15);
+      border: 1px solid rgba(46,204,113,0.3);
+    }
+    .unlockable-card.locked { opacity: 0.6; }
+    .unlockable-card .card-icon { font-size: 20px; }
+    .unlockable-card .card-info { flex: 1; }
+    .unlockable-card .card-name { font-weight: bold; color: #fff; }
+    .unlockable-card .card-condition { font-size: 11px; color: #888; }
+    .achievement-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+      font-size: 13px;
+    }
+    .achievement-item.unlocked {
+      background: rgba(155,89,182,0.15);
+      border: 1px solid rgba(155,89,182,0.3);
+    }
+    .achievement-item.locked { opacity: 0.6; }
+    .achievement-item .achievement-icon { font-size: 20px; }
+    .achievement-item .achievement-info { flex: 1; }
+    .achievement-item .achievement-name { font-weight: bold; color: #fff; }
+    .achievement-item .achievement-condition { font-size: 11px; color: #888; }
+    .next-unlock {
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    .next-unlock-title { font-size: 12px; color: #aaa; margin-bottom: 5px; }
+    .next-unlock-name { font-size: 14px; color: #ffd700; font-weight: bold; margin-bottom: 5px; }
+    .next-unlock-progress {
+      height: 8px;
+      background: #333;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+    .next-unlock-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #f39c12, #ffd700);
+      transition: width 0.3s;
+    }
+    .next-unlock-text { font-size: 11px; color: #888; }
+    /* Toast通知样式 */
+    #toast-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 900;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast {
+      background: rgba(0,0,0,0.9);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 14px;
+      color: #fff;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 2.7s forwards;
+      pointer-events: auto;
+    }
+    .toast.card-unlock { border: 2px solid #ffd700; color: #ffd700; }
+    .toast.achievement-unlock { border: 2px solid #9b59b6; color: #9b59b6; }
+    @keyframes toastIn {
+      0% { opacity: 0; transform: translateY(-20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes toastOut {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-20px); }
+    }
+
     /* V16 卡组预览样式 */
     #deck-preview-overlay {
       display: none;
@@ -2174,11 +2326,19 @@
 </div>
 
 <div id="start-screen">
-  <h1>🃏 DBG卡牌游戏 V40</h1>
+  <div id="start-screen-stats" style="margin-bottom:15px;padding:10px;background:rgba(0,0,0,0.3);border-radius:10px;">
+    <span style="color:#f39c12;font-size:14px;">⚡ <span id="total-energy-display">0</span></span>
+    <span style="color:#aaa;margin:0 10px;">|</span>
+    <span style="color:#2ecc71;font-size:14px;">🏆 <span id="total-wins-display">0</span>胜</span>
+    <span style="color:#aaa;margin:0 10px;">|</span>
+    <span style="color:#e74c3c;font-size:14px;">💀 <span id="total-losses-display">0</span>负</span>
+  </div>
+  <h1>🃏 DBG卡牌游戏 V43</h1>
   <p>构建你的牌组，击败所有敌人！</p>
   <p>能量: 3/回合 | 攻击 | 防御 | 能力牌</p>
-  <p style="color:#ffd700;">V34 Roguelike变体 - 随机开局！</p>
+  <p style="color:#ffd700;">V43 Roguelike进度系统 - 持续成长！</p>
   <button id="start-btn">开始游戏</button>
+  <button id="progress-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#16a085,#1abc9c);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">📊 进度</button>
   <button id="select-deck-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#3498db,#2980b9);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">🎴 选择牌组</button>
   <button id="daily-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#e74c3c,#c0392b);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">🏆 每日挑战</button>
   <button id="boss-rush-btn" style="margin-top:10px;padding:10px 30px;font-size:16px;background:linear-gradient(145deg,#8b0000,#cd5c5c);border:none;border-radius:20px;color:#fff;cursor:pointer;font-weight:bold;">💀 BossRush</button>
@@ -2580,7 +2740,14 @@ const CARDS = {
   gamble_all:      { id: 'gamble_all',      name: '孤注一掷', cost: 2, type: 'fate', effect: { fateGambleDamage: 20, fateGambleSelfDamage: 15 }, description: '50%造成20伤害，50%受到15伤害', fateType: 'gamble' },
   dice_roll:       { id: 'dice_roll',       name: '命运骰子', cost: 0, type: 'fate', archetype: 'swift', effect: { fateDice: true }, description: '随机：+2攻击/-2攻击/+3护甲/+5生命', fateType: 'random' },
   wild_swing:      { id: 'wild_swing',      name: '蛮横挥击', cost: 1, type: 'fate', effect: { fateDamageMin: 2, fateDamageMax: 12, fateRandomTarget: true }, description: '造成2-12点伤害，随机目标', fateType: 'damage' },
-  unpredictable:   { id: 'unpredictable',   name: '难以预测', cost: 0, type: 'fate', archetype: 'swift', effect: { fateRandomBenefit: true }, description: '随机执行：抽2张/获得3能量/恢复10生命', fateType: 'random' }
+  unpredictable:   { id: 'unpredictable',   name: '难以预测', cost: 0, type: 'fate', archetype: 'swift', effect: { fateRandomBenefit: true }, description: '随机执行：抽2张/获得3能量/恢复10生命', fateType: 'random' },
+  // ===== V43 Roguelike可解锁卡牌 =====
+  shield:          { id: 'shield',          name: '护盾',     cost: 2, type: 'skill', effect: { block: 3 }, description: '获得3点护盾值' },
+  thorns:          { id: 'thorns',          name: '荆棘',     cost: 2, type: 'skill', effect: { thorns: 1 }, description: '受到攻击时反弹1伤害' },
+  lifedrain:       { id: 'lifedrain',       name: '生命吸取', cost: 3, type: 'attack', effect: { damage: 8, lifesteal: 1 }, description: '造成8点伤害，回复1HP' },
+  drawplus:        { id: 'drawplus',        name: '抽牌+1',   cost: 1, type: 'skill', effect: { draw: 1 }, description: '抽1张牌' },
+  doubleattack:    { id: 'doubleattack',    name: '双重攻击', cost: 2, type: 'attack', effect: { damage: 6, doubleAttack: 0.3 }, description: '造成6点伤害，30%概率攻击两次' },
+  energyplus:      { id: 'energyplus',      name: '能量充沛', cost: 0, type: 'power', effect: { extraEnergy: 1 }, description: '每回合额外获得1能量' }
 };
 
 // ===== V32 流派协同系统 =====
@@ -3331,22 +3498,28 @@ function upgradeCard(card) {
 
 // V42: 能量石奖励系统
 function giveEnergyStonesReward(isElite, isBoss) {
+  let stonesGained = 0;
   if (isBoss) {
     // Boss: 100%获得2-4能量石
-    const stones = randomInt(2, 4);
-    gameState.energyStones += stones;
-    addLog(`💎 击败Boss获得 ${stones} 能量石！`, 'info');
+    stonesGained = randomInt(2, 4);
+    gameState.energyStones += stonesGained;
+    addLog(`💎 击败Boss获得 ${stonesGained} 能量石！`, 'info');
   } else if (isElite) {
     // 精英: 100%获得1-3能量石
-    const stones = randomInt(1, 3);
-    gameState.energyStones += stones;
-    addLog(`💎 击败精英获得 ${stones} 能量石！`, 'info');
+    stonesGained = randomInt(1, 3);
+    gameState.energyStones += stonesGained;
+    addLog(`💎 击败精英获得 ${stonesGained} 能量石！`, 'info');
   } else {
     // 普通战斗: 50%概率获得1能量石
     if (Math.random() < 0.5) {
-      gameState.energyStones += 1;
+      stonesGained = 1;
+      gameState.energyStones += stonesGained;
       addLog(`💎 战斗胜利获得 1 能量石！`, 'info');
     }
+  }
+  // V43: 更新进度
+  if (stonesGained > 0) {
+    updateProgressOnEnergyStone(stonesGained);
   }
   renderUI();
 }
@@ -7296,6 +7469,360 @@ function loadAchievements() {
   } catch {}
 }
 
+// ===== V43 Roguelike进度系统 =====
+// 进度数据Key
+const PROGRESS_KEY = 'dbg_progress';
+
+// 可解锁卡牌定义
+const UNLOCKABLE_CARDS = {
+  shield: { name: '护盾', cost: 2, type: 'skill', effect: '获得3点护盾值', unlockAt: 10, icon: '🛡️' },
+  thorns: { name: '荆棘', cost: 2, type: 'skill', effect: '受到攻击时反弹1伤害', unlockAt: 25, icon: '🌵' },
+  lifedrain: { name: '生命吸取', cost: 3, type: 'attack', effect: '造成伤害时回复1HP', unlockAt: 50, icon: '🧛' },
+  drawplus: { name: '抽牌+1', cost: 1, type: 'skill', effect: '战斗开始抽牌数+1', unlockAt: 'win3', icon: '📥' },
+  doubleattack: { name: '双重攻击', cost: 2, type: 'attack', effect: '30%概率攻击两次', unlockAt: 'win5', icon: '⚔️' },
+  energyplus: { name: '能量充沛', cost: 0, type: 'power', effect: '每回合额外1能量', unlockAt: 'win10', icon: '⚡' }
+};
+
+// 成就定义
+const PROGRESS_ACHIEVEMENTS = {
+  first_win: { name: '初战告捷', description: '首次胜利', reward: 5, condition: (p) => p.totalWins >= 1 },
+  energy_100: { name: '能量大师', description: '累计获得100⚡', reward: 10, condition: (p) => p.totalEnergyStones >= 100 },
+  win_10: { name: '牌组构建者', description: '10胜', reward: 0, condition: (p) => p.totalWins >= 10, unlockCard: 'doubleattack' },
+  win_25: { name: '牌桌老手', description: '25胜', reward: 0, condition: (p) => p.totalWins >= 25, unlockCard: 'energyplus' },
+  play_50: { name: '坚持不懈', description: '累计50场', reward: 15, condition: (p) => p.totalGames >= 50 }
+};
+
+// 获取进度数据
+function getProgress() {
+  const data = localStorage.getItem(PROGRESS_KEY);
+  if (data) {
+    try {
+      return JSON.parse(data);
+    } catch {}
+  }
+  return {
+    totalEnergyStones: 0,
+    totalWins: 0,
+    totalLosses: 0,
+    totalGames: 0,
+    unlockedCards: ['strike', 'defend'],
+    achievements: [],
+    lastPlayed: null
+  };
+}
+
+// 保存进度数据
+function saveProgress(progress) {
+  progress.lastPlayed = new Date().toISOString();
+  localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+}
+
+// 加载进度数据
+function loadProgress() {
+  const progress = getProgress();
+  updateProgressDisplay(progress);
+  updateStartScreenStats(progress);
+}
+
+// 更新进度显示
+function updateProgressDisplay(progress) {
+  const el = document.getElementById('progress-energy-stones');
+  const wl = document.getElementById('progress-wins');
+  const gl = document.getElementById('progress-games');
+  if (el) el.textContent = progress.totalEnergyStones;
+  if (wl) wl.textContent = progress.totalWins;
+  if (gl) gl.textContent = progress.totalGames;
+  
+  renderUnlockableCards(progress);
+  renderProgressAchievements(progress);
+  renderNextUnlock(progress);
+}
+
+// 更新主界面累计数据
+function updateStartScreenStats(progress) {
+  const el = document.getElementById('total-energy-display');
+  const wl = document.getElementById('total-wins-display');
+  const ll = document.getElementById('total-losses-display');
+  if (el) el.textContent = progress.totalEnergyStones;
+  if (wl) wl.textContent = progress.totalWins;
+  if (ll) ll.textContent = progress.totalLosses;
+}
+
+// 渲染可解锁卡牌列表
+function renderUnlockableCards(progress) {
+  const container = document.getElementById('unlockable-cards-list');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  // 基础卡牌（默认解锁）
+  const basicCards = ['strike', 'defend'];
+  basicCards.forEach(id => {
+    const card = CARDS[id];
+    if (card) {
+      container.innerHTML += `
+        <div class="unlockable-card unlocked">
+          <span class="card-icon">✓</span>
+          <div class="card-info">
+            <div class="card-name">${card.name}</div>
+            <div class="card-condition">基础卡牌</div>
+          </div>
+        </div>
+      `;
+    }
+  });
+  
+  // 可解锁卡牌
+  Object.entries(UNLOCKABLE_CARDS).forEach(([id, card]) => {
+    const isUnlocked = progress.unlockedCards.includes(id);
+    const condition = typeof card.unlockAt === 'number' ? `累计${card.unlockAt}⚡` : `累计${card.unlockAt.replace('win', '')}胜`;
+    container.innerHTML += `
+      <div class="unlockable-card ${isUnlocked ? 'unlocked' : 'locked'}">
+        <span class="card-icon">${isUnlocked ? '★' : '✩'}</span>
+        <div class="card-info">
+          <div class="card-name">${card.icon} ${card.name}</div>
+          <div class="card-condition">${condition}</div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+// 渲染成就列表
+function renderProgressAchievements(progress) {
+  const container = document.getElementById('progress-achievements-list');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  Object.entries(PROGRESS_ACHIEVEMENTS).forEach(([id, ach]) => {
+    const isUnlocked = progress.achievements.includes(id);
+    const rewardText = ach.reward > 0 ? `奖励: ${ach.reward}⚡` : (ach.unlockCard ? `解锁: ${UNLOCKABLE_CARDS[ach.unlockCard]?.name || ach.unlockCard}` : '');
+    container.innerHTML += `
+      <div class="achievement-item ${isUnlocked ? 'unlocked' : 'locked'}">
+        <span class="achievement-icon">${isUnlocked ? '✓' : '○'}</span>
+        <div class="achievement-info">
+          <div class="achievement-name">${ach.name}</div>
+          <div class="achievement-condition">${ach.description} ${rewardText}</div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+// 渲染下一解锁进度
+function renderNextUnlock(progress) {
+  const nameEl = document.getElementById('next-unlock-name');
+  const fillEl = document.getElementById('next-unlock-progress-fill');
+  const textEl = document.getElementById('next-unlock-text');
+  if (!nameEl || !fillEl || !textEl) return;
+  
+  // 找到下一个未解锁的项目
+  const nextCard = Object.entries(UNLOCKABLE_CARDS).find(([id]) => !progress.unlockedCards.includes(id));
+  const nextAch = Object.entries(PROGRESS_ACHIEVEMENTS).find(([id]) => !progress.achievements.includes(id));
+  
+  let nextTarget = null;
+  let nextType = '';
+  
+  if (nextCard && nextAch) {
+    const cardAt = typeof nextCard[1].unlockAt === 'number' ? nextCard[1].unlockAt : 999;
+    const cardIsWin = typeof nextCard[1].unlockAt === 'string';
+    
+    if (cardIsWin && cardAt <= progress.totalWins) {
+      nextTarget = nextCard;
+      nextType = 'card';
+    } else if (!cardIsWin && cardAt <= progress.totalEnergyStones) {
+      nextTarget = nextCard;
+      nextType = 'card';
+    } else {
+      nextTarget = nextAch;
+      nextType = 'achievement';
+    }
+  } else if (nextCard) {
+    nextTarget = nextCard;
+    nextType = 'card';
+  } else if (nextAch) {
+    nextTarget = nextAch;
+    nextType = 'achievement';
+  }
+  
+  if (!nextTarget) {
+    nameEl.textContent = '全部已解锁！';
+    fillEl.style.width = '100%';
+    textEl.textContent = '恭喜你解锁了所有内容！';
+    return;
+  }
+  
+  if (nextType === 'card') {
+    const [id, card] = nextTarget;
+    const condition = typeof card.unlockAt === 'number' ? card.unlockAt : parseInt(card.unlockAt.replace('win', ''));
+    const isWinBased = typeof card.unlockAt === 'string';
+    const current = isWinBased ? progress.totalWins : progress.totalEnergyStones;
+    const percent = Math.min(100, Math.max(0, (current / condition) * 100));
+    const remaining = condition - current;
+    
+    nameEl.textContent = `${card.icon} ${card.name}`;
+    fillEl.style.width = percent + '%';
+    textEl.textContent = isWinBased 
+      ? `还需 ${remaining} 胜 (${current}/${condition})`
+      : `还需 ${remaining}⚡ (${current}/${condition})`;
+  } else {
+    const [id, ach] = nextTarget;
+    let condition = 0;
+    let current = 0;
+    let isWinBased = false;
+    
+    if (id === 'first_win') { current = progress.totalWins; condition = 1; }
+    else if (id === 'energy_100') { current = progress.totalEnergyStones; condition = 100; }
+    else if (id === 'win_10') { current = progress.totalWins; condition = 10; }
+    else if (id === 'win_25') { current = progress.totalWins; condition = 25; }
+    else if (id === 'play_50') { current = progress.totalGames; condition = 50; }
+    
+    const percent = Math.min(100, Math.max(0, (current / condition) * 100));
+    const remaining = condition - current;
+    const label = id.includes('win') ? '胜' : (id.includes('energy') ? '⚡' : '场');
+    
+    nameEl.textContent = `🏆 ${ach.name}`;
+    fillEl.style.width = percent + '%';
+    textEl.textContent = `还需 ${remaining} ${label} (${current}/${condition})`;
+  }
+}
+
+// 检查并处理解锁
+function checkUnlocks(progress) {
+  const newUnlocks = [];
+  
+  // 卡牌解锁检测
+  Object.entries(UNLOCKABLE_CARDS).forEach(([id, card]) => {
+    if (progress.unlockedCards.includes(id)) return;
+    
+    let shouldUnlock = false;
+    if (typeof card.unlockAt === 'number' && progress.totalEnergyStones >= card.unlockAt) {
+      shouldUnlock = true;
+    } else if (typeof card.unlockAt === 'string' && card.unlockAt.startsWith('win')) {
+      const winCount = parseInt(card.unlockAt.replace('win', ''));
+      if (progress.totalWins >= winCount) shouldUnlock = true;
+    }
+    
+    if (shouldUnlock) {
+      progress.unlockedCards.push(id);
+      newUnlocks.push({ type: 'card', id, name: card.name });
+      addLog(`🎉 新卡牌解锁: ${card.name}！`, 'info');
+    }
+  });
+  
+  // 成就解锁检测
+  Object.entries(PROGRESS_ACHIEVEMENTS).forEach(([id, ach]) => {
+    if (progress.achievements.includes(id)) return;
+    
+    if (ach.condition(progress)) {
+      progress.achievements.push(id);
+      newUnlocks.push({ type: 'achievement', id, name: ach.name });
+      addLog(`🏆 成就解锁: ${ach.name}！`, 'info');
+      
+      // 奖励能量石
+      if (ach.reward > 0) {
+        progress.totalEnergyStones += ach.reward;
+        addLog(`💎 获得 ${ach.reward} 能量石奖励！`, 'info');
+      }
+      
+      // 解锁卡牌奖励
+      if (ach.unlockCard && !progress.unlockedCards.includes(ach.unlockCard)) {
+        progress.unlockedCards.push(ach.unlockCard);
+        const card = UNLOCKABLE_CARDS[ach.unlockCard];
+        if (card) {
+          addLog(`🎉 新卡牌解锁: ${card.name}！`, 'info');
+        }
+      }
+    }
+  });
+  
+  return newUnlocks;
+}
+
+// 显示Toast通知
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
+}
+
+// 打开进度面板
+function openProgressPanel() {
+  const progress = getProgress();
+  updateProgressDisplay(progress);
+  document.getElementById('progress-panel').classList.add('show');
+}
+
+// 关闭进度面板
+function closeProgressPanel() {
+  document.getElementById('progress-panel').classList.remove('show');
+}
+
+// 更新游戏结束后的进度
+function updateProgressOnGameEnd(isVictory) {
+  const progress = getProgress();
+  
+  // 更新累计游戏数
+  progress.totalGames++;
+  
+  if (isVictory) {
+    progress.totalWins++;
+  } else {
+    progress.totalLosses = (progress.totalLosses || 0) + 1;
+  }
+  
+  // 检查解锁
+  const newUnlocks = checkUnlocks(progress);
+  
+  // 保存进度
+  saveProgress(progress);
+  
+  // 显示解锁通知
+  newUnlocks.forEach(unlock => {
+    if (unlock.type === 'card') {
+      showToast(`🎉 新卡牌解锁：${unlock.name}！`, 'card-unlock');
+    } else if (unlock.type === 'achievement') {
+      showToast(`🏆 成就解锁：${unlock.name}！`, 'achievement-unlock');
+    }
+  });
+  
+  // 更新主界面显示
+  updateStartScreenStats(progress);
+}
+
+// 更新能量石后的进度（战斗中获得能量石时调用）
+function updateProgressOnEnergyStone(stonesGained) {
+  const progress = getProgress();
+  progress.totalEnergyStones += stonesGained;
+  
+  // 检查解锁
+  const newUnlocks = checkUnlocks(progress);
+  
+  // 保存进度
+  saveProgress(progress);
+  
+  // 显示解锁通知
+  newUnlocks.forEach(unlock => {
+    if (unlock.type === 'card') {
+      showToast(`🎉 新卡牌解锁：${unlock.name}！`, 'card-unlock');
+    } else if (unlock.type === 'achievement') {
+      showToast(`🏆 成就解锁：${unlock.name}！`, 'achievement-unlock');
+    }
+  });
+  
+  // 更新主界面显示
+  updateStartScreenStats(progress);
+}
+
 // ===== 工具函数 =====
 // V4 卡牌类型名称
 function getCardTypeName(type) {
@@ -10965,6 +11492,8 @@ function showGameOver() {
   audioManager.play('defeat');
   // V9 检查成就
   checkAchievements();
+  // V43 更新游戏进度
+  updateProgressOnGameEnd(false);
   // V19 隐藏快速存档按钮
   document.getElementById('quick-save-btn').classList.remove('show');
 
@@ -11081,6 +11610,9 @@ function showVictory() {
   if (gameState.isDailyChallenge) {
     completeDailyChallenge();
   }
+  
+  // V43 更新游戏进度（胜利）
+  updateProgressOnGameEnd(true);
   
   // V28 显示终局结算界面
   showEndgameScreen();
@@ -12599,6 +13131,8 @@ document.getElementById('achievements-btn').onclick = showAchievements;
 document.getElementById('close-achievements-btn').onclick = () => {
   document.getElementById('achievements-overlay').classList.remove('show');
 };
+// V43 进度按钮
+document.getElementById('progress-btn').onclick = openProgressPanel;
 // V29 每日挑战按钮
 document.getElementById('daily-btn').onclick = showDailyChallenge;
 // BossRush按钮
@@ -12653,6 +13187,8 @@ document.getElementById('confirm-no-btn').onclick = closeConfirmDialog;
 document.addEventListener('DOMContentLoaded', () => {
   initMobileSupport();
   registerServiceWorker();
+  // V43 加载进度数据
+  loadProgress();
 });
 
 // Service Worker 注册
@@ -12711,6 +13247,51 @@ window.addEventListener('offline', updateOnlineStatus);
   <div id="gacha-cards"></div>
   <button id="gacha-close-btn" onclick="closeGachaModal()">关闭</button>
 </div>
+
+<!-- V43 Roguelike进度面板 -->
+<div id="progress-panel">
+  <button id="progress-close" onclick="closeProgressPanel()">✕</button>
+  <div id="progress-title">📊 进度</div>
+  
+  <div class="progress-section">
+    <div class="progress-stats">
+      <div class="progress-stat">
+        <div class="progress-stat-value" id="progress-energy-stones">0</div>
+        <div class="progress-stat-label">⚡ 累计能量石</div>
+      </div>
+      <div class="progress-stat">
+        <div class="progress-stat-value" id="progress-wins">0</div>
+        <div class="progress-stat-label">🏆 胜场</div>
+      </div>
+      <div class="progress-stat">
+        <div class="progress-stat-value" id="progress-games">0</div>
+        <div class="progress-stat-label">🎮 累计场次</div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="progress-section">
+    <div class="progress-section-title">🔓 已解锁卡牌</div>
+    <div id="unlockable-cards-list"></div>
+  </div>
+  
+  <div class="progress-section">
+    <div class="progress-section-title">🏆 成就</div>
+    <div id="progress-achievements-list"></div>
+  </div>
+  
+  <div class="next-unlock" id="next-unlock-section">
+    <div class="next-unlock-title">下一解锁</div>
+    <div class="next-unlock-name" id="next-unlock-name">-</div>
+    <div class="next-unlock-progress">
+      <div class="next-unlock-progress-fill" id="next-unlock-progress-fill" style="width: 0%"></div>
+    </div>
+    <div class="next-unlock-text" id="next-unlock-text">-</div>
+  </div>
+</div>
+
+<!-- Toast通知容器 -->
+<div id="toast-container"></div>
 
 </body>
 </html>
