@@ -9740,6 +9740,15 @@ function rerollShop() {
 
 function leaveShop() {
   document.getElementById('shop-overlay').classList.remove('show');
+  
+  // V53: 检查是否有待执行的章节结束动作
+  if (gameState.pendingChapterEndAction) {
+    const cb = gameState.pendingChapterEndAction.callback;
+    gameState.pendingChapterEndAction = null;
+    cb();
+    return;
+  }
+  
   completeNode(gameState.currentNode);
   gameState.currentNode = null;
   returnToMap();
@@ -12740,34 +12749,66 @@ function finishRewardSelection() {
       if (action.currentChapter >= 3) {
         // 第三章Boss击败 = 通关胜利
         gameState.totalChaptersCompleted++;
-        setTimeout(() => showVictory(), 500);
+        // V53: 先进入商店，再显示胜利
+        gameState.pendingChapterEndAction = {
+          type: 'chapterEnd',
+          callback: () => showVictory()
+        };
+        handleShop();
+        return;
       } else {
-        setTimeout(() => {
-          grantChapterEndRelicReward();
-          advanceToNextChapter();
-        }, 500);
+        // V53: 先进入商店，再进入下一章节
+        gameState.pendingChapterEndAction = {
+          type: 'chapterEnd',
+          callback: () => {
+            grantChapterEndRelicReward();
+            advanceToNextChapter();
+          }
+        };
+        handleShop();
+        return;
       }
     }
     // V30 检查是否通关第8章Boss（克洛诺斯）
     else if (action.currentFloor === 11 && action.enemyId === 'chronos') {
-      setTimeout(() => showTrueEndingChoice(), 500);
+      gameState.pendingChapterEndAction = {
+        type: 'chapterEnd',
+        callback: () => showTrueEndingChoice()
+      };
+      handleShop();
+      return;
     }
     // V20 检查是否通关（击败第7层Boss = 通关章节7）
     else if (action.currentFloor >= 7) {
       gameState.totalChaptersCompleted++;
-      setTimeout(() => showVictory(), 500);
+      gameState.pendingChapterEndAction = {
+        type: 'chapterEnd',
+        callback: () => showVictory()
+      };
+      handleShop();
+      return;
     }
     // V20 章节切换：第5层Boss后进入第6层（章节2->3）
     else if (action.currentFloor === 5) {
       gameState.totalChaptersCompleted++;
-      setTimeout(() => {
-        showChapterReward(2, () => {
-          advanceToNextFloor();
-        });
-      }, 500);
+      gameState.pendingChapterEndAction = {
+        type: 'chapterEnd',
+        callback: () => {
+          showChapterReward(2, () => {
+            advanceToNextFloor();
+          });
+        }
+      };
+      handleShop();
+      return;
     } else if (action.currentFloor === 3) {
       gameState.totalChaptersCompleted++;
-      advanceToNextFloor();
+      gameState.pendingChapterEndAction = {
+        type: 'chapterEnd',
+        callback: () => advanceToNextFloor()
+      };
+      handleShop();
+      return;
     } else {
       advanceToNextFloor();
     }
