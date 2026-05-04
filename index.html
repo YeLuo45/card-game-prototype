@@ -205,6 +205,10 @@
     .debuff-vulnerable { background: rgba(255,0,0,0.7); }
     .debuff-weak { background: rgba(128,128,128,0.7); }
     .debuff-thorns { background: rgba(139,69,19,0.7); }
+    /* V44 新增debuff样式 */
+    .debuff-slow { background: rgba(139,69,19,0.7); }
+    .debuff-frozen { background: rgba(0,191,255,0.7); }
+    .debuff-paralyzed { background: rgba(255,215,0,0.7); }
 
     /* 玩家区域 */
     #player-area {
@@ -1108,6 +1112,87 @@
     .pet-skill-tooltip .skill-name { color: #ffd700; font-weight: bold; margin-bottom: 4px; }
     .pet-skill-tooltip .skill-desc { color: #ccc; font-size: 10px; }
     .pet-skill-tooltip .skill-cost-info { color: #4ecdc4; margin-top: 4px; font-size: 10px; }
+
+    /* V44 宠物选择界面 */
+    #pet-select-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      z-index: 600;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    #pet-select-overlay.show { display: flex; }
+    #pet-select-title { font-size: 28px; color: #ffd700; margin-bottom: 10px; }
+    #pet-select-subtitle { font-size: 14px; color: #aaa; margin-bottom: 20px; }
+    #pet-select-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      max-width: 700px;
+    }
+    .pet-select-card {
+      width: 150px;
+      padding: 15px;
+      border-radius: 12px;
+      background: linear-gradient(145deg, #2c3e50, #34495e);
+      border: 3px solid #95a5a6;
+      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s;
+      text-align: center;
+    }
+    .pet-select-card:hover { transform: scale(1.05); }
+    .pet-select-card.locked { opacity: 0.5; cursor: not-allowed; }
+    .pet-select-card.locked:hover { transform: none; }
+    .pet-select-card.selected { border-color: #2ecc71; }
+    .pet-select-icon { font-size: 48px; margin-bottom: 8px; }
+    .pet-select-name { font-size: 16px; color: #ffd700; font-weight: bold; margin-bottom: 5px; }
+    .pet-select-desc { font-size: 11px; color: #ccc; margin-bottom: 8px; min-height: 30px; }
+    .pet-select-skills { font-size: 10px; color: #4ecdc4; margin-bottom: 5px; }
+    .pet-select-unlock { font-size: 10px; color: #e74c3c; margin-top: 5px; }
+    .pet-select-btn {
+      padding: 8px 16px;
+      font-size: 12px;
+      background: linear-gradient(145deg, #2ecc71, #27ae60);
+      border: none;
+      border-radius: 15px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+    .pet-select-btn:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    #pet-select-actions {
+      display: flex;
+      gap: 15px;
+      margin-top: 20px;
+    }
+    #pet-select-confirm, #pet-select-skip {
+      padding: 12px 30px;
+      font-size: 16px;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #pet-select-confirm {
+      background: linear-gradient(145deg, #2ecc71, #27ae60);
+      color: #fff;
+    }
+    #pet-select-skip {
+      background: #555;
+      color: #ccc;
+    }
 
     /* V25 宠物商店遮罩 */
     #petshop-overlay {
@@ -2567,6 +2652,17 @@
   <div id="petshop-gold">💰 金币: <span id="petshop-current-gold">0</span></div>
   <div id="petshop-grid"></div>
   <button id="petshop-leave">离开宠物商店</button>
+</div>
+
+<!-- V44 宠物选择界面（战斗前选择宠物助战） -->
+<div id="pet-select-overlay">
+  <div id="pet-select-title">🐾 选择你的宠物伙伴</div>
+  <div id="pet-select-subtitle">选择一个宠物助战（战斗中可随时切换）</div>
+  <div id="pet-select-grid"></div>
+  <div id="pet-select-actions">
+    <button id="pet-select-confirm">确认选择</button>
+    <button id="pet-select-skip">跳过（不选宠物）</button>
+  </div>
 </div>
 
 <!-- V40 卡牌管理界面 -->
@@ -4815,6 +4911,102 @@ const PETS = {
     effect: { startOfCombatBlock: 3 },
     cost: 80,
   },
+  // V44 新宠物：史莱姆 - 主动"黏液攻击" 被动"黏液护盾"
+  slime: {
+    id: 'slime',
+    name: '史莱姆',
+    icon: '🟢',
+    description: '忠诚的初始伙伴',
+    effect: { startOfTurnShield: 2 }, // 被动：每回合2护盾
+    activeSkill: {
+      name: '黏液攻击',
+      cost: 2,
+      cooldown: 2,
+      desc: '造成3点伤害，并使敌人减速1回合',
+      execute: (petId) => {
+        const damage = 3;
+        dealDamageToEnemy(damage);
+        applyDebuffToEnemy('slow', 1, 1); // 减速1回合
+        addLog(`🟢 史莱姆发动黏液攻击！造成${damage}点伤害，敌人减速1回合！`, 'damage');
+      }
+    },
+    cost: 0,
+    unlockWins: 0, // 默认解锁
+  },
+  // V44 新宠物：火精灵 - 主动"火焰冲击" 被动"火焰祝福"
+  fireSprite: {
+    id: 'fireSprite',
+    name: '火精灵',
+    icon: '🔥',
+    description: '火焰系伙伴',
+    effect: { attackDamageBonus: 2 }, // 被动：攻击卡伤害+2
+    activeSkill: {
+      name: '火焰冲击',
+      cost: 2,
+      cooldown: 2,
+      desc: '造成5点伤害，30%概率灼烧',
+      execute: (petId) => {
+        const damage = 5;
+        dealDamageToEnemy(damage);
+        if (Math.random() < 0.3) {
+          applyDebuffToEnemy('burn', 2, 2);
+          addLog(`🔥 火精灵发动火焰冲击！造成${damage}点伤害，敌人灼烧！`, 'damage');
+        } else {
+          addLog(`🔥 火精灵发动火焰冲击！造成${damage}点伤害！`, 'damage');
+        }
+      }
+    },
+    cost: 0,
+    unlockWins: 5, // 5胜解锁
+  },
+  // V44 新宠物：冰霜巨人 - 主动"冰冻打击" 被动"冰霜护甲"
+  iceGolem: {
+    id: 'iceGolem',
+    name: '冰霜巨人',
+    icon: '🧊',
+    description: '防守型伙伴',
+    effect: { damageReduction: 1 }, // 被动：受伤-1
+    activeSkill: {
+      name: '冰冻打击',
+      cost: 3,
+      cooldown: 3,
+      desc: '造成4点伤害，冰冻敌人1回合',
+      execute: (petId) => {
+        const damage = 4;
+        dealDamageToEnemy(damage);
+        applyDebuffToEnemy('frozen', 1, 1); // 冰冻1回合
+        addLog(`🧊 冰霜巨人发动冰冻打击！造成${damage}点伤害，敌人冰冻1回合！`, 'damage');
+      }
+    },
+    cost: 0,
+    unlockWins: 15, // 15胜解锁
+  },
+  // V44 新宠物：雷龙 - 主动"雷击" 被动"雷电亲和"
+  thunderDragon: {
+    id: 'thunderDragon',
+    name: '雷龙',
+    icon: '⚡',
+    description: '攻击型伙伴',
+    effect: { startOfTurnEnergy: 1 }, // 被动：每回合+1能量
+    activeSkill: {
+      name: '雷击',
+      cost: 2,
+      cooldown: 2,
+      desc: '造成8点伤害，30%概率麻痹',
+      execute: (petId) => {
+        const damage = 8;
+        dealDamageToEnemy(damage);
+        if (Math.random() < 0.3) {
+          applyDebuffToEnemy('paralyzed', 1, 1); // 麻痹1回合
+          addLog(`⚡ 雷龙发动雷击！造成${damage}点伤害，敌人麻痹！`, 'damage');
+        } else {
+          addLog(`⚡ 雷龙发动雷击！造成${damage}点伤害！`, 'damage');
+        }
+      }
+    },
+    cost: 0,
+    unlockWins: 25, // 25胜解锁
+  }
 };
 
 // 宠物池
@@ -6060,11 +6252,31 @@ function applyPetEffect(trigger, context = {}) {
             addLog(`宠物 ${petData.name} 回复 ${healAmount} 生命`, 'heal');
           }
         }
+        // V44 史莱姆被动：每回合获得护盾
+        if (effect.startOfTurnShield) {
+          gameState.playerShield += effect.startOfTurnShield;
+          addLog(`宠物 ${petData.name} 提供 ${effect.startOfTurnShield} 护盾`, 'block');
+        }
+        // V44 雷龙被动：每回合获得能量
+        if (effect.startOfTurnEnergy) {
+          gameState.energy += effect.startOfTurnEnergy;
+          addLog(`宠物 ${petData.name} 提供 ${effect.startOfTurnEnergy} 能量`, 'info');
+        }
         break;
       case 'onAttack':
         // 暴击率加成（暴击猫头鹰）
         if (effect.criticalChance) {
           context.critBonus = (context.critBonus || 0) + effect.criticalChance;
+        }
+        // V44 火精灵被动：攻击卡伤害+2
+        if (effect.attackDamageBonus) {
+          context.bonusDamage = (context.bonusDamage || 0) + effect.attackDamageBonus;
+        }
+        break;
+      case 'onTakeDamage':
+        // V44 冰霜巨人被动：受伤-1
+        if (effect.damageReduction) {
+          context.damageReduction = (context.damageReduction || 0) + effect.damageReduction;
         }
         break;
       case 'onVictory':
@@ -6201,6 +6413,117 @@ function renderPetsShop() {
   // 绑定离开按钮
   document.getElementById('petshop-leave').onclick = () => {
     document.getElementById('petshop-overlay').classList.remove('show');
+  };
+}
+
+// ===== V44 宠物选择界面 =====
+// V44 宠物选择数据
+let selectedPetForBattle = null;
+
+// 检查宠物是否已解锁（基于累计胜利次数）
+function isPetUnlocked(petData) {
+  const progress = getProgress();
+  const wins = progress.totalWins || 0;
+  const unlockWins = petData.unlockWins || 0;
+  return wins >= unlockWins;
+}
+
+// 获取V44宠物的解锁条件文本
+function getPetUnlockText(petData) {
+  if (petData.unlockWins === 0) return '默认解锁';
+  return `累计${petData.unlockWins}胜解锁`;
+}
+
+// 获取V44宠物列表
+function getV44Pets() {
+  return ['slime', 'fireSprite', 'iceGolem', 'thunderDragon'].map(id => PETS[id]).filter(Boolean);
+}
+
+// 显示宠物选择界面
+function showPetSelect() {
+  selectedPetForBattle = null;
+  renderPetSelect();
+  document.getElementById('pet-select-overlay').classList.add('show');
+}
+
+// 关闭宠物选择界面
+function closePetSelect() {
+  document.getElementById('pet-select-overlay').classList.remove('show');
+}
+
+// 渲染宠物选择界面
+function renderPetSelect() {
+  const grid = document.getElementById('pet-select-grid');
+  if (!grid) return;
+  
+  grid.innerHTML = '';
+  
+  const v44Pets = getV44Pets();
+  v44Pets.forEach(petData => {
+    const unlocked = isPetUnlocked(petData);
+    const owned = gameState.ownedPetIds.includes(petData.id);
+    const isSelected = selectedPetForBattle === petData.id;
+    
+    const div = document.createElement('div');
+    div.className = 'pet-select-card' + 
+      (unlocked ? '' : ' locked') + 
+      (isSelected ? ' selected' : '');
+    
+    const activeSkill = petData.activeSkill;
+    const passiveEffect = petData.effect;
+    let skillsText = '';
+    if (activeSkill) {
+      skillsText += `主动: ${activeSkill.name}(${activeSkill.cost}⚡) | `;
+    }
+    if (passiveEffect) {
+      if (passiveEffect.startOfTurnShield) skillsText += `被动: 每回合${passiveEffect.startOfTurnShield}护盾`;
+      else if (passiveEffect.attackDamageBonus) skillsText += `被动: 攻击+${passiveEffect.attackDamageBonus}`;
+      else if (passiveEffect.damageReduction) skillsText += `被动: 受伤-${passiveEffect.damageReduction}`;
+      else if (passiveEffect.startOfTurnEnergy) skillsText += `被动: 每回合+${passiveEffect.startOfTurnEnergy}能量`;
+    }
+    
+    div.innerHTML = `
+      <div class="pet-select-icon">${petData.icon}</div>
+      <div class="pet-select-name">${petData.name}</div>
+      <div class="pet-select-desc">${petData.description}</div>
+      <div class="pet-select-skills">${skillsText}</div>
+      ${!unlocked ? `<div class="pet-select-unlock">🔒 ${getPetUnlockText(petData)}</div>` : ''}
+      ${owned ? '<div style="color:#2ecc71;font-size:10px;">已拥有</div>' : ''}
+    `;
+    
+    if (unlocked) {
+      div.onclick = () => {
+        selectedPetForBattle = petData.id;
+        renderPetSelect();
+      };
+    }
+    
+    grid.appendChild(div);
+  });
+  
+  // 绑定确认和跳过按钮
+  document.getElementById('pet-select-confirm').onclick = () => {
+    if (selectedPetForBattle) {
+      // 装备选中的宠物
+      gameState.pets.forEach(p => p.equipped = false);
+      const existingPet = gameState.pets.find(p => p.id === selectedPetForBattle);
+      if (existingPet) {
+        existingPet.equipped = true;
+      } else {
+        gameState.pets.push({ id: selectedPetForBattle, equipped: true });
+        gameState.ownedPetIds.push(selectedPetForBattle);
+      }
+      addLog(`选择了 ${PETS[selectedPetForBattle].name} 助战！`, 'info');
+    }
+    closePetSelect();
+    // V44 继续战斗初始化
+    battleContinueStartCombat();
+  };
+  
+  document.getElementById('pet-select-skip').onclick = () => {
+    closePetSelect();
+    // V44 继续战斗初始化（不选宠物）
+    battleContinueStartCombat();
   };
 }
 
@@ -8887,6 +9210,20 @@ function startCombat(node) {
   document.getElementById('battle-container').style.display = 'block';
   document.getElementById('log-panel').style.display = 'block';
 
+  // V44 显示宠物选择界面
+  showPetSelect();
+  
+  // 保存node到gameState，等用户选择宠物后继续
+  gameState.pendingBattleNode = node;
+  
+  // 用户确认宠物后，battleContinueStartCombat会被调用
+}
+
+// V44 继续战斗初始化（宠物选择后调用）
+function battleContinueStartCombat() {
+  const node = gameState.pendingBattleNode;
+  if (!node) return;
+  
   // V33 多章节递进框架：从章节敌人池获取敌人
   // 优先使用chapterState的敌人池（3章结构），否则回退到旧楼层系统
   if (chapterState.currentChapter >= 1 && chapterState.chapterEnemyPool && chapterState.chapterEnemyPool.length > 0) {
@@ -10283,6 +10620,10 @@ function applyDebuffToEnemy(type, stacks, duration, durationBonus = 0) {
     weak:       { name: '虚弱', icon: '↓', cssClass: 'debuff-weak' },
     poison:     { name: '中毒', icon: '☠', cssClass: 'debuff-poison' },
     burn:       { name: '灼热', icon: '🔥', cssClass: 'debuff-burn' },
+    // V44 新增debuff
+    slow:       { name: '减速', icon: '🐌', cssClass: 'debuff-slow' },
+    frozen:     { name: '冰冻', icon: '❄️', cssClass: 'debuff-frozen' },
+    paralyzed:  { name: '麻痹', icon: '⚡', cssClass: 'debuff-paralyzed' },
   };
   const finalDuration = duration + durationBonus;
 
@@ -10870,6 +11211,15 @@ function dealDamageToPlayer(damage, isEnemyAttack = true) {
   if (hasVulnerable) {
     damage = Math.floor(damage * 1.5);
     addLog('易伤状态，受到伤害+50%', 'debuff');
+  }
+  
+  // V44 冰霜巨人被动：受伤-1
+  const petContext = {};
+  applyPetEffect('onTakeDamage', petContext);
+  if (petContext.damageReduction && damage > 0) {
+    const reduction = Math.min(petContext.damageReduction, damage);
+    damage -= reduction;
+    if (reduction > 0) addLog(`冰霜巨人护甲减少 ${reduction} 点伤害`, 'block');
   }
   
   if (gameState.playerShield > 0) {
