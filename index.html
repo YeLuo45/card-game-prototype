@@ -7064,6 +7064,7 @@ function startDailyChallenge() {
   document.getElementById('daily-overlay').classList.remove('show');
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('game-container').style.display = 'block';
+  document.getElementById('map-container').style.display = 'none'; // V45: 不直接显示地图
   
   // V9 加载成就
   loadAchievements();
@@ -7078,6 +7079,10 @@ function startDailyChallenge() {
   
   initMap();
   renderMap();
+  
+  // V45: 显示落地页
+  showGameLandingPage();
+  
   updateUI();
   updateRelicsDisplay();
   document.getElementById('quick-save-btn').classList.add('show');
@@ -12958,7 +12963,7 @@ function initGame() {
   document.getElementById('game-over-screen').classList.remove('show');
   document.getElementById('victory-screen').classList.remove('show');
   document.getElementById('game-container').style.display = 'block';
-  document.getElementById('map-container').style.display = 'block';
+  document.getElementById('map-container').style.display = 'none'; // V45: 不直接显示地图，由落地页控制
   document.getElementById('battle-container').style.display = 'none';
   document.getElementById('log-panel').style.display = 'none';
   document.getElementById('overlay').classList.remove('show');
@@ -13142,7 +13147,7 @@ function loadGame(slot) {
     document.getElementById('game-over-screen').classList.remove('show');
     document.getElementById('victory-screen').classList.remove('show');
     document.getElementById('game-container').style.display = 'block';
-    document.getElementById('map-container').style.display = 'block';
+    document.getElementById('map-container').style.display = 'none'; // V45: 不直接显示地图
     document.getElementById('battle-container').style.display = 'none';
     document.getElementById('log-panel').style.display = 'none';
     document.getElementById('overlay').classList.remove('show');
@@ -13152,6 +13157,9 @@ function loadGame(slot) {
 
     initMap();
     renderMap();
+
+    // V45: 显示落地页
+    showGameLandingPage();
 
     // V19 显示快速存档按钮
     document.getElementById('quick-save-btn').classList.add('show');
