@@ -2747,6 +2747,176 @@
     .card-lv3 { box-shadow: 0 0 12px rgba(155,89,182,0.7); }
     .card-lv4 { box-shadow: 0 0 14px rgba(231,76,60,0.8); }
     .card-lv5 { box-shadow: 0 0 16px rgba(243,156,18,0.9); }
+
+    /* V53 天赋石系统样式 */
+    .card-talent {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    .upgrade-talent {
+      font-size: 12px;
+      font-weight: bold;
+      margin: 5px 0;
+      padding: 3px 8px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 10px;
+    }
+
+    /* 天赋石背包 */
+    #talent-inventory-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 125;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      padding: 20px;
+    }
+    #talent-inventory-overlay.show { display: flex; }
+    #talent-inventory-title { font-size: 24px; color: #ffd700; margin-bottom: 15px; }
+    #talent-inventory-items {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+    .talent-item {
+      width: 100px;
+      padding: 15px;
+      background: rgba(0,0,0,0.6);
+      border-radius: 12px;
+      text-align: center;
+      border: 2px solid #555;
+    }
+    .talent-item .talent-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin: 0 auto 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .talent-item .talent-name { font-size: 14px; font-weight: bold; color: #fff; }
+    .talent-item .talent-count { font-size: 12px; color: #ffd700; margin: 4px 0; }
+    .talent-item .talent-desc { font-size: 10px; color: #aaa; }
+
+    /* 天赋石装备 */
+    #talent-equip-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 125;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      padding: 20px;
+    }
+    #talent-equip-modal.show { display: flex; }
+    #talent-equip-title { font-size: 24px; color: #ffd700; margin-bottom: 15px; }
+    #equip-card-display {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    #equip-card-display .equip-card {
+      width: 120px;
+      padding: 12px;
+      border-radius: 10px;
+      display: inline-block;
+    }
+    #equip-card-display .current-talent {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    #talent-equip-list {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-height: 50vh;
+      overflow-y: auto;
+    }
+    .talent-option {
+      width: 80px;
+      padding: 12px;
+      background: rgba(0,0,0,0.6);
+      border-radius: 10px;
+      text-align: center;
+      cursor: pointer;
+      border: 2px solid #555;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .talent-option:hover { transform: scale(1.1); border-color: #ffd700; }
+    .talent-option .talent-icon {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      margin: 0 auto 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .talent-option .talent-name { font-size: 12px; font-weight: bold; color: #fff; }
+    .talent-option .talent-count { font-size: 10px; color: #ffd700; margin-top: 3px; }
+
+    /* V53 意图预测 */
+    #intent-prediction {
+      background: rgba(0,0,0,0.5);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-top: 8px;
+    }
+    .intent-pred-title { font-size: 11px; color: #aaa; margin-bottom: 4px; }
+    .intent-pred-item { font-size: 12px; color: #fff; padding: 2px 0; }
+
+    /* V53 状态图标 */
+    .status-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      position: relative;
+      margin: 0 2px;
+    }
+    .status-icon .status-stacks {
+      position: absolute;
+      bottom: -3px;
+      right: -3px;
+      background: #000;
+      color: #fff;
+      font-size: 9px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #player-status-icons, #enemy-status-icons {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
   </style>
 </head>
 <body>
@@ -2923,7 +3093,8 @@
         <span id="enemy-intent">意图: 攻击</span>
       </div>
       <div id="enemy-debuffs"></div>
-      <div id="enemy-status"></div>
+      <div id="enemy-status-icons"></div>
+      <div id="intent-prediction"></div>
     </div>
 
     <!-- 玩家区域 -->
@@ -2933,6 +3104,7 @@
         <span class="shield">🛡️ 护甲: <span id="player-shield">0</span></span>
       </div>
       <div id="player-debuffs"></div>
+      <div id="player-status-icons"></div>
       <div id="relics-panel" style="display:none">
         <h4>🎁 遗物:</h4>
         <div id="relics-container"></div>
@@ -2949,6 +3121,7 @@
       <span id="deck-info">牌组: <span id="deck-count">13</span> | 弃牌堆: <span id="discard-count">0</span></span>
       <button id="deck-preview-btn" style="padding:8px 16px;font-size:14px;background:linear-gradient(145deg,#3498db,#2980b9);border:none;border-radius:15px;color:#fff;cursor:pointer;font-weight:bold;">🃏 牌组</button>
       <button id="deck-manage-btn" style="padding:8px 16px;font-size:14px;background:linear-gradient(145deg,#9b59b6,#8e44ad);border:none;border-radius:15px;color:#fff;cursor:pointer;font-weight:bold;" onclick="openDeckManagement()">⚡ 强化</button>
+      <button id="talent-inventory-btn" style="padding:8px 16px;font-size:14px;background:linear-gradient(145deg,#f39c12,#e67e22);border:none;border-radius:15px;color:#fff;cursor:pointer;font-weight:bold;" onclick="openTalentInventory()">💎 天赋</button>
       <button id="end-turn">结束回合</button>
     </div>
   </div>
@@ -15293,6 +15466,21 @@ window.addEventListener('offline', updateOnlineStatus);
   <div id="deck-management-title">📚 卡组管理</div>
   <div id="deck-management-cards"></div>
   <button class="upgrade-action-btn" style="margin-top:15px" onclick="closeDeckManagement()">关闭</button>
+</div>
+
+<!-- V53 天赋石背包 -->
+<div id="talent-inventory-overlay">
+  <div id="talent-inventory-title">💎 天赋石背包</div>
+  <div id="talent-inventory-items"></div>
+  <button class="upgrade-action-btn" style="margin-top:15px" onclick="closeTalentInventory()">关闭</button>
+</div>
+
+<!-- V53 天赋石装备 -->
+<div id="talent-equip-modal">
+  <div id="talent-equip-title">⚡ 装备天赋石</div>
+  <div id="equip-card-display"></div>
+  <div id="talent-equip-list"></div>
+  <button class="upgrade-action-btn" style="margin-top:15px" onclick="closeTalentEquipModal()">关闭</button>
 </div>
 
 </body>
