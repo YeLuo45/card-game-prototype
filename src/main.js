@@ -1,6 +1,6 @@
 // ==========================================
 // Card Game Prototype - DBG (Slay the Slime)
-// V53: 天赋石+状态系统+意图预测
+// V54: 商店强化+卡牌分解系统
 // ==========================================
 
 // --- Card Definitions ---
@@ -82,6 +82,138 @@ const STATUS_INFO = {
   [STATUS_TYPES.SHIELDED]:     { name: '护盾', color: '#daa520', icon: '🛡️', desc: '额外护甲' },
   [STATUS_TYPES.REGENERATING]:{ name: '再生', color: '#ff69b4', icon: '💖', desc: '回合回血' }
 };
+
+// ========== V54: 资源与经济系统 ==========
+// 卡牌稀有度
+const CARD_RARITY = {
+  COMMON: 'common',     // 普通 - 青铜
+  UNCOMMON: 'uncommon', // 优秀 - 白银
+  RARE: 'rare',         // 稀有 - 黄金
+  EPIC: 'epic',         // 史诗 - 铂金
+  LEGENDARY: 'legendary' // 传说 - 钻石
+};
+
+const RARITY_INFO = {
+  [CARD_RARITY.COMMON]:     { name: '青铜', color: '#cd7f32', multiplier: 1 },
+  [CARD_RARITY.UNCOMMON]:   { name: '白银', color: '#c0c0c0', multiplier: 1.5 },
+  [CARD_RARITY.RARE]:       { name: '黄金', color: '#ffd700', multiplier: 2 },
+  [CARD_RARITY.EPIC]:       { name: '铂金', color: '#e5e4e2', multiplier: 3 },
+  [CARD_RARITY.LEGENDARY]:  { name: '钻石', color: '#b9f2ff', multiplier: 5 }
+};
+
+// 卡牌分解价值表 [Lv1, Lv2, Lv3, Lv4, Lv5]
+const SALVAGE_BASE_VALUES = [10, 30, 80, 200, 500];
+
+// 分解一张卡牌获得的金币
+function calculateSalvageValue(card) {
+  const baseValue = SALVAGE_BASE_VALUES[Math.min(card.level || 1, 5) - 1];
+  const rarityMult = RARITY_INFO[card.rarity || CARD_RARITY.COMMON].multiplier;
+  return Math.floor(baseValue * rarityMult);
+}
+
+// 能量石状态
+let energyStones = 50; // 初始50个
+const ENERGY_STONE_MAX = 999;
+const ENERGY_STONE_GAINS = {
+  victory: 5,      // 战斗胜利
+  elite: 10,       // 精英敌人
+  boss: 25         // Boss击杀
+};
+
+// 商店强化选项
+const SHOP_ENHANCEMENTS = [
+  { id: 'random_talent', name: '随机天赋石', cost: 200, desc: '获得1个随机天赋石', type: 'talent' },
+  { id: 'heal', name: '生命恢复', cost: 50, desc: '恢复20HP', type: 'heal', value: 20 },
+  { id: 'energy_restore', name: '能量恢复', cost: 30, desc: '恢复2能量', type: 'energy', value: 2 },
+  { id: 'card_upgrade', name: '卡牌升级', cost: 300, desc: '随机升级1张卡牌1级', type: 'upgrade' },
+  { id: 'remove_card', name: '移除卡牌', cost: 150, desc: '从牌组移除1张卡', type: 'remove' },
+  { id: 'reroll', name: '重置奖励', cost: 100, desc: '重新生成奖励选项', type: 'reroll' }
+];
+
+// 分解选中状态
+let selectedCardsForDecompose = new Set();
+
+// 分解卡牌
+function decomposeCard(instanceId) {
+  const deck = state.playerDeck || [];
+  const cardIndex = deck.findIndex(c => c.instanceId === instanceId);
+  if (cardIndex === -1) return;
+  
+  const card = deck[cardIndex];
+  const gold = calculateSalvageValue(card);
+  state.gold = (state.gold || 0) + gold;
+  deck.splice(cardIndex, 1);
+  showMessage(`分解获得 ${gold} 金币`);
+  updateUI();
+  saveGame();
+}
+
+// 购买商店强化
+function purchaseEnhancement(enhancementId) {
+  const enhancement = SHOP_ENHANCEMENTS.find(e => e.id === enhancementId);
+  if (!enhancement) return;
+  
+  const cost = enhancement.cost;
+  if ((state.gold || 0) < cost) {
+    showMessage('金币不足!');
+    return;
+  }
+  
+  state.gold -= cost;
+  
+  switch (enhancement.type) {
+    case 'talent':
+      const talents = Object.keys(TALENT_TYPES);
+      const randomTalent = talents[Math.floor(Math.random() * talents.length)];
+      talentInventory[randomTalent] = (talentInventory[randomTalent] || 0) + 1;
+      showMessage(`获得 ${TALENT_INFO[randomTalent].name} 天赋石!`);
+      break;
+    case 'heal':
+      state.player.hp = Math.min(state.player.hp + enhancement.value, state.player.maxHp);
+      showMessage(`恢复 ${enhancement.value} HP!`);
+      break;
+    case 'energy':
+      state.player.energy = Math.min(state.player.energy + enhancement.value, state.player.maxEnergy);
+      showMessage(`恢复 ${enhancement.value} 能量!`);
+      break;
+    case 'upgrade':
+      const upgradableCards = deck.filter(c => c.level < c.maxLevel);
+      if (upgradableCards.length > 0) {
+        const card = upgradableCards[Math.floor(Math.random() * upgradableCards.length)];
+        const cost = LEVEL_UP_COSTS[card.level];
+        if (cost > 0) {
+          card.level++;
+          showMessage(`${card.name} 升级到 Lv.${card.level}!`);
+        }
+      }
+      break;
+    case 'remove':
+      if (deck.length > 1) {
+        const removeIdx = Math.floor(Math.random() * deck.length);
+        deck.splice(removeIdx, 1);
+        showMessage('已移除1张卡牌');
+      }
+      break;
+    case 'reroll':
+      showMessage('奖励已重置');
+      break;
+  }
+  
+  updateUI();
+  saveGame();
+}
+
+// 战斗胜利奖励能量石
+function awardEnergyStones() {
+  let gain = ENERGY_STONE_GAINS.victory;
+  if (state.enemy.isElite) gain += ENERGY_STONE_GAINS.elite;
+  if (state.enemy.isBoss) gain += ENERGY_STONE_GAINS.boss;
+  
+  energyStones = Math.min(energyStones + gain, ENERGY_STONE_MAX);
+  if (gain > 0) {
+    showMessage(`获得 ${gain} ⚡石!`);
+  }
+}
 
 // ========== V53: 意图预测系统 ==========
 // 敌人未来意图队列

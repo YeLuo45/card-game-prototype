@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V48 — 游戏主页落地页</title>
+  <title>DBG卡牌游戏 V54 — 游戏主页落地页</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -603,6 +603,43 @@
     }
     .reward-relic .relic-name { font-weight: bold; font-size: 12px; margin-bottom: 4px; text-align: center; }
     .reward-relic .relic-desc { font-size: 10px; opacity: 0.8; text-align: center; color: #ddd; }
+
+    #decompose-hint {
+      color: #aaa;
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+    .decompose-card {
+      width: 100px;
+      padding: 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+      opacity: 1;
+    }
+    .decompose-card.selected {
+      box-shadow: 0 0 15px 5px #ffd700;
+      transform: scale(1.05);
+    }
+    .decompose-card.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .decompose-card .card-cost { top: -8px; left: -8px; }
+    .decompose-card .decompose-value {
+      position: absolute;
+      bottom: -8px;
+      right: -8px;
+      background: #ffd700;
+      color: #000;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: bold;
+    }
+    .decompose-card .card-name { font-size: 11px; font-weight: bold; text-align: center; }
+    .decompose-card .card-type { font-size: 10px; text-align: center; color: #aaa; }
 
     /* 商店遮罩 */
     #shop-overlay {
@@ -3189,6 +3226,7 @@
     <button class="shop-tab" data-tab="relics">🎁 遗物</button>
     <button class="shop-tab" data-tab="sell">💵 出售</button>
     <button class="shop-tab" data-tab="upgrade">⚡ 强化</button>
+    <button class="shop-tab" data-tab="decompose">🔧 分解</button>
   </div>
   <div id="shop-cards" class="shop-section"></div>
   <div id="shop-relics" class="shop-section" style="display:none"></div>
@@ -3199,6 +3237,11 @@
   <div id="shop-upgrade" class="shop-section" style="display:none">
     <div id="upgrade-hint">点击卡牌进行升级（最高3级）| 升级公式: 金币 = 10 + 当前等级 × 5 | 效果 +15%/级</div>
     <div id="upgrade-cards"></div>
+  </div>
+  <div id="shop-decompose" class="shop-section" style="display:none">
+    <div id="decompose-hint">选择要分解的卡牌，获得金币返还（分解价值=卡牌等级基础值×稀有度倍率）</div>
+    <div id="decompose-preview" style="color:#ffd700;margin-bottom:10px;text-align:center;">预计获得: <span id="decompose-gold-preview">0</span> 💰</div>
+    <div id="decompose-cards"></div>
   </div>
   <button id="shop-leave" class="shop-btn leave">离开商店</button>
 </div>
@@ -10073,6 +10116,7 @@ function switchShopTab(tab) {
   document.getElementById('shop-relics').style.display = tab === 'relics' ? 'flex' : 'none';
   document.getElementById('shop-sell').style.display = tab === 'sell' ? 'block' : 'none';
   document.getElementById('shop-upgrade').style.display = tab === 'upgrade' ? 'block' : 'none';
+  document.getElementById('shop-decompose').style.display = tab === 'decompose' ? 'block' : 'none';
 
   if (tab === 'cards' && gameState.shopCards.length === 0) {
     showShop();
@@ -10082,6 +10126,8 @@ function switchShopTab(tab) {
     showSellCards();
   } else if (tab === 'upgrade') {
     showShopUpgrades();
+  } else if (tab === 'decompose') {
+    showDecomposeCards();
   }
 }
 
@@ -10235,6 +10281,138 @@ function showShopUpgrades() {
   if (gameState.deck.length === 0) {
     container.innerHTML = '<div style="color:#aaa;text-align:center;padding:20px;">套牌中没有卡牌</div>';
   }
+}
+
+// V54: 分解系统状态
+let decomposeSelectedCards = new Set();
+
+// V54: 计算卡牌分解价值
+function getDecomposeValue(card) {
+  // 基础值: Lv1=10, Lv2=30, Lv3=80, Lv4=200, Lv5=500
+  const levelMultipliers = { 0: 1, 1: 1, 2: 1.15, 3: 1.30, 4: 1.50, 5: 1.75 };
+  const baseValues = [10, 30, 80, 200, 500];
+  const level = card.upgradeLevel || 0;
+  const baseValue = baseValues[Math.min(level, 5)] || 500;
+  
+  // 稀有度倍率
+  let rarityMult = 1;
+  if (card.rarity === 'uncommon') rarityMult = 1.5;
+  else if (card.rarity === 'rare') rarityMult = 2;
+  else if (card.rarity === 'epic') rarityMult = 3;
+  else if (card.rarity === 'legendary') rarityMult = 5;
+  
+  // 星级加成 (每星+10%)
+  const starBonus = 1 + (card.star || 1) * 0.1;
+  
+  return Math.floor(baseValue * rarityMult * starBonus);
+}
+
+// V54: 显示分解卡牌界面
+function showDecomposeCards() {
+  const container = document.getElementById('decompose-cards');
+  container.innerHTML = '';
+  
+  // 重置选择
+  decomposeSelectedCards.clear();
+  updateDecomposePreview();
+  
+  // 获取玩家套牌中的所有可分解卡牌（排除初始牌组）
+  const decomposableCards = gameState.deck.filter((card, idx) => {
+    const isStarter = card.id === 'strike' || card.id === 'defend';
+    return !isStarter;
+  });
+  
+  if (decomposableCards.length === 0) {
+    container.innerHTML = '<div style="color:#aaa;text-align:center;padding:20px;">套牌中没有可分解的卡牌</div>';
+    return;
+  }
+  
+  decomposableCards.forEach((card, decomposeIdx) => {
+    const deckIndex = gameState.deck.indexOf(card);
+    const value = getDecomposeValue(card);
+    
+    // 获取卡牌颜色
+    let borderColor = '#888';
+    if (card.rarity === 'uncommon') borderColor = '#c0c0c0';
+    else if (card.rarity === 'rare') borderColor = '#ffd700';
+    else if (card.rarity === 'epic') borderColor = '#e5e4e2';
+    else if (card.rarity === 'legendary') borderColor = '#b9f2ff';
+    
+    const div = document.createElement('div');
+    div.className = `decompose-card ${card.type}`;
+    div.style.borderColor = borderColor;
+    div.dataset.deckIndex = deckIndex;
+    div.innerHTML = `
+      <div class="card-cost">${card.cost}</div>
+      <div class="card-name">${card.name}</div>
+      <div class="card-type">${getCardTypeName(card.type)}</div>
+      <div class="decompose-value">+${value}💰</div>
+    `;
+    
+    div.onclick = () => toggleDecomposeCard(div, deckIndex, value);
+    container.appendChild(div);
+  });
+  
+  // 添加确认分解按钮
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'shop-btn';
+  confirmBtn.style.cssText = 'margin-top:15px;background:#e74c3c;color:#fff;';
+  confirmBtn.textContent = '确认分解';
+  confirmBtn.onclick = () => confirmDecompose();
+  container.appendChild(confirmBtn);
+}
+
+// V54: 切换卡牌选择状态
+function toggleDecomposeCard(element, deckIndex, value) {
+  if (decomposeSelectedCards.has(deckIndex)) {
+    decomposeSelectedCards.delete(deckIndex);
+    element.classList.remove('selected');
+  } else {
+    decomposeSelectedCards.add(deckIndex);
+    element.classList.add('selected');
+  }
+  updateDecomposePreview();
+}
+
+// V54: 更新分解预览
+function updateDecomposePreview() {
+  let totalValue = 0;
+  decomposeSelectedCards.forEach(deckIndex => {
+    const card = gameState.deck[deckIndex];
+    if (card) {
+      totalValue += getDecomposeValue(card);
+    }
+  });
+  document.getElementById('decompose-gold-preview').textContent = totalValue;
+}
+
+// V54: 确认分解
+function confirmDecompose() {
+  if (decomposeSelectedCards.size === 0) {
+    addLog('请先选择要分解的卡牌', 'debuff');
+    return;
+  }
+  
+  let totalValue = 0;
+  const indicesToRemove = Array.from(decomposeSelectedCards).sort((a, b) => b - a);
+  
+  indicesToRemove.forEach(deckIndex => {
+    const card = gameState.deck[deckIndex];
+    if (card) {
+      totalValue += getDecomposeValue(card);
+      gameState.deck.splice(deckIndex, 1);
+    }
+  });
+  
+  gameState.gold += totalValue;
+  addLog(`分解成功！获得 ${totalValue} 金币`, 'info');
+  audioManager.play('decompose') || audioManager.play('coin');
+  
+  // 关闭并刷新
+  decomposeSelectedCards.clear();
+  document.getElementById('shop-current-gold').textContent = gameState.gold;
+  showDecomposeCards();
+  updateUI();
 }
 
 // V40: 在商店中升级卡牌
