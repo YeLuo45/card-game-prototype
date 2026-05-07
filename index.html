@@ -15042,6 +15042,9 @@ function startNewGame() {
   const savedDeckId = localStorage.getItem('dbg_last_deck_id');
   selectedDeckId = savedDeckId && PRESET_DECKS[savedDeckId] ? savedDeckId : 'basic';
 
+  // V48: 有存档牌组 → 直接进遗物选择；无存档牌组 → 先选牌组
+  const hasSavedDeck = savedDeckId && PRESET_DECKS[savedDeckId];
+
   // 初始化基础游戏状态
   gameState = {
     playerHp: 80,
@@ -15212,7 +15215,14 @@ function startNewGame() {
 
   document.getElementById('quick-save-btn').classList.add('show');
 
-  showNotification('读档成功');
+  // V48: 有存档牌组 → 直接进遗物选择；无存档牌组 → 先选牌组
+  if (hasSavedDeck) {
+    // 有已保存牌组，直接进入遗物选择（不弹牌组选择）
+    showStarterRelicSelection();
+  } else {
+    // 无存档牌组，弹出牌组选择（confirmDeckSelection 会进遗物选择）
+    openDeckSelectModal();
+  }
 }
 
 // ===== V19 存档系统 =====
