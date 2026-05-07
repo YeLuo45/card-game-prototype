@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V47 — 牌组记忆+快速存档节点状态+修复petSkillCooldowns崩溃</title>
+  <title>DBG卡牌游戏 V47 — 修复读档后节点状态丢失+存档slot缺参数</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -5414,7 +5414,7 @@ function completeDailyChallenge() {
   }
   
   submitDailyScore(elapsed, gameState.difficulty);
-  saveGame();
+  saveGame(4); // 槽位4 = 每日挑战专用
 }
 
 function getDailyCountdown() {
@@ -10186,11 +10186,13 @@ function completeNode(nodeId) {
   });
 }
 
-function initMap() {
-  gameState.currentFloor = 1;
-  gameState.currentNode = null;
-  gameState.unlockedNodes = ['f1r1'];
-  gameState.completedNodes = [];
+function initMap(reset = true) {
+  if (reset) {
+    gameState.currentFloor = 1;
+    gameState.currentNode = null;
+    gameState.unlockedNodes = ['f1r1'];
+    gameState.completedNodes = [];
+  }
   gameState.inMap = true;
 }
 
@@ -15408,7 +15410,7 @@ function loadGame(slot) {
     document.getElementById('node-preview').classList.remove('show');
     document.getElementById('save-overlay').classList.remove('show');
 
-    initMap();
+    initMap(false);
     renderMap();
 
     // V45: 显示落地页
