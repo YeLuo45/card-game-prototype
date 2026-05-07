@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V54 — 移除强制横屏，竖屏正常显示</title>
+  <title>DBG卡牌游戏 V57 — 设置修复+首页隐藏战斗日志</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -438,6 +438,7 @@
 
     /* 战斗日志 */
     #log-panel {
+      display: none; /* V57: 首页不显示，只在战斗/游戏中通过设置或游戏内按钮调出 */
       position: fixed;
       right: 10px;
       top: 50%;
@@ -459,11 +460,11 @@
 
     /* V52 设置面板 */
     #settings-overlay {
-      display: none;
+      display: none !important;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.75);
-      z-index: 9999;
+      background: rgba(0,0,0,0.85);
+      z-index: 99999;
       justify-content: center;
       align-items: center;
     }
@@ -15733,6 +15734,8 @@ function toggleLogPanel() {
 // V52 设置面板
 function openSettings() {
   const overlay = document.getElementById('settings-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
   overlay.classList.add('show');
   // 同步战斗日志内容到设置面板
   const logEntries = document.getElementById('log-entries');
@@ -15744,7 +15747,10 @@ function openSettings() {
 }
 
 function closeSettings() {
-  document.getElementById('settings-overlay').classList.remove('show');
+  const overlay = document.getElementById('settings-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'none';
+  overlay.classList.remove('show');
 }
 
 // 音量控制（设置滑块）
