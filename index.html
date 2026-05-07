@@ -3515,7 +3515,46 @@ const CARDS = {
   lifedrain:       { id: 'lifedrain',       name: '生命吸取', cost: 3, type: 'attack', effect: { damage: 8, lifesteal: 1 }, description: '造成8点伤害，回复1HP' },
   drawplus:        { id: 'drawplus',        name: '抽牌+1',   cost: 1, type: 'skill', effect: { draw: 1 }, description: '抽1张牌' },
   doubleattack:    { id: 'doubleattack',    name: '双重攻击', cost: 2, type: 'attack', effect: { damage: 6, doubleAttack: 0.3 }, description: '造成6点伤害，30%概率攻击两次' },
-  energyplus:      { id: 'energyplus',      name: '能量充沛', cost: 0, type: 'power', effect: { extraEnergy: 1 }, description: '每回合额外获得1能量', maxUpgradeLevel: 5 }
+  energyplus:      { id: 'energyplus',      name: '能量充沛', cost: 0, type: 'power', effect: { extraEnergy: 1 }, description: '每回合额外获得1能量', maxUpgradeLevel: 5 },
+
+  // ===== V61 新增15张卡牌（攻击5/技能5/能力3/特殊2）=====
+  // --- 攻击牌 (5张) ---
+  // 1. 震荡击 - 造成5伤害，敌人获得易伤（延迟意图的替代方案）
+  quakeStrike:     { id: 'quakeStrike',     name: '震荡击',   cost: 1, type: 'attack', rarity: 'rare', effect: { damage: 5, vulnerableStacks: 1 }, description: '造成5点伤害，敌人获得1层易伤' },
+  // 2. 双重穿刺 - 造成8伤害无视护甲，每击穿1护甲抽1牌
+  doublePierce:    { id: 'doublePierce',    name: '双重穿刺', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 8, pierce: true, draw: 1 }, description: '造成8点伤害无视护甲，每击穿1点抽1张' },
+  // 3. 猛毒之刃 - 造成6伤害附加4层中毒2回合
+  toxicBlade:      { id: 'toxicBlade',      name: '猛毒之刃', cost: 2, type: 'attack', archetype: 'toxic', rarity: 'rare', effect: { damage: 6, poisonStacks: 4, poisonDuration: 2 }, description: '造成6点伤害，附加4层中毒2回合' },
+  // 4. 破甲打击 - 造成10伤害，移除敌人所有护甲（用pierce实现无视护甲）
+  armorBreak:      { id: 'armorBreak',      name: '破甲打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 10, pierce: true }, description: '造成10点伤害，无视敌人护甲' },
+  // 5. 闪电五连斩 - 造成3伤害5次（共15点）
+  lightningSlash:  { id: 'lightningSlash', name: '闪电五连斩', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 3, hits: 5 }, description: '造成3点伤害5次（共15点）' },
+
+  // --- 技能牌 (5张) ---
+  // 6. 能量回收 - 0费，本回合每有1点未用能量抽1牌
+  energyRecovery:  { id: 'energyRecovery', name: '能量回收', cost: 0, type: 'skill', rarity: 'rare', effect: { draw: 2 }, description: '抽2张牌（本回合每有1点未用能量再抽1张）' },
+  // 7. 护甲转移 - 将当前护甲的一半转移给下回合
+  armorTransfer:   { id: 'armorTransfer', name: '护甲转移', cost: 1, type: 'skill', rarity: 'rare', effect: { block: 6, nextTurnBlockBonus: 6 }, description: '获得6点护甲，下回合额外获得6点' },
+  // 8. 毒雾 - 敌人每回合3层中毒，持续2回合
+  toxicCloud:      { id: 'toxicCloud',      name: '毒雾',     cost: 2, type: 'skill', archetype: 'toxic', rarity: 'rare', effect: { poisonStacks: 3, poisonDuration: 2 }, description: '敌人每回合受到3层中毒，持续2回合' },
+  // 9. 意志坚定 - 移除易伤/虚弱，获得3护甲
+  ironWill:        { id: 'ironWill',       name: '意志坚定', cost: 1, type: 'skill', rarity: 'rare', effect: { removeDebuff: true, block: 3 }, description: '移除所有易伤/虚弱，获得3点护甲' },
+  // 10. 爆发准备 - 下回合开始时额外获得2能量
+  burstPrep:       { id: 'burstPrep',      name: '爆发准备', cost: 1, type: 'skill', rarity: 'rare', effect: { extraEnergy: 2 }, description: '本回合获得2能量，下回合开始时再获得2能量' },
+
+  // --- 能力牌 (3张) ---
+  // 11. 吸血之爪 - 攻击时额外获得15%吸血
+  vampiricClaw:    { id: 'vampiricClaw',   name: '吸血之爪', cost: 2, type: 'power', archetype: 'vampire', rarity: 'rare', effect: { lifestealAura: 0.15 }, description: '攻击时额外获得15%吸血' },
+  // 12. 冰霜护盾 - 回合结束获得5护甲；若本回合受伤，下回合敌人速度-1
+  frostShield:     { id: 'frostShield',    name: '冰霜护盾', cost: 2, type: 'power', rarity: 'rare', effect: { blockAura: 5 }, description: '回合结束获得5点护甲' },
+  // 13. 能量涌动 - 每回合开始时额外获得1能量
+  energySurge:     { id: 'energySurge',    name: '能量涌动', cost: 1, type: 'power', archetype: 'swift', rarity: 'rare', effect: { extraEnergy: 1 }, description: '每回合开始时额外获得1能量' },
+
+  // --- 特殊/命运牌 (2张) ---
+  // 14. 命运逆转 - 50%易伤3层，50%虚弱3层
+  fateReversal:    { id: 'fateReversal',    name: '命运逆转', cost: 1, type: 'fate', rarity: 'rare', effect: { vulnerableStacks: 3, weakStacks: 3 }, description: '50%敌人获得3层易伤，50%获得3层虚弱' },
+  // 15. 最后一搏 - 消耗所有剩余能量，每点能量4伤害+1抽牌
+  lastGasp:        { id: 'lastGasp',       name: '最后一搏', cost: 'X', type: 'special', rarity: 'rare', effect: { damage: 4, draw: 1 }, description: '消耗所有能量，每点能量4伤害并抽1张牌' }
 };
 
 // ===== V32 流派协同系统 =====
