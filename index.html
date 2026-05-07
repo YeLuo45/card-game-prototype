@@ -3272,7 +3272,7 @@
     <div id="controls">
       <span id="deck-info">牌组: <span id="deck-count">13</span> | 弃牌堆: <span id="discard-count">0</span></span>
       <button id="deck-preview-btn" style="padding:8px 16px;font-size:14px;background:linear-gradient(145deg,#3498db,#2980b9);border:none;border-radius:15px;color:#fff;cursor:pointer;font-weight:bold;">🃏 牌组</button>
-      <button id="deck-manage-btn" style="padding:8px 16px;font-size:14px;background:linear-gradient(145deg,#9b59b6,#8e44ad);border:none;border-radius:15px;color:#fff;cursor:pointer;font-weight:bold;" onclick="openDeckManagement()">⚡ 强化</button>
+      <button id="deck-manage-btn" style="padding:8px 16px;font-size:14px;background:linear-gradient(145deg,#9b59b6,#8e44ad);border:none;border-radius:15px;color:#fff;cursor:pointer;font-weight:bold;" onclick="openDeckSelectModal()">⚡ 强化</button>
       <button id="talent-inventory-btn" style="padding:8px 16px;font-size:14px;background:linear-gradient(145deg,#f39c12,#e67e22);border:none;border-radius:15px;color:#fff;cursor:pointer;font-weight:bold;" onclick="openTalentInventory()">💎 天赋</button>
       <button id="end-turn">结束回合</button>
     </div>
@@ -4686,12 +4686,12 @@ function giveEnergyStonesReward(isElite, isBoss) {
   let stonesGained = 0;
   if (isBoss) {
     // Boss: 100%获得2-4能量石
-    stonesGained = randomInt(2, 4);
+    stonesGained = Math.floor(Math.random() * 3) + 2;
     gameState.energyStones += stonesGained;
     addLog(`💎 击败Boss获得 ${stonesGained} 能量石！`, 'info');
   } else if (isElite) {
     // 精英: 100%获得1-3能量石
-    stonesGained = randomInt(1, 3);
+    stonesGained = Math.floor(Math.random() * 3) + 1;
     gameState.energyStones += stonesGained;
     addLog(`💎 击败精英获得 ${stonesGained} 能量石！`, 'info');
   } else {
@@ -7638,9 +7638,6 @@ function showComboNotification(combo) {
     notification.classList.remove('show');
     setTimeout(() => notification.remove(), 300);
   }, 2000);
-  
-  // 同时显示游戏内消息
-  showMessage(`⚡连击触发: ${combo.name}!`, 2000);
 }
 
 // 重置Combo追踪（每回合开始时调用）
@@ -15781,7 +15778,7 @@ const TUTORIAL_DATA = {
 
 // 检查教程是否应该触发
 function checkTutorialTrigger(trigger) {
-  if (!gameState.tutorial.enabled || gameState.tutorial.completed || gameState.tutorial.skipped) {
+  if (!gameState.tutorial || !gameState.tutorial.enabled || gameState.tutorial.completed || gameState.tutorial.skipped) {
     return false;
   }
   
