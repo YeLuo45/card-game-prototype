@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V47 — 牌组记忆+快速存档节点状态</title>
+  <title>DBG卡牌游戏 V47 — 牌组记忆+快速存档节点状态+修复petSkillCooldowns崩溃</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -15955,6 +15955,26 @@ function initGame() {
   const savedPetSkillCooldowns = gameState.petSkillCooldowns || {};
   const savedArchetype = gameState.archetype || 'strength';
   const savedTutorial = gameState.tutorial || {};
+  const savedArchetypeState = gameState.archetypeState || {};
+  // V48 fix: 重置后 gameState 已变，需先提取所有旧值
+  const savedCurrentFloor = gameState.currentFloor || 1;
+  const savedCurrentChapter = gameState.currentChapter || 1;
+  const savedUnlockedNodes = gameState.unlockedNodes || [];
+  const savedCompletedNodes = gameState.completedNodes || [];
+  const savedTotalGoldEarned = gameState.totalGoldEarned || 0;
+  const savedTotalChaptersCompleted = gameState.totalChaptersCompleted || 0;
+  const savedNgPlus = gameState.ngPlus || 0;
+  const savedDifficulty = gameState.difficulty || 'normal';
+  const savedHiddenEndings = gameState.hiddenEndings || {};
+  const savedStatistics = gameState.statistics || {};
+  const savedUnlockedDifficulties = gameState.unlockedDifficulties || ['normal'];
+  const savedPetRetained = gameState.petRetained || null;
+  const savedRelicsRetained = gameState.relicsRetained || [];
+  const savedRunCardSkipCount = gameState.runCardSkipCount || 0;
+  const savedRunShopPurchaseCount = gameState.runShopPurchaseCount || 0;
+  const savedRunMaxHpLost = gameState.runMaxHpLost || 0;
+  const savedRunStartHp = gameState.runStartHp || 80;
+  const savedGuidebook = gameState.guidebook || { enemies: {}, cards: {}, relics: {} };
 
   // 重置游戏状态
   gameState = {
@@ -16020,34 +16040,36 @@ function initGame() {
     enrageThreshold: 0.5,
     enrageBonus: 0,
     enemySilenceTurns: 0,
-    currentFloor: gameState.currentFloor || 1,
-    currentChapter: gameState.currentChapter || 1,
+    archetypeState: savedArchetypeState,
+    petSkillCooldowns: savedPetSkillCooldowns,
+    currentFloor: savedCurrentFloor,
+    currentChapter: savedCurrentChapter,
     currentNode: null,
-    unlockedNodes: gameState.unlockedNodes || [],
-    completedNodes: gameState.completedNodes || [],
+    unlockedNodes: savedUnlockedNodes,
+    completedNodes: savedCompletedNodes,
     inMap: false,
     selectedNode: null,
     totalBattlesWon: savedTotalVictories,
-    totalGoldEarned: gameState.totalGoldEarned || 0,
+    totalGoldEarned: savedTotalGoldEarned,
     relics: savedRelics,
     acquiredRelicIds: savedAcquiredRelicIds,
     unlockedAchievements: savedAchievements,
     achievementStats: savedAchievementStats,
     totalVictories: savedTotalVictories,
-    totalChaptersCompleted: gameState.totalChaptersCompleted || 0,
-    ngPlus: gameState.ngPlus || 0,
-    difficulty: gameState.difficulty || 'normal',
-    hiddenEndings: gameState.hiddenEndings || {},
-    statistics: gameState.statistics || {},
-    unlockedDifficulties: gameState.unlockedDifficulties || ['normal'],
-    petRetained: gameState.petRetained || null,
-    relicsRetained: gameState.relicsRetained || [],
+    totalChaptersCompleted: savedTotalChaptersCompleted,
+    ngPlus: savedNgPlus,
+    difficulty: savedDifficulty,
+    hiddenEndings: savedHiddenEndings,
+    statistics: savedStatistics,
+    unlockedDifficulties: savedUnlockedDifficulties,
+    petRetained: savedPetRetained,
+    relicsRetained: savedRelicsRetained,
     gameStartTime: Date.now(),
-    runCardSkipCount: gameState.runCardSkipCount || 0,
-    runShopPurchaseCount: gameState.runShopPurchaseCount || 0,
-    runMaxHpLost: gameState.runMaxHpLost || 0,
-    runStartHp: gameState.runStartHp || 80,
-    guidebook: gameState.guidebook || { enemies: {}, cards: {}, relics: {} },
+    runCardSkipCount: savedRunCardSkipCount,
+    runShopPurchaseCount: savedRunShopPurchaseCount,
+    runMaxHpLost: savedRunMaxHpLost,
+    runStartHp: savedRunStartHp,
+    guidebook: savedGuidebook,
     dailySeed: null,
     runSeed: null,
     initialDeckSeed: null,
@@ -16061,7 +16083,6 @@ function initGame() {
     pets: savedPets,
     ownedPetIds: savedOwnedPetIds,
     petSkillCooldowns: savedPetSkillCooldowns,
-    archetypeState: gameState.archetypeState || {},
     isBossRush: false,
     bossRushIndex: 0,
     bossRushBossesDefeated: 0,
