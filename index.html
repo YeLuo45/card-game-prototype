@@ -5918,6 +5918,130 @@ const RELICS = {
     description: '造成伤害时，20%伤害转化为生命',
     effect: { damageLifestealPercent: 0.2 },
   },
+  // ===== V63 新增遗物（15种）=====
+  // 普通遗物（5种）
+  ironSphere: {
+    id: 'ironSphere',
+    name: '铁球',
+    icon: '⬤',
+    rarity: 'common',
+    description: '受到攻击时，10%几率减少1点伤害',
+    effect: { damageReduction: 1 },
+  },
+  quickSandals: {
+    id: 'quickSandals',
+    name: '速足之靴',
+    icon: '👢',
+    rarity: 'common',
+    description: '每场战斗第一次攻击必定先手',
+    effect: { firstStrike: true },
+  },
+  defenseCharm: {
+    id: 'defenseCharm',
+    name: '防御护符',
+    icon: '🔰',
+    rarity: 'common',
+    description: '护甲效果+5',
+    effect: { blockBonusPercent: 5 },
+  },
+  vitalityAmulet: {
+    id: 'vitalityAmulet',
+    name: '活力护身符',
+    icon: '💠',
+    rarity: 'common',
+    description: '每场战斗开始时回复2HP',
+    effect: { startOfCombatHeal: 2 },
+  },
+  skeletonKey: {
+    id: 'skeletonKey',
+    name: '骷髅钥匙',
+    icon: '🗝️',
+    rarity: 'common',
+    description: '商店物品价格-5%',
+    effect: { shopDiscount: 0.05 },
+  },
+  // 稀有遗物（6种）
+  phoenixFeather: {
+    id: 'phoenixFeather',
+    name: '凤凰羽毛',
+    icon: '🪶',
+    rarity: 'rare',
+    description: '每场战斗第一次死亡时，25%几率存活',
+    effect: { surviveLethal: true },
+  },
+  obsidianMirror: {
+    id: 'obsidianMirror',
+    name: '黑曜石之镜',
+    icon: '🪞',
+    rarity: 'rare',
+    description: '受到攻击时，20%几率反伤2点',
+    effect: { reflectChance: 0.2, reflectAmount: 2 },
+  },
+  moonEarring: {
+    id: 'moonEarring',
+    name: '月光耳环',
+    icon: '🌙',
+    rarity: 'rare',
+    description: '每回合开始时，若能量已满，回复2HP',
+    effect: { fullEnergyHeal: 2 },
+  },
+  poisonClaw: {
+    id: 'poisonClaw',
+    name: '淬毒之爪',
+    icon: '🦴',
+    rarity: 'rare',
+    description: '攻击时10%几率使敌人中毒5层',
+    effect: { attackPoisonChance: 0.1, attackPoisonStacks: 5 },
+  },
+  stormBell: {
+    id: 'stormBell',
+    name: '风暴之铃',
+    icon: '🔔',
+    rarity: 'rare',
+    description: '攻击伤害+8%',
+    effect: { damageBonusPercent: 8 },
+  },
+  lightningRod: {
+    id: 'lightningRod',
+    name: '引雷杖',
+    icon: '⚡',
+    rarity: 'rare',
+    description: '攻击时5%几率使敌人麻痹，跳过下回合',
+    effect: { paralysisChance: 0.05 },
+  },
+  // 传说遗物（4种）
+  cursedCrown: {
+    id: 'cursedCrown',
+    name: '诅咒皇冠',
+    icon: '👑',
+    rarity: 'legendary',
+    description: '攻击伤害+15，但每回合流失3HP',
+    effect: { damageBonus: 15, perTurnDamage: 3 },
+  },
+  angelWing: {
+    id: 'angelWing',
+    name: '天使之翼',
+    icon: '👼',
+    rarity: 'legendary',
+    description: '每场战斗开始时：回复10HP且获得3护甲',
+    effect: { startOfCombatHeal: 10, startOfCombatBlock: 3 },
+  },
+  timeHourglass: {
+    id: 'timeHourglass',
+    name: '时间沙漏',
+    icon: '⏳',
+    rarity: 'legendary',
+    description: '每场战斗开始时，未使用的能量清零',
+    effect: { energyClearOnCombatStart: true },
+  },
+  goldenGoblet: {
+    id: 'goldenGoblet',
+    name: '黄金酒杯',
+    icon: '🍷',
+    rarity: 'legendary',
+    description: '每场战斗胜利后：额外回复5HP',
+    effect: { healOnVictory: 5 },
+  },
 };
 
 // ===== V25 宠物/同伴系统 =====
@@ -8084,6 +8208,19 @@ function applyRelicEffect(trigger, context = {}) {
           drawCards(effect.startOfCombatDraw);
           addLog(`遗物 ${relic.name} 战斗开始抽${effect.startOfCombatDraw}张牌`, 'info');
         }
+        // V63 活力护身符/天使之翼：战斗开始回复HP
+        if (effect.startOfCombatHeal) {
+          const healAmt = Math.min(effect.startOfCombatHeal, gameState.playerMaxHp - gameState.playerHp);
+          if (healAmt > 0) {
+            gameState.playerHp += healAmt;
+            addLog(`遗物 ${relic.name} 战斗开始回复 ${healAmt} 生命`, 'heal');
+          }
+        }
+        // V63 时间沙漏：战斗开始时清空未使用的能量
+        if (effect.energyClearOnCombatStart) {
+          gameState.energy = 0;
+          addLog(`遗物 ${relic.name} 清空了未使用的能量`, 'info');
+        }
         break;
       case 'startOfTurn':
         if (effect.perTurnHeal) {
@@ -8101,6 +8238,19 @@ function applyRelicEffect(trigger, context = {}) {
         if (effect.startOfTurnEnergy) {
           gameState.energy += effect.startOfTurnEnergy;
           addLog(`遗物 ${relic.name} 提供 ${effect.startOfTurnEnergy} 能量`, 'info');
+        }
+        // V63 月光耳环：每回合开始时，若能量已满，回复2HP
+        if (effect.fullEnergyHeal && gameState.energy >= gameState.maxEnergy) {
+          const healAmt = Math.min(effect.fullEnergyHeal, gameState.playerMaxHp - gameState.playerHp);
+          if (healAmt > 0) {
+            gameState.playerHp += healAmt;
+            addLog(`遗物 ${relic.name} 能量满溢回复 ${healAmt} 生命`, 'heal');
+          }
+        }
+        // V63 诅咒皇冠：每回合流失3HP
+        if (effect.perTurnDamage) {
+          gameState.playerHp = Math.max(1, gameState.playerHp - effect.perTurnDamage);
+          addLog(`遗物 ${relic.name} 诅咒流失 ${effect.perTurnDamage} 生命`, 'damage');
         }
         // V34 钢铁之心：战斗开始获得8点护甲（每回合检查）
         if (effect.startOfCombatBlock && trigger === 'startOfTurn') {
@@ -8158,13 +8308,28 @@ function applyRelicEffect(trigger, context = {}) {
           context.extraHitMult = 1.0; // 双倍 = 额外一次同等伤害
           addLog(`遗物 ${relic.name} 触发双重攻击！`, 'info');
         }
-        // 攻击吸血
+        // V63 攻击吸血
         if (effect.attackLifesteal) {
           const healAmt = Math.min(effect.attackLifesteal, gameState.playerMaxHp - gameState.playerHp);
           if (healAmt > 0) {
             gameState.playerHp += healAmt;
             addLog(`遗物 ${relic.name} 攻击吸血回复 ${healAmt} 生命`, 'heal');
           }
+        }
+        // V63 淬毒之爪：攻击时10%几率使敌人中毒5层
+        if (effect.attackPoisonChance && Math.random() < effect.attackPoisonChance) {
+          applyDebuffToEnemy('poison', 5, 3);
+          addLog(`遗物 ${relic.name} 使敌人中毒 5 层`, 'debuff');
+        }
+        // V63 引雷杖：攻击时5%几率使敌人麻痹
+        if (effect.paralysisChance && Math.random() < effect.paralysisChance) {
+          applyDebuffToEnemy('paralysis', 1, 1);
+          addLog(`遗物 ${relic.name} 使敌人麻痹！`, 'debuff');
+        }
+        // V63 风暴之铃：攻击伤害+8%
+        if (effect.damageBonusPercent) {
+          const bonusDmg = Math.floor((context.damage || 0) * effect.damageBonusPercent / 100);
+          context.bonusDamage = (context.bonusDamage || 0) + bonusDmg;
         }
         break;
       case 'onDamage':
@@ -8174,6 +8339,12 @@ function applyRelicEffect(trigger, context = {}) {
             gameState.playerHp += healAmt;
             addLog(`遗物 ${relic.name} 吸血回复 ${healAmt} 生命`, 'heal');
           }
+        }
+        // V63 黑曜石之镜：受到攻击时20%几率反伤2点
+        if (effect.reflectChance && Math.random() < effect.reflectChance) {
+          gameState.enemyHp = Math.max(0, gameState.enemyHp - effect.reflectAmount);
+          addLog(`遗物 ${relic.name} 反弹 ${effect.reflectAmount} 点伤害！`, 'damage');
+          renderEnemy();
         }
         // V34 攻击吸收：受到伤害的20%转化为攻击力
         if (effect.damageToAttackPercent && context.damage) {
@@ -8191,6 +8362,14 @@ function applyRelicEffect(trigger, context = {}) {
           gameState.gold += effect.goldPerVictory;
           gameState.totalGoldEarned += effect.goldPerVictory;
           addLog(`遗物 ${relic.name} 战斗胜利获得 ${effect.goldPerVictory} 金币`, 'info');
+        }
+        // V63 黄金酒杯：战斗胜利后额外回复5HP
+        if (effect.healOnVictory) {
+          const healAmt = Math.min(effect.healOnVictory, gameState.playerMaxHp - gameState.playerHp);
+          if (healAmt > 0) {
+            gameState.playerHp += healAmt;
+            addLog(`遗物 ${relic.name} 战斗胜利额外回复 ${healAmt} 生命`, 'heal');
+          }
         }
         break;
     }
