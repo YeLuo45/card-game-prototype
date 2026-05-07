@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V46 — 九宫格界面优化</title>
+  <title>DBG卡牌游戏 V47 — 牌组记忆+快速存档节点状态</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -9410,6 +9410,8 @@ function selectDeck(id) {
 function confirmDeckSelection() {
   // V46: 应用选中的牌组到 gameState
   gameState.deck = getSelectedDeck();
+  // V47: 持久化牌组选择
+  localStorage.setItem('dbg_last_deck_id', selectedDeckId);
   closeDeckSelectModal();
   // V46: 自动进入遗物选择
   showStarterRelicSelection();
@@ -15034,8 +15036,9 @@ function startNewGame() {
   initChapterEnemyPool(1);
   chapterState.currentChapter = 1;
 
-  // V46: 先设置默认牌组（基础牌组），后续 confirmDeckSelection 会更新为用户选择的
-  selectedDeckId = 'basic';
+  // V47: 从 localStorage 读取上次选择的牌组 ID，默认为 'basic'
+  const savedDeckId = localStorage.getItem('dbg_last_deck_id');
+  selectedDeckId = savedDeckId && PRESET_DECKS[savedDeckId] ? savedDeckId : 'basic';
 
   // 初始化基础游戏状态
   gameState = {
@@ -15247,6 +15250,20 @@ function saveGame(slot) {
     statistics: gameState.statistics,
     unlockedDifficulties: gameState.unlockedDifficulties,
     guidebook: gameState.guidebook,
+    // V47 节点状态（快速存档完整性）
+    currentNode: gameState.currentNode,
+    unlockedNodes: gameState.unlockedNodes,
+    completedNodes: gameState.completedNodes,
+    // V47 战斗状态（快速存档完整性）
+    hand: gameState.hand,
+    drawPile: gameState.drawPile,
+    discardPile: gameState.discardPile,
+    energy: gameState.energy,
+    turn: gameState.turn,
+    playerShield: gameState.playerShield,
+    playerDebuffs: gameState.playerDebuffs,
+    // V47 牌组记忆
+    selectedDeckId: selectedDeckId,
   };
   try {
     localStorage.setItem(saveKey, JSON.stringify(saveData));
@@ -15280,22 +15297,22 @@ function loadGame(slot) {
     gameState = {
       playerHp: saveData.hp || 80,
       playerMaxHp: saveData.maxHp || 80,
-      playerShield: 0,
+      playerShield: saveData.playerShield || 0,
       gold: saveData.gold || 0,
       deck: (saveData.deck || startingDeck.map(c => ({ ...c }))).map(c => ({ ...c, upgradeLevel: c.upgradeLevel || 0, maxUpgradeLevel: c.maxUpgradeLevel || 3 })),
-      hand: [],
-      drawPile: [],
-      discardPile: [],
-      energy: 3,
+      hand: saveData.hand || [],
+      drawPile: saveData.drawPile || [],
+      discardPile: saveData.discardPile || [],
+      energy: saveData.energy || 3,
       maxEnergy: 3,
-      turn: 1,
+      turn: saveData.turn || 1,
       enemy: null,
       enemyHp: 0,
       enemyMaxHp: 0,
       enemyArmor: 0,
       enemyIntent: null,
       enemyIntentValue: 0,
-      playerDebuffs: [],
+      playerDebuffs: saveData.playerDebuffs || [],
       enemyDebuffs: [],
       thorns: 0,
       aoeDamage: 0,
@@ -15328,9 +15345,9 @@ function loadGame(slot) {
       quickeningActive: false,
       currentFloor: saveData.floor || 1,
       currentChapter: saveData.currentChapter || 1,
-      currentNode: null,
-      unlockedNodes: [],
-      completedNodes: [],
+      currentNode: saveData.currentNode || null,
+      unlockedNodes: saveData.unlockedNodes || [],
+      completedNodes: saveData.completedNodes || [],
       inMap: true,
       selectedNode: null,
       totalBattlesWon: saveData.totalBattlesWon || 0,
@@ -15368,6 +15385,8 @@ function loadGame(slot) {
       petRetained: saveData.petRetained || null,
       relicsRetained: saveData.relicsRetained || [],
       gameStartTime: Date.now(),
+      // V47 恢复牌组选择
+      selectedDeckId: saveData.selectedDeckId || 'basic',
       runCardSkipCount: 0,
       runShopPurchaseCount: 0,
       runMaxHpLost: 0,
