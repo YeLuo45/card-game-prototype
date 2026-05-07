@@ -15863,19 +15863,7 @@ function resizeCanvas() {
   }
 }
 
-// 横屏检测
-function checkLandscape() {
-  const isLandscape = window.innerWidth > window.innerHeight;
-  const isMobile = window.innerWidth <= 768;
-  
-  if (isMobile && !isLandscape) {
-    document.getElementById('landscape-warning').style.display = 'flex';
-    document.getElementById('game-container').style.display = 'none';
-  } else {
-    document.getElementById('landscape-warning').style.display = 'none';
-    document.getElementById('game-container').style.display = 'flex';
-  }
-}
+// 横屏检测已移除，V54支持竖屏
 
 // 触屏事件转点击事件
 function addTouchSupport(element) {
@@ -15896,15 +15884,12 @@ function initMobileSupport() {
   // 窗口调整监听
   window.addEventListener('resize', () => {
     resizeCanvas();
-    checkLandscape();
   });
   
-  // 横屏检测
-  checkLandscape();
+  // 横屏检测已移除
   window.addEventListener('orientationchange', () => {
     setTimeout(() => {
       resizeCanvas();
-      checkLandscape();
     }, 100);
   });
   
