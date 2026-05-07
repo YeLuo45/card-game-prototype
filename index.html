@@ -13314,6 +13314,8 @@ function checkPlayerDeath() {
 function showRewardSelection() {
   const node = getNodeById(gameState.currentNode);
   const isElite = node && (node.type === 'elite' || node.type === 'boss');
+  // V62: 设置升级次数（精英/Boss 2次，普通战斗 1次）
+  gameState.upgradeAttemptsLeft = isElite ? 2 : 1;
   // V34 使用新的30张奖励卡池
   const cardRewards = getV34RewardCards(3);
 
@@ -13726,6 +13728,111 @@ function hideArchetypePanel() {
   if (panel) panel.style.display = 'none';
 }
 
+// V62: 显示卡牌升级阶段（在卡牌奖励后、遗物选择前）
+function showUpgradePhase() {
+  const cardsContainer = document.getElementById('reward-cards');
+  const rewardTypes = document.getElementById('reward-types');
+  const upgradeContainer = document.getElementById('reward-upgrade');
+  const overlaySubtitle = document.getElementById('overlay-subtitle');
+  const title = document.getElementById('overlay-title');
+  
+  // 切换到升级容器显示
+  if (cardsContainer) cardsContainer.style.display = 'none';
+  if (upgradeContainer) {
+    upgradeContainer.style.display = 'flex';
+    upgradeContainer.innerHTML = '';
+  }
+  
+  // 更新标题和副标题
+  if (title) title.textContent = '⬆️ 卡牌升级';
+  if (overlaySubtitle) overlaySubtitle.textContent = `升级次数：${gameState.upgradeAttemptsLeft}`;
+  
+  // 渲染可升级的卡牌（从deck中筛选未满级的卡牌）
+  const deck = gameState.deck || [];
+  const upgradableCards = deck.filter(card => (card.upgradeLevel || 0) < (card.maxUpgradeLevel || 3));
+  
+  if (upgradableCards.length === 0) {
+    if (upgradeContainer) {
+      upgradeContainer.innerHTML = '<div style="color:#aaa;text-align:center;padding:30px;font-size:14px;">牌组中没有可升级的卡牌</div>';
+    }
+    // 自动跳过升级阶段
+    setTimeout(() => finishUpgradePhase(), 1000);
+    return;
+  }
+  
+  upgradableCards.forEach((card) => {
+    const currentLevel = card.upgradeLevel || 0;
+    const maxLevel = card.maxUpgradeLevel || 3;
+    const stars = '★'.repeat(currentLevel) + '☆'.repeat(maxLevel - currentLevel);
+    
+    const div = document.createElement('div');
+    div.className = `reward-card ${card.type}`;
+    div.style.position = 'relative';
+    div.innerHTML = `
+      <div class="card-cost">${card.cost}</div>
+      <div class="card-name">${card.name}</div>
+      <div class="card-type">${getCardTypeName(card.type)}</div>
+      <div class="card-effect">${card.description}</div>
+      <div class="upgrade-level" style="position:absolute;top:5px;right:5px;font-size:12px;color:#ffd700;">${stars}</div>
+      <button class="upgrade-btn" style="position:absolute;bottom:5px;right:5px;padding:6px 12px;background:linear-gradient(145deg, #4a90d9, #357abd);border:none;border-radius:8px;color:#fff;font-size:12px;cursor:pointer;">升级</button>
+    `;
+    div.querySelector('.upgrade-btn').onclick = (e) => {
+      e.stopPropagation();
+      upgradeSelectedCard(card);
+    };
+    if (upgradeContainer) upgradeContainer.appendChild(div);
+  });
+  
+  // 显示跳过按钮
+  const skipBtn = document.getElementById('skip-reward-btn');
+  if (skipBtn) {
+    skipBtn.textContent = '跳过升级';
+    skipBtn.style.display = 'inline-block';
+    skipBtn.onclick = () => finishUpgradePhase();
+  }
+}
+
+// V62: 升级选中的卡牌
+function upgradeSelectedCard(card) {
+  if (gameState.upgradeAttemptsLeft <= 0) return;
+  
+  const deckIndex = gameState.deck.findIndex(c => c.uid === card.uid);
+  if (deckIndex === -1) return;
+  
+  const currentLevel = card.upgradeLevel || 0;
+  const maxLevel = card.maxUpgradeLevel || 3;
+  if (currentLevel >= maxLevel) return;
+  
+  // 使用已有的upgradeCard函数
+  const upgradedCard = upgradeCard(gameState.deck[deckIndex]);
+  gameState.deck[deckIndex] = upgradedCard;
+  
+  gameState.upgradeAttemptsLeft--;
+  addLog(`升级卡牌: ${card.name} → Lv.${currentLevel + 1}`, 'info');
+  showToast(`${card.name} 已升级到 Lv.${currentLevel + 1}！`);
+  
+  // 刷新升级界面或进入下一阶段
+  if (gameState.upgradeAttemptsLeft > 0) {
+    showUpgradePhase();
+  } else {
+    finishUpgradePhase();
+  }
+}
+
+// V62: 完成升级阶段，进入遗物选择
+function finishUpgradePhase() {
+  gameState.upgradeAttemptsLeft = 0;
+  
+  // 恢复跳过按钮文字
+  const skipBtn = document.getElementById('skip-reward-btn');
+  if (skipBtn) {
+    skipBtn.textContent = '跳过遗物';
+  }
+  
+  // 进入遗物选择阶段
+  advanceAfterCardSelection();
+}
+
 // V31: 选择奖励卡牌
 function selectRewardCard(card) {
   // V33 同名牌组最多3张限制检查
@@ -13753,23 +13860,37 @@ function selectRewardCard(card) {
     return;
   }
 
-  // V33 隐藏流派面板
+  // V62: 隐藏流派面板
   hideArchetypePanel();
+  
+  // V62: 检查是否进入升级阶段（优先于遗物选择）
+  if (gameState.upgradeAttemptsLeft > 0) {
+    showUpgradePhase();
+    return;
+  }
   
   // 卡牌选完了，检查有没有遗物
   advanceAfterCardSelection();
 }
 
-// V31: 跳过当前奖励步骤（卡牌或遗物）
+// V31: 跳过当前奖励步骤（卡牌或遗物或升级）
 function skipCurrentRewardStep() {
   // V33 隐藏流派面板
   hideArchetypePanel();
   
   const cardsVisible = document.getElementById('reward-cards').style.display !== 'none';
+  const upgradeVisible = document.getElementById('reward-upgrade') && document.getElementById('reward-upgrade').style.display !== 'none';
 
   if (cardsVisible) {
-    // 跳过卡牌阶段，进入遗物阶段
-    advanceAfterCardSelection();
+    // 跳过卡牌阶段，检查是否进入升级阶段
+    if (gameState.upgradeAttemptsLeft > 0) {
+      showUpgradePhase();
+    } else {
+      advanceAfterCardSelection();
+    }
+  } else if (upgradeVisible) {
+    // 跳过升级阶段
+    finishUpgradePhase();
   } else {
     // 跳过遗物阶段，直接返回地图
     finishRewardSelection();
@@ -13830,6 +13951,7 @@ function finishRewardSelection() {
   gameState.pendingCardRewards = null;
   gameState.pendingRelicRewards = null;
   gameState.pendingSelectedCards = null;
+  gameState.upgradeAttemptsLeft = 0; // V62: 清理升级状态
   document.getElementById('overlay').classList.remove('show');
   checkAchievements();
   
