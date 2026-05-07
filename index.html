@@ -467,7 +467,7 @@
       justify-content: center;
       align-items: center;
     }
-    #settings-overlay.show { display: flex; }
+    #settings-overlay.show { display: flex !important; }
     #settings-panel {
       background: linear-gradient(145deg, #1e1e2e, #2a2a3e);
       border: 2px solid #444;
@@ -10494,8 +10494,11 @@ function renderMap() {
 function handleMapClick(e) {
   const canvas = document.getElementById('map-canvas');
   const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
+  // CSS缩放过时需要坐标转换：viewport坐标 → canvas内部坐标
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const x = (e.clientX - rect.left) * scaleX;
+  const y = (e.clientY - rect.top) * scaleY;
 
   const floor = getFloorNodes();
   
@@ -15899,10 +15902,8 @@ function initMobileSupport() {
     canvas.addEventListener('touchstart', function(e) {
       e.preventDefault();
       const touch = e.touches[0];
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      
+      // 直接使用 touch 的 viewport 坐标
+      canvas.handleMapClick = true; // 标记由触摸触发
       const clickEvent = new MouseEvent('click', {
         bubbles: true,
         cancelable: true,
