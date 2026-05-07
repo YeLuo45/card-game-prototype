@@ -461,6 +461,53 @@
     .log-debuff { background: rgba(255,165,0,0.2); color: #ffa500; }
     .log-info { background: rgba(128,128,128,0.2); color: #ccc; }
 
+    /* V39 Combo通知样式 */
+    .combo-notification {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      background: linear-gradient(135deg, rgba(255,215,0,0.95), rgba(255,140,0,0.95));
+      border: 3px solid #fff;
+      border-radius: 15px;
+      padding: 20px 30px;
+      text-align: center;
+      z-index: 10000;
+      opacity: 0;
+      transition: all 0.3s ease-out;
+      box-shadow: 0 0 30px rgba(255,215,0,0.6), 0 0 60px rgba(255,140,0,0.4);
+    }
+    .combo-notification.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+    .combo-title {
+      font-size: 14px;
+      color: #000;
+      margin-bottom: 5px;
+      letter-spacing: 2px;
+    }
+    .combo-name {
+      font-size: 24px;
+      font-weight: bold;
+      color: #fff;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+      margin-bottom: 5px;
+    }
+    .combo-desc {
+      font-size: 12px;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    .combo-effect {
+      font-size: 14px;
+      color: #000;
+      font-weight: bold;
+      background: rgba(255,255,255,0.3);
+      border-radius: 8px;
+      padding: 5px 10px;
+    }
+
     /* 遮罩层 */
     #overlay {
       display: none;
@@ -7169,20 +7216,218 @@ function addCardToDeck(card) {
   addLog(`获得卡牌: ${card.name}`, 'card');
 }
 
-// ===== 游戏状态 =====
-let comboPlayedCards = [];  // V39 Combo追踪
-let lastComboTriggered = null;  // V39 Combo追踪
+// ===== V39 Combo系统 =====
+// 追踪本回合已打出的卡牌类型序列
+let comboPlayedCards = [];
+let lastComboTriggered = null;
 
-// V39 Combo系统存根函数
+// Combo定义：卡牌序列 -> 效果
+// 序列格式：['attack', 'skill', 'attack'] 表示先攻击再技能再攻击触发combo
+const COMBO_DEFINITIONS = [
+  {
+    id: 'strike_skill_attack',
+    name: '连击',
+    sequence: ['attack', 'skill', 'attack'],
+    description: '攻击→技能→攻击',
+    effect: { bonusDamage: 15, bonusDraw: 1 },
+    effectDesc: '+15伤害，额外抽1张'
+  },
+  {
+    id: 'triple_attack',
+    name: '三连击',
+    sequence: ['attack', 'attack', 'attack'],
+    description: '连续攻击3次',
+    effect: { bonusDamage: 25, lifesteal: 0.3 },
+    effectDesc: '+25伤害，30%吸血'
+  },
+  {
+    id: 'skill_skill_attack',
+    name: '技巧攻击',
+    sequence: ['skill', 'skill', 'attack'],
+    description: '双重技能后攻击',
+    effect: { bonusDamage: 20, nextAttackMult: 1.5 },
+    effectDesc: '+20伤害，下次攻击×1.5'
+  },
+  {
+    id: 'attack_skill_skill',
+    name: '防守反击',
+    sequence: ['attack', 'skill', 'skill'],
+    description: '攻击后双重防御',
+    effect: { bonusBlock: 15, thorns: 5 },
+    effectDesc: '+15护甲，5点荆棘'
+  },
+  {
+    id: 'power_attack_attack',
+    name: '力量爆发',
+    sequence: ['power', 'attack', 'attack'],
+    description: '使用能力后双击',
+    effect: { bonusDamage: 30, vulnerable: 2 },
+    effectDesc: '+30伤害，敌人2层易伤'
+  },
+  {
+    id: 'attack_attack_skill',
+    name: '追击',
+    sequence: ['attack', 'attack', 'skill'],
+    description: '双重攻击后防守',
+    effect: { bonusDamage: 12, bonusBlock: 10 },
+    effectDesc: '+12伤害，+10护甲'
+  },
+  {
+    id: 'four_strike',
+    name: '四连击',
+    sequence: ['attack', 'attack', 'attack', 'attack'],
+    description: '极限四连击',
+    effect: { bonusDamage: 50, executeThreshold: 0.3 },
+    effectDesc: '+50伤害，30%血量斩杀'
+  },
+  {
+    id: 'skill_attack_skill',
+    name: '节奏打击',
+    sequence: ['skill', 'attack', 'skill'],
+    description: '技能-攻击-技能节奏',
+    effect: { bonusBlock: 20, bonusDamage: 10 },
+    effectDesc: '+20护甲，+10伤害'
+  }
+];
+
+// 序列匹配检查
+function sequenceMatches(played, required) {
+  if (played.length < required.length) return false;
+  // 检查最后N张是否匹配
+  const lastN = played.slice(-required.length);
+  return lastN.every((card, i) => card === required[i]);
+}
+
+// V39: 检查是否触发Combo
 function checkCombo() {
-  // Combo系统未完整实现，返回null
+  if (comboPlayedCards.length === 0) return null;
+  
+  // 从长到短检查序列匹配
+  const sortedCombos = [...COMBO_DEFINITIONS].sort((a, b) => b.sequence.length - a.sequence.length);
+  
+  for (const combo of sortedCombos) {
+    if (sequenceMatches(comboPlayedCards, combo.sequence)) {
+      // 防止同一combo重复触发
+      if (lastComboTriggered === combo.id) {
+        return null;
+      }
+      return combo;
+    }
+  }
   return null;
 }
+
+// V39: 应用Combo效果
 function applyComboEffect(combo) {
-  // Combo系统未完整实现
+  if (!combo || !combo.effect) return;
+  
+  const eff = combo.effect;
+  
+  // 额外伤害
+  if (eff.bonusDamage) {
+    gameState.pendingBonusDamage = (gameState.pendingBonusDamage || 0) + eff.bonusDamage;
+    addLog(`Combo ${combo.name}：+${eff.bonusDamage}额外伤害`, 'damage');
+  }
+  
+  // 额外抽牌
+  if (eff.bonusDraw) {
+    drawCards(eff.bonusDraw);
+    addLog(`Combo ${combo.name}：额外抽${eff.bonusDraw}张`, 'info');
+  }
+  
+  // 吸血效果
+  if (eff.lifesteal) {
+    gameState.comboLifesteal = (gameState.comboLifesteal || 0) + eff.lifesteal;
+    addLog(`Combo ${combo.name}：${Math.floor(eff.lifesteal * 100)}%吸血`, 'heal');
+  }
+  
+  // 下次攻击加成
+  if (eff.nextAttackMult) {
+    gameState.nextAttackMult *= eff.nextAttackMult;
+    addLog(`Combo ${combo.name}：下次攻击×${eff.nextAttackMult}`, 'buff');
+  }
+  
+  // 额外护甲
+  if (eff.bonusBlock) {
+    gameState.playerShield += eff.bonusBlock;
+    addLog(`Combo ${combo.name}：+${eff.bonusBlock}护甲`, 'block');
+  }
+  
+  // 荆棘
+  if (eff.thorns) {
+    gameState.thorns += eff.thorns;
+    addLog(`Combo ${combo.name}：+${eff.thorns}荆棘`, 'debuff');
+  }
+  
+  // 易伤
+  if (eff.vulnerable) {
+    applyDebuffToEnemy('vulnerable', eff.vulnerable, 2);
+    addLog(`Combo ${combo.name}：敌人${eff.vulnerable}层易伤`, 'debuff');
+  }
+  
+  // 斩杀阈值
+  if (eff.executeThreshold) {
+    gameState.comboExecuteThreshold = eff.executeThreshold;
+    addLog(`Combo ${combo.name}：获得斩杀能力`, 'info');
+  }
+  
+  // 更新统计
+  if (gameState.statistics && gameState.statistics.maxCombo !== undefined) {
+    gameState.statistics.maxCombo = Math.max(gameState.statistics.maxCombo, comboPlayedCards.length);
+  }
+  
+  // 标记已触发
+  lastComboTriggered = combo.id;
 }
+
+// V39: 显示Combo通知
 function showComboNotification(combo) {
-  // Combo系统未完整实现
+  if (!combo) return;
+  
+  // 创建通知元素
+  const notification = document.createElement('div');
+  notification.className = 'combo-notification';
+  notification.innerHTML = `
+    <div class="combo-title">⚡ COMBO ⚡</div>
+    <div class="combo-name">${combo.name}</div>
+    <div class="combo-desc">${combo.description}</div>
+    <div class="combo-effect">${combo.effectDesc}</div>
+  `;
+  
+  // 添加到body
+  document.body.appendChild(notification);
+  
+  // 动画显示
+  requestAnimationFrame(() => {
+    notification.classList.add('show');
+  });
+  
+  // 2秒后移除
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 300);
+  }, 2000);
+  
+  // 同时显示游戏内消息
+  showMessage(`⚡连击触发: ${combo.name}!`, 2000);
+}
+
+// 重置Combo追踪（每回合开始时调用）
+function resetComboTracking() {
+  comboPlayedCards = [];
+  lastComboTriggered = null;
+  gameState.pendingBonusDamage = 0;
+  gameState.comboLifesteal = 0;
+  gameState.comboExecuteThreshold = 0;
+}
+
+// 在打出卡牌时调用，记录类型
+function trackCardForCombo(cardType) {
+  comboPlayedCards.push(cardType);
+  // 最多保留最近10张
+  if (comboPlayedCards.length > 10) {
+    comboPlayedCards.shift();
+  }
 }
 
 let gameState = {
@@ -8447,7 +8692,7 @@ function updateBossRushDisplay() {
 }
 
 function showBossRushReward() {
-  gameState.bossRushBossesDefeated++;
+  // bossRushBossesDefeated已在checkEnemyDeath()中递增
   
   if (gameState.bossRushBossesDefeated >= BOSS_RUSH_BOSSES.length) {
     // 全部Boss击败，BossRush通关！
@@ -12287,7 +12532,7 @@ function endTurn() {
   gameState.comboActive = false;
   
   // V39 重置Combo追踪
-  comboPlayedCards = [];
+  resetComboTracking();
   
   // V15 护甲灵魂: 回合结束获得护甲和荆棘
   if (gameState.powerCardsPlayedThisCombat['armoredSoul']) {
@@ -12867,22 +13112,12 @@ function dealDamageToPlayer(damage, isEnemyAttack = true) {
 }
 
 function checkEnemyDeath() {
-  // V39 BossRush: 敌人死亡时如果是BossRush模式
+  // V39 BossRush: 敌人死亡时如果是BossRush模式，调用奖励/继续流程
   if (gameState.enemyHp <= 0 && gameState.isBossRush) {
     gameState.enemyHp = 0;
     renderEnemy();
-    gameState.bossRushBossesDefeated++;
-    if (gameState.bossRushBossesDefeated >= BOSS_RUSH_BOSSES.length) {
-      // 全部Boss击败
-      setTimeout(() => showBossRushVictory(), 1000);
-    } else {
-      // 进入下一个Boss，回复10点生命
-      gameState.bossRushIndex++;
-      setTimeout(() => {
-        gameState.playerHp = Math.min(gameState.playerHp + 10, gameState.playerMaxHp);
-        startBossRushCombat();
-      }, 1500);
-    }
+    // 延迟一下让死亡动画播放，再显示奖励界面
+    setTimeout(() => showBossRushReward(), 800);
     return true;
   }
 
