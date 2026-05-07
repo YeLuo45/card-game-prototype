@@ -9420,6 +9420,13 @@ function confirmDeckSelection() {
   showStarterRelicSelection();
 }
 
+// V49: 只选定牌组，不进入遗物选择流程
+function onlySelectDeck() {
+  gameState.deck = getSelectedDeck();
+  localStorage.setItem('dbg_last_deck_id', selectedDeckId);
+  closeDeckSelectModal();
+}
+
 // 渲染牌组卡牌
 let currentDeckSort = 'type';
 let currentDeckFilter = 'all';
@@ -16181,7 +16188,7 @@ document.getElementById('daily-btn').onclick = showDailyChallenge;
 document.getElementById('boss-rush-btn').onclick = showBossRushInfo;
 // V40 牌组选择按钮
 document.getElementById('select-deck-btn').onclick = openDeckSelectModal;
-document.getElementById('deck-select-confirm-btn').onclick = confirmDeckSelection;
+document.getElementById('deck-select-confirm-btn').onclick = onlySelectDeck;
 document.getElementById('deck-select-start-btn').onclick = confirmDeckSelection;
 document.getElementById('deck-select-cancel-btn').onclick = closeDeckSelectModal;
 document.getElementById('deck-select-start-btn').style.display = 'none';
