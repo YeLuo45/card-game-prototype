@@ -3146,8 +3146,9 @@
 <div id="deck-select-modal">
   <h2>🎴 选择战斗牌组</h2>
   <div id="deck-cards-container"></div>
-  <div style="display:flex;">
+  <div style="display:flex;gap:12px;">
     <button id="deck-select-confirm-btn">确认选择</button>
+    <button id="deck-select-start-btn" style="padding:10px 20px;font-size:16px;background:linear-gradient(145deg,#27ae60,#2ecc71);border:none;border-radius:12px;color:#fff;cursor:pointer;font-weight:bold;">开始游戏</button>
     <button id="deck-select-cancel-btn">取消</button>
   </div>
 </div>
@@ -9357,7 +9358,8 @@ function openDeckSelectModal() {
   renderDeckOptions();
   // V46: 开始游戏模式 - 隐藏取消按钮，修改确认按钮文字
   document.getElementById('deck-select-cancel-btn').style.display = 'none';
-  document.getElementById('deck-select-confirm-btn').textContent = '开始游戏';
+  document.getElementById('deck-select-confirm-btn').textContent = '选定牌组';
+  document.getElementById('deck-select-start-btn').style.display = '';
   document.getElementById('deck-select-modal').classList.add('show');
 }
 
@@ -9366,6 +9368,7 @@ function closeDeckSelectModal() {
   // V46: 恢复按钮状态（牌组选择模态框可能被中途关闭）
   document.getElementById('deck-select-cancel-btn').style.display = '';
   document.getElementById('deck-select-confirm-btn').textContent = '确认选择';
+  document.getElementById('deck-select-start-btn').style.display = 'none';
 }
 
 function renderDeckOptions() {
@@ -16179,7 +16182,9 @@ document.getElementById('boss-rush-btn').onclick = showBossRushInfo;
 // V40 牌组选择按钮
 document.getElementById('select-deck-btn').onclick = openDeckSelectModal;
 document.getElementById('deck-select-confirm-btn').onclick = confirmDeckSelection;
+document.getElementById('deck-select-start-btn').onclick = confirmDeckSelection;
 document.getElementById('deck-select-cancel-btn').onclick = closeDeckSelectModal;
+document.getElementById('deck-select-start-btn').style.display = 'none';
 document.getElementById('close-daily-btn').onclick = () => {
   document.getElementById('daily-overlay').classList.remove('show');
 };
