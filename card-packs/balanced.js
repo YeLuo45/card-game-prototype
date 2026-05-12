@@ -79,3 +79,8 @@ window.CARD_PACKS['balanced'] = {
   enemies: [],
   events: [],
 };
+
+// 主动注册到注册表
+if (window.CardPackRegistry) {
+  window.CardPackRegistry.register(window.CARD_PACKS['balanced']);
+}

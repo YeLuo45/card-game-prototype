@@ -11,13 +11,11 @@ window.CARD_PACKS['starter'] = {
   portrait: '🃏',
   compatible: [],
   cards: [
-    // 打击 x5
     { id: 'strike', name: '打击', cost: 1, type: 'attack', rarity: 'common', effect: { damage: 6 }, description: '造成6点伤害' },
     { id: 'strike', name: '打击', cost: 1, type: 'attack', rarity: 'common', effect: { damage: 6 }, description: '造成6点伤害' },
     { id: 'strike', name: '打击', cost: 1, type: 'attack', rarity: 'common', effect: { damage: 6 }, description: '造成6点伤害' },
     { id: 'strike', name: '打击', cost: 1, type: 'attack', rarity: 'common', effect: { damage: 6 }, description: '造成6点伤害' },
     { id: 'strike', name: '打击', cost: 1, type: 'attack', rarity: 'common', effect: { damage: 6 }, description: '造成6点伤害' },
-    // 防御 x5
     { id: 'defend', name: '防御', cost: 1, type: 'skill', rarity: 'common', effect: { block: 5 }, description: '获得5点护甲' },
     { id: 'defend', name: '防御', cost: 1, type: 'skill', rarity: 'common', effect: { block: 5 }, description: '获得5点护甲' },
     { id: 'defend', name: '防御', cost: 1, type: 'skill', rarity: 'common', effect: { block: 5 }, description: '获得5点护甲' },
@@ -37,3 +35,8 @@ window.CARD_PACKS['starter'] = {
   enemies: [],
   events: [],
 };
+
+// 主动注册到注册表
+if (window.CardPackRegistry) {
+  window.CardPackRegistry.register(window.CARD_PACKS['starter']);
+}
