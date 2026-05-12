@@ -3247,6 +3247,11 @@
     }
   </style>
 </head>
+<!-- V60 卡牌插件系统 -->
+<script src="plugin-loader.js"></script>
+<script src="card-packs/starter.js"></script>
+<script src="card-packs/balanced.js"></script>
+<script src="card-packs/ironclad.js"></script>
 <body>
 
 <!-- 横屏提示 -->
@@ -3486,9 +3491,30 @@
       <div id="settings-log-entries" style="max-height:200px;overflow-y:auto;background:#1a1a1a;border-radius:8px;padding:8px;font-size:13px;color:#ccc;"></div>
     </div>
 
+    <div class="settings-section">
+      <h3>🃏 卡包管理</h3>
+      <button onclick="openCardPackManager()" style="
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(145deg, #3498db, #2980b9);
+        border: none;
+        border-radius: 10px;
+        color: #fff;
+        font-weight: bold;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      ">
+        🃏 管理卡包
+      </button>
+    </div>
+
     <div class="settings-section" style="text-align:center;color:#666;font-size:12px;">
-      <p>DBG卡牌游戏 V52</p>
-      <p>版本 2025.05.07</p>
+      <p>DBG卡牌游戏 V60</p>
+      <p>版本 2026.05.13</p>
     </div>
   </div>
 </div>
@@ -3676,162 +3702,15 @@
 </div>
 
 <script>
-// ===== 卡牌数据 =====
-const CARDS = {
-  strike:  { id: 'strike',  name: '打击',    cost: 1, type: 'attack', effect: { damage: 6 }, description: '造成6点伤害' },
-  defend:  { id: 'defend',  name: '防御',    cost: 1, type: 'skill',  effect: { block: 5 }, description: '获得5点护甲' },
-  harden:  { id: 'harden',  name: '硬撑',    cost: 1, type: 'skill', archetype: 'ironclad', effect: { block: 8, draw: 1 }, description: '获得8点护甲，抽1张牌' },
-  consecutiveStrike: { id: 'consecutiveStrike', name: '连续打击', cost: 1, type: 'attack', effect: { damage: 4, hits: 2 }, description: '造成4点伤害2次' },
-  // V46 预设牌组补充卡牌
-  heavyStrike: { id: 'heavyStrike', name: '重击', cost: 2, type: 'attack', effect: { damage: 14 }, description: '造成14点伤害' },
-  heavyHit: { id: 'heavyHit', name: '重拳', cost: 2, type: 'attack', effect: { damage: 10, draw: 1 }, description: '造成10点伤害，抽1张牌' },
-  focus: { id: 'focus', name: '集中', cost: 0, type: 'skill', effect: { strength: 2, draw: 2 }, description: '获得2层充能，抽2张牌' },
-  painfulStrike:    { id: 'painfulStrike',     name: '痛击',     cost: 2, type: 'attack', effect: { damage: 10, vulnerableChance: 0.4 }, description: '造成10点伤害，40%几率易伤' },
-  behead:           { id: 'behead',            name: '斩首',     cost: 3, type: 'attack', effect: { damage: 15, execute: 0.2 }, description: '造成15点伤害，若敌人≤20血则斩杀' },
-  ironWall:         { id: 'ironWall',          name: '铁壁',     cost: 1, type: 'skill', archetype: 'ironclad', effect: { block: 12 }, description: '获得12点护甲' },
-  firstAid:         { id: 'firstAid',          name: '急救',     cost: 2, type: 'skill', archetype: 'swift', effect: { block: 8, heal: 6 }, description: '获得8点护甲，治疗6点' },
-  warCry:           { id: 'warCry',            name: '战吼',     cost: 1, type: 'skill',  effect: { nextAttackMult: 1.5 }, description: '下次攻击伤害+50%' },
-  counterStance:    { id: 'counterStance',     name: '反击姿态', cost: 1, type: 'power',  effect: { thorns: 5 }, description: '回合结束时受到攻击时，反伤5点' },
-  spikeShell:       { id: 'spikeShell',        name: '尖刺外壳', cost: 2, type: 'power',  effect: { aoeDamage: 3 }, description: '回合结束时对所有敌人造成3点伤害' },
-  burningFist:      { id: 'burningFist',       name: '灼热拳头', cost: 2, type: 'power', archetype: 'inferno', effect: { burnChance: 0.25, burnDamage: 2, burnDuration: 2 }, description: '攻击时25%几率灼热2点，持续2回合' },
-  vulnerable:       { id: 'vulnerable',        name: '易伤',     cost: 0, type: 'status', effect: { vulnerable: 1 }, description: '受到伤害+50%，持续2回合', duration: 2 },
-  weak:             { id: 'weak',              name: '虚弱',     cost: 0, type: 'status', effect: { weak: 1 }, description: '攻击力-50%，持续2回合', duration: 2 },
-  // ===== V4 诅咒牌 =====
-  painCurse:        { id: 'painCurse',         name: '痛苦诅咒', cost: 0, type: 'curse',  effect: { curseMaxHp: -3 }, description: '诅咒: 最大生命-3' },
-  weakCurse:        { id: 'weakCurse',         name: '虚弱诅咒', cost: 0, type: 'curse',  effect: { curseWeak: 2 }, description: '诅咒: 回合开始时攻击力-50%持续2回合' },
-  darkCurse:        { id: 'darkCurse',         name: '黑暗诅咒', cost: 0, type: 'curse',  effect: { curseEnergy: -1 }, description: '诅咒: 回合开始时能量-1' },
-  deathCurse:       { id: 'deathCurse',         name: '死亡诅咒', cost: 0, type: 'curse',  effect: { curseDamage: 5 }, description: '诅咒: 受到5点伤害' },
-  // ===== V4 特殊牌 =====
-  demonContract:    { id: 'demonContract',     name: '恶魔契约', cost: 0, type: 'special', archetype: ['inferno','vampire'], effect: { sacrificeHp: 10, gainEnergy: 3 }, description: '牺牲10HP获得3能量' },
-  lightningReflex:  { id: 'lightningReflex',   name: '闪电动作', cost: 1, type: 'special', archetype: 'swift', effect: { dodge: 1, draw: 1 }, description: '闪避下次攻击,抽1张' },
-  deadlyPrecision:  { id: 'deadlyPrecision',   name: '致命精准', cost: 2, type: 'special', archetype: ['toxic','swift'], effect: { nextCrit: 2 }, description: '下次攻击伤害x2' },
-  meditation:      { id: 'meditation',        name: '冥想',     cost: 0, type: 'special', archetype: 'swift', effect: { gainEnergy: 2, selfWeak: 2 }, description: '获得2能量,获得虚弱2回合' },
-  vampiricTouch:    { id: 'vampiricTouch',      name: '吸血',     cost: 2, type: 'special', archetype: ['toxic', 'vampire'], effect: { lifesteal: 0.5, damage: 8 }, description: '造成8点伤害,回复50%伤害的生命' },
-  // ===== V4 状态牌 =====
-  paralysis:        { id: 'paralysis',         name: '麻痹',     cost: 0, type: 'status', effect: { vulnerable: 2 }, description: '易伤2回合', duration: 2 },
-  confusion:        { id: 'confusion',         name: '混乱',     cost: 0, type: 'status', effect: { skipTurn: 1 }, description: '敌人下回合跳过', duration: 1 },
-  // ===== V4 中毒流血状态牌 =====
-  status_poison:    { id: 'status_poison',      name: '中毒',     cost: 0, type: 'status', effect: { poison: 3 }, description: '每回合3点伤害，持续3回合', duration: 3, stackable: true },
-  status_bleed:     { id: 'status_bleed',       name: '流血',     cost: 0, type: 'status', effect: { bleed: 2 }, description: '回合开始2点伤害，持续2回合', duration: 2, stackable: true },
-  // ===== V15 新增稀有/精英卡牌 =====
-  // 稀有攻击牌
-  executionerBlade: { id: 'executionerBlade', name: '处决之刃', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 12, executeThreshold: 0.3 }, description: '造成12点伤害，若敌人≤30%血量则斩杀' },
-  piercingStrike:   { id: 'piercingStrike',   name: '穿刺打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 8, pierce: true }, description: '造成8点伤害，无视敌人护甲' },
-  flameSlash:       { id: 'flameSlash',       name: '烈焰斩',   cost: 2, type: 'attack', archetype: ['inferno', 'toxic'], rarity: 'rare', effect: { damage: 7, burnStacks: 3, burnDuration: 2 }, description: '造成7点伤害，附加3层灼烧2回合' },
-  bloodSword:       { id: 'bloodSword',       name: '血刃',     cost: 3, type: 'attack', archetype: 'vampire', rarity: 'rare', effect: { damage: 10, lifesteal: 0.6 }, description: '造成10点伤害，60%伤害转化为生命' },
-  voidStrike:       { id: 'voidStrike',       name: '虚空打击', cost: 2, type: 'attack', archetype: 'toxic', rarity: 'rare', effect: { damage: 9, poisonStacks: 2, poisonDuration: 3 }, description: '造成9点伤害，附加2层中毒3回合' },
-  doubleEdge:       { id: 'doubleEdge',       name: '双刃斩',   cost: 1, type: 'attack', rarity: 'rare', effect: { damage: 5, hits: 2, selfDamage: 3 }, description: '造成5点伤害2次，自伤3点' },
-  savageBlow:       { id: 'savageBlow',       name: '野蛮打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 14, vulnerableStacks: 2 }, description: '造成14点伤害，敌人获得2层易伤' },
-  deathMark:        { id: 'deathMark',        name: '死亡标记', cost: 3, type: 'attack', archetype: 'vampire', rarity: 'rare', effect: { damage: 16, markKill: true }, description: '造成16点伤害，若击杀则回复生命' },
-  // 稀有技能牌
-  ironGuard:        { id: 'ironGuard',        name: '铁卫',     cost: 1, type: 'skill', archetype: 'ironclad', rarity: 'rare', effect: { block: 8, thorns: 3 }, description: '获得8点护甲和3点荆棘' },
-  bloodPact:        { id: 'bloodPact',        name: '血契',     cost: 1, type: 'skill', archetype: 'swift', rarity: 'rare', effect: { sacrificeHp: 6, draw: 3 }, description: '失去6点生命，抽3张牌' },
-  battleCry:        { id: 'battleCry',        name: '战嚎',     cost: 1, type: 'skill', archetype: 'swift', rarity: 'rare', effect: { draw: 2, nextAttackMult: 1.4 }, description: '抽2张牌，下次攻击+40%' },
-  shieldWall:       { id: 'shieldWall',       name: '盾墙',     cost: 2, type: 'skill', archetype: 'ironclad', rarity: 'rare', effect: { block: 18, nextTurnBlockBonus: 8 }, description: '获得18点护甲，下回合额外获得8点' },
-  healingWave:      { id: 'healingWave',      name: '治疗波',   cost: 2, type: 'skill', rarity: 'rare', effect: { heal: 12, removeDebuff: true }, description: '治疗12点，移除所有debuff' },
-  comboFinisher:    { id: 'comboFinisher',    name: '连击终结', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 10, comboBonus: true }, description: '若本回合已攻击，则造成20点伤害' },
-  emergencyShield:  { id: 'emergencyShield',  name: '紧急护盾', cost: 1, type: 'skill', archetype: 'ironclad', rarity: 'rare', effect: { blockScaling: true }, description: '获得等同于缺失生命的护甲' },
-  // 稀有能力牌
-  blazingAura:      { id: 'blazingAura',      name: '炽热光环', cost: 1, type: 'power', archetype: 'inferno', rarity: 'rare', effect: { auraBurn: 2, auraBurnDuration: 2 }, description: '每回合开始时，敌人受2层灼烧2回合' },
-  bloodRage:        { id: 'bloodRage',        name: '血之狂怒', cost: 2, type: 'power', archetype: 'vampire', rarity: 'rare', effect: { lifestealAura: 0.2 }, description: '造成伤害时，20%伤害转化为生命' },
-  armoredSoul:      { id: 'armoredSoul',      name: '护甲灵魂', cost: 1, type: 'power', archetype: 'ironclad', rarity: 'rare', effect: { thornsAura: 4, blockAura: 3 }, description: '回合结束获得3护甲和4点荆棘' },
-  quickening:       { id: 'quickening',       name: '加速',     cost: 1, type: 'power', archetype: 'swift', rarity: 'rare', effect: { startOfTurnDraw: 1 }, description: '每回合开始时抽1张牌' },
-  vampiricAura:     { id: 'vampiricAura',     name: '吸血光环', cost: 2, type: 'power', archetype: 'vampire', rarity: 'rare', effect: { vampiricAura: 0.3 }, description: '攻击时30%几率偷取敌人生命' },
-  // ===== V26 新增卡牌 =====
-  // --- 攻击牌 (5张) ---
-  // 1. 斩杀打击 - execute效果：敌人血量低于30%时直接斩杀
-  executeStrike:    { id: 'executeStrike',    name: '斩杀打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 10, executeThreshold: 0.3 }, description: '造成10点伤害，若敌人≤30%血量则斩杀' },
-  // 2. 狂暴打击 - enrage效果：自身HP低时伤害增加
-  enrageStrike:    { id: 'enrageStrike',    name: '狂暴打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 8, enrageMult: 1.8 }, description: '造成8点伤害，若HP≤50%则伤害+80%' },
-  // 3. 反击打击 - reflect效果：造成伤害同时获得荆棘
-  reflectStrike:   { id: 'reflectStrike',   name: '反击打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 9, reflectGain: 4 }, description: '造成9点伤害，获得4点荆棘' },
-  // 4. 连环打击 - chain效果：伤害在敌人间传递
-  chainStrike:     { id: 'chainStrike',     name: '连环打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 6, chainHits: 3, chainMult: 0.7 }, description: '造成6点伤害，70%连锁至下一敌人' },
-  // 5. 背水一战 - lastStand效果：HP越低伤害越高
-  lastStandStrike: { id: 'lastStandStrike', name: '背水一战', cost: 1, type: 'attack', rarity: 'rare', effect: { damage: 5, lastStandBonus: true }, description: '基础5点伤害，每损失10%HP+3伤害' },
-  // --- 技能牌 (5张) ---
-  // 6. 强化防御 - fortify效果：获得大量护甲
-  fortifyDefense:  { id: 'fortifyDefense',  name: '强化防御', cost: 2, type: 'skill', archetype: 'ironclad', rarity: 'rare', effect: { block: 15, fortifyBonus: true }, description: '获得15点护甲，下回合护甲+50%' },
-  // 7. 闪避姿态 - evasion效果：完全闪避下次攻击
-  evasionStance:   { id: 'evasionStance',   name: '闪避姿态', cost: 1, type: 'skill', archetype: 'swift', rarity: 'rare', effect: { evasion: 1, draw: 1 }, description: '闪避下次攻击,抽1张牌' },
-  // 8. 虚弱之触 - weaken效果：降低敌人攻击力
-  weakenTouch:     { id: 'weakenTouch',     name: '虚弱之触', cost: 1, type: 'skill', rarity: 'rare', effect: { damage: 3, weakenStacks: 2, weakenDuration: 3 }, description: '造成3点伤害，敌人攻击力-50%持续3回合' },
-  // 9. 沉默印记 - silence效果：阻止敌人使用特殊能力
-  silenceMark:     { id: 'silenceMark',     name: '沉默印记', cost: 2, type: 'skill', rarity: 'rare', effect: { silence: 2, damage: 5 }, description: '造成5点伤害，沉默敌人2回合' },
-  // 10. 灼热护盾 - burn效果：护甲附带灼烧
-  burningShield:   { id: 'burningShield',   name: '灼热护盾', cost: 2, type: 'skill', archetype: 'inferno', rarity: 'rare', effect: { block: 10, burnReflect: 2 }, description: '获得10点护甲，受攻击时敌人受2层灼烧' },
-  // --- 能力牌 (5张) ---
-  // 11. 激怒光环 - enrage光环：HP低时攻击增强
-  enrageAura:      { id: 'enrageAura',      name: '激怒光环', cost: 2, type: 'power', rarity: 'rare', effect: { enrageAura: true, enrageThreshold: 0.5, enrageBonus: 0.5 }, description: 'HP≤50%时，攻击伤害+50%' },
-  // 12. 荆棘光环 - reflect光环：受到攻击时反弹伤害
-  reflectAura:     { id: 'reflectAura',     name: '荆棘光环', cost: 2, type: 'power', rarity: 'rare', effect: { reflectAura: 6 }, description: '受到攻击时反弹6点伤害' },
-  // 13. 钢化光环 - fortify光环：每回合护甲增加
-  fortifyAura:     { id: 'fortifyAura',     name: '钢化光环', cost: 2, type: 'power', archetype: 'ironclad', rarity: 'rare', effect: { fortifyAura: 3, fortifyDuration: 99 }, description: '每回合开始获得3点护甲' },
-  // 14. 疾风光环 - evasion光环：提高闪避率
-  evasionAura:     { id: 'evasionAura',     name: '疾风光环', cost: 1, type: 'power', rarity: 'rare', effect: { evasionChance: 0.25 }, description: '25%几率闪避敌人攻击' },
-  // 15. 衰弱光环 - weaken光环：降低敌人属性
-  weakenAura:      { id: 'weakenAura',      name: '衰弱光环', cost: 2, type: 'power', rarity: 'rare', effect: { weakenAura: true, weakenRate: 1 }, description: '每回合敌人攻击力-30%' },
-  // ===== V30 新增诅咒系卡牌 =====
-  curse_of_pain:   { id: 'curse_of_pain',   name: '痛苦诅咒', cost: 0, type: 'curse', archetype: 'inferno', effect: { curseStartDamage: 3 }, description: '回合开始时受到3点伤害', curseTrigger: 'startOfTurn', maxUpgradeLevel: 5 },
-  curse_of_weak:   { id: 'curse_of_weak',   name: '虚弱诅咒', cost: 0, type: 'curse', effect: { curseWeakAttack: 0.3 }, description: '攻击力-30%', curseTrigger: 'permanent', maxUpgradeLevel: 5 },
-  dark_curse:      { id: 'dark_curse',      name: '黑暗诅咒', cost: 1, type: 'curse', effect: { curseVulnerable: 2 }, description: '敌方获得2层易伤', curseTrigger: 'onApply', maxUpgradeLevel: 5 },
-  death_curse:     { id: 'death_curse',     name: '死亡诅咒', cost: 2, type: 'curse', effect: { curseLifesteal: 0.05 }, description: '每回合流失5%最大生命', curseTrigger: 'startOfTurn', maxUpgradeLevel: 5 },
-  poison_dart:     { id: 'poison_dart',     name: '毒镖',     cost: 1, type: 'curse', archetype: 'toxic', effect: { cursePoison: 10 }, description: '敌方中毒10层', curseTrigger: 'onApply', maxUpgradeLevel: 5 },
-  fear:            { id: 'fear',            name: '恐惧',     cost: 0, type: 'curse', effect: { curseSkipAttack: 1 }, description: '敌方下回合无法攻击', curseTrigger: 'onApply', maxUpgradeLevel: 5 },
-  // ===== V30 新增命运系卡牌 =====
-  fortune_strike:  { id: 'fortune_strike',  name: '命运打击', cost: 1, type: 'fate', effect: { fateDamageMin: 3, fateDamageMax: 15 }, description: '造成3-15点随机伤害', fateType: 'damage', maxUpgradeLevel: 5 },
-  chaotic_shield:  { id: 'chaotic_shield',  name: '混沌护盾', cost: 1, type: 'fate', effect: { fateShieldMin: 5, fateShieldMax: 15 }, description: '获得5-15点随机护甲', fateType: 'shield', maxUpgradeLevel: 5 },
-  gamble_all:      { id: 'gamble_all',      name: '孤注一掷', cost: 2, type: 'fate', effect: { fateGambleDamage: 20, fateGambleSelfDamage: 15 }, description: '50%造成20伤害，50%受到15伤害', fateType: 'gamble', maxUpgradeLevel: 5 },
-  dice_roll:       { id: 'dice_roll',       name: '命运骰子', cost: 0, type: 'fate', archetype: 'swift', effect: { fateDice: true }, description: '随机：+2攻击/-2攻击/+3护甲/+5生命', fateType: 'random' },
-  wild_swing:      { id: 'wild_swing',      name: '蛮横挥击', cost: 1, type: 'fate', effect: { fateDamageMin: 2, fateDamageMax: 12, fateRandomTarget: true }, description: '造成2-12点伤害，随机目标', fateType: 'damage' },
-  unpredictable:   { id: 'unpredictable',   name: '难以预测', cost: 0, type: 'fate', archetype: 'swift', effect: { fateRandomBenefit: true }, description: '随机执行：抽2张/获得3能量/恢复10生命', fateType: 'random' },
-  // ===== V43 Roguelike可解锁卡牌 =====
-  shield:          { id: 'shield',          name: '护盾',     cost: 2, type: 'skill', effect: { block: 3 }, description: '获得3点护盾值' },
-  thorns:          { id: 'thorns',          name: '荆棘',     cost: 2, type: 'skill', effect: { thorns: 1 }, description: '受到攻击时反弹1伤害' },
-  lifedrain:       { id: 'lifedrain',       name: '生命吸取', cost: 3, type: 'attack', effect: { damage: 8, lifesteal: 1 }, description: '造成8点伤害，回复1HP' },
-  drawplus:        { id: 'drawplus',        name: '抽牌+1',   cost: 1, type: 'skill', effect: { draw: 1 }, description: '抽1张牌' },
-  doubleattack:    { id: 'doubleattack',    name: '双重攻击', cost: 2, type: 'attack', effect: { damage: 6, doubleAttack: 0.3 }, description: '造成6点伤害，30%概率攻击两次' },
-  energyplus:      { id: 'energyplus',      name: '能量充沛', cost: 0, type: 'power', effect: { extraEnergy: 1 }, description: '每回合额外获得1能量', maxUpgradeLevel: 5 },
+// ===== V60 卡牌插件系统 =====
+// CARDS 将通过 refreshCardsFromRegistry() 从 CardPackRegistry 获取
+// 卡牌数据现在在 card-packs/ 目录下的插件中定义
+let CARDS = {};
 
-  // ===== V61 新增15张卡牌（攻击5/技能5/能力3/特殊2）=====
-  // --- 攻击牌 (5张) ---
-  // 1. 震荡击 - 造成5伤害，敌人获得易伤（延迟意图的替代方案）
-  quakeStrike:     { id: 'quakeStrike',     name: '震荡击',   cost: 1, type: 'attack', rarity: 'rare', effect: { damage: 5, vulnerableStacks: 1 }, description: '造成5点伤害，敌人获得1层易伤' },
-  // 2. 双重穿刺 - 造成8伤害无视护甲，每击穿1护甲抽1牌
-  doublePierce:    { id: 'doublePierce',    name: '双重穿刺', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 8, pierce: true, draw: 1 }, description: '造成8点伤害无视护甲，每击穿1点抽1张' },
-  // 3. 猛毒之刃 - 造成6伤害附加4层中毒2回合
-  toxicBlade:      { id: 'toxicBlade',      name: '猛毒之刃', cost: 2, type: 'attack', archetype: 'toxic', rarity: 'rare', effect: { damage: 6, poisonStacks: 4, poisonDuration: 2 }, description: '造成6点伤害，附加4层中毒2回合' },
-  // 4. 破甲打击 - 造成10伤害，移除敌人所有护甲（用pierce实现无视护甲）
-  armorBreak:      { id: 'armorBreak',      name: '破甲打击', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 10, pierce: true }, description: '造成10点伤害，无视敌人护甲' },
-  // 5. 闪电五连斩 - 造成3伤害5次（共15点）
-  lightningSlash:  { id: 'lightningSlash', name: '闪电五连斩', cost: 2, type: 'attack', rarity: 'rare', effect: { damage: 3, hits: 5 }, description: '造成3点伤害5次（共15点）' },
-
-  // --- 技能牌 (5张) ---
-  // 6. 能量回收 - 0费，本回合每有1点未用能量抽1牌
-  energyRecovery:  { id: 'energyRecovery', name: '能量回收', cost: 0, type: 'skill', rarity: 'rare', effect: { draw: 2 }, description: '抽2张牌（本回合每有1点未用能量再抽1张）' },
-  // 7. 护甲转移 - 将当前护甲的一半转移给下回合
-  armorTransfer:   { id: 'armorTransfer', name: '护甲转移', cost: 1, type: 'skill', rarity: 'rare', effect: { block: 6, nextTurnBlockBonus: 6 }, description: '获得6点护甲，下回合额外获得6点' },
-  // 8. 毒雾 - 敌人每回合3层中毒，持续2回合
-  toxicCloud:      { id: 'toxicCloud',      name: '毒雾',     cost: 2, type: 'skill', archetype: 'toxic', rarity: 'rare', effect: { poisonStacks: 3, poisonDuration: 2 }, description: '敌人每回合受到3层中毒，持续2回合' },
-  // 9. 意志坚定 - 移除易伤/虚弱，获得3护甲
-  ironWill:        { id: 'ironWill',       name: '意志坚定', cost: 1, type: 'skill', rarity: 'rare', effect: { removeDebuff: true, block: 3 }, description: '移除所有易伤/虚弱，获得3点护甲' },
-  // 10. 爆发准备 - 下回合开始时额外获得2能量
-  burstPrep:       { id: 'burstPrep',      name: '爆发准备', cost: 1, type: 'skill', rarity: 'rare', effect: { extraEnergy: 2 }, description: '本回合获得2能量，下回合开始时再获得2能量' },
-
-  // --- 能力牌 (3张) ---
-  // 11. 吸血之爪 - 攻击时额外获得15%吸血
-  vampiricClaw:    { id: 'vampiricClaw',   name: '吸血之爪', cost: 2, type: 'power', archetype: 'vampire', rarity: 'rare', effect: { lifestealAura: 0.15 }, description: '攻击时额外获得15%吸血' },
-  // 12. 冰霜护盾 - 回合结束获得5护甲；若本回合受伤，下回合敌人速度-1
-  frostShield:     { id: 'frostShield',    name: '冰霜护盾', cost: 2, type: 'power', rarity: 'rare', effect: { blockAura: 5 }, description: '回合结束获得5点护甲' },
-  // 13. 能量涌动 - 每回合开始时额外获得1能量
-  energySurge:     { id: 'energySurge',    name: '能量涌动', cost: 1, type: 'power', archetype: 'swift', rarity: 'rare', effect: { extraEnergy: 1 }, description: '每回合开始时额外获得1能量' },
-
-  // --- 特殊/命运牌 (2张) ---
-  // 14. 命运逆转 - 50%易伤3层，50%虚弱3层
-  fateReversal:    { id: 'fateReversal',    name: '命运逆转', cost: 1, type: 'fate', rarity: 'rare', effect: { vulnerableStacks: 3, weakStacks: 3 }, description: '50%敌人获得3层易伤，50%获得3层虚弱' },
-  // 15. 最后一搏 - 消耗所有剩余能量，每点能量4伤害+1抽牌
-  lastGasp:        { id: 'lastGasp',       name: '最后一搏', cost: 'X', type: 'special', rarity: 'rare', effect: { damage: 4, draw: 1 }, description: '消耗所有能量，每点能量4伤害并抽1张牌' }
-};
+// V60: 从卡包注册表刷新卡牌数据
+if (typeof refreshCardsFromRegistry === 'function') {
+  refreshCardsFromRegistry();
+}
 
 // ===== V32 流派协同系统 =====
 const ARCHETYPES = {
