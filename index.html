@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V60 — 卡牌插件系统</title>
+  <title>DBG卡牌游戏 V61 — 卡包市场</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -3247,8 +3247,9 @@
     }
   </style>
 </head>
-<!-- V60 卡牌插件系统 -->
+<!-- V61 卡包市场 -->
 <script src="plugin-loader.js"></script>
+<script src="market-loader.js"></script>
 <script src="card-packs/starter.js"></script>
 <script src="card-packs/balanced.js"></script>
 <script src="card-packs/ironclad.js"></script>
@@ -3269,7 +3270,7 @@
   </div>
   <h1>🃏 DBG卡牌游戏</h1>
   <p>构建你的牌组，击败所有敌人！</p>
-  <p style="color:#ffd700;font-size:12px;">V46 九宫格界面优化</p>
+  <p style="color:#ffd700;font-size:12px;">V61 卡包市场 - 远程URL加载</p>
 
   <!-- V46 九宫格主菜单 -->
   <div class="menu-grid">
@@ -3513,7 +3514,7 @@
     </div>
 
     <div class="settings-section" style="text-align:center;color:#666;font-size:12px;">
-      <p>DBG卡牌游戏 V60</p>
+      <p>DBG卡牌游戏 V61</p>
       <p>版本 2026.05.13</p>
     </div>
   </div>
@@ -3702,15 +3703,27 @@
 </div>
 
 <script>
-// ===== V60 卡牌插件系统 =====
-// CARDS 将通过 refreshCardsFromRegistry() 从 CardPackRegistry 获取
-// 卡牌数据现在在 card-packs/ 目录下的插件中定义
-let CARDS = {};
+// ===== V61 卡包市场 - 远程加载 =====
+(async function() {
+  // 页面加载时自动重新加载远程卡包
+  if (typeof RemoteCardPackLoader !== 'undefined') {
+    try {
+      await RemoteCardPackLoader.reloadInstalled();
+      console.log('Remote packs reloaded on page load');
+    } catch (e) {
+      console.warn('Failed to reload remote packs:', e);
+    }
+  }
 
-// V60: 从卡包注册表刷新卡牌数据
-if (typeof refreshCardsFromRegistry === 'function') {
-  refreshCardsFromRegistry();
-}
+  // CARDS 将通过 refreshCardsFromRegistry() 从 CardPackRegistry 获取
+  // 卡牌数据现在在 card-packs/ 目录下的插件中定义
+  let CARDS = {};
+
+  // V61: 从卡包注册表刷新卡牌数据
+  if (typeof refreshCardsFromRegistry === 'function') {
+    refreshCardsFromRegistry();
+  }
+})();
 
 // ===== V32 流派协同系统 =====
 const ARCHETYPES = {
