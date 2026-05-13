@@ -303,6 +303,40 @@
       `;
     }
 
+    // 已安装的远程卡包
+    const installedRemote = RemoteCardPackLoader ? RemoteCardPackLoader.getInstalledList() : [];
+    if (installedRemote.length > 0) {
+      html += `
+          <div style="margin-top:15px;padding-top:15px;border-top:1px solid #333;">
+            <div style="color:#888;font-size:12px;margin-bottom:10px;">已安装的远程卡包:</div>
+      `;
+      for (const rp of installedRemote) {
+        html += `
+          <div style="background:rgba(0,255,255,0.05);border-radius:8px;padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:20px;">🌐</span>
+            <div style="flex:1;">
+              <div style="color:#4ecdc4;font-weight:bold;">${rp.name}</div>
+              <div style="color:#666;font-size:11px;">v${rp.version}</div>
+            </div>
+            <button onclick="uninstallRemotePack('${rp.id}')" style="background:#e74c3c;border:none;color:#fff;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;">卸载</button>
+          </div>
+        `;
+      }
+      html += `</div>`;
+    }
+
+    // 远程加载入口
+    html += `
+      <div style="margin-top:15px;padding-top:15px;border-top:1px solid #333;">
+        <div style="color:#888;font-size:12px;margin-bottom:10px;">🌐 远程加载卡包:</div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="remote-pack-url" placeholder="输入卡包JSON地址..." style="flex:1;padding:10px;border-radius:8px;border:1px solid #444;background:#2a2a4a;color:#fff;font-size:13px;">
+          <button onclick="installRemotePack()" style="background:linear-gradient(145deg,#3498db,#2980b9);border:none;color:#fff;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:bold;white-space:nowrap;">安装</button>
+        </div>
+        <div id="remote-install-status" style="margin-top:8px;font-size:12px;min-height:20px;"></div>
+      </div>
+    `;
+
     html += `
           </div>
           <div style="text-align:center;color:#888;font-size:12px;">
@@ -337,6 +371,43 @@
     if (container) {
       container.remove();
     }
+  };
+
+  // 安装远程卡包
+  window.installRemotePack = async function() {
+    const urlInput = document.getElementById('remote-pack-url');
+    const statusEl = document.getElementById('remote-install-status');
+    if (!urlInput || !statusEl) return;
+
+    const url = urlInput.value.trim();
+    if (!url) {
+      statusEl.innerHTML = '<span style="color:#e74c3c;">请输入卡包地址</span>';
+      return;
+    }
+
+    statusEl.innerHTML = '<span style="color:#f39c12;">加载中...</span>';
+    try {
+      await RemoteCardPackLoader.install(url);
+      if (typeof refreshCardsFromRegistry === 'function') {
+        refreshCardsFromRegistry();
+      }
+      statusEl.innerHTML = '<span style="color:#2ecc71;">安装成功！</span>';
+      // 重新打开模态框以显示新的已安装列表
+      closeCardPackManager();
+      openCardPackManager();
+    } catch (e) {
+      statusEl.innerHTML = '<span style="color:#e74c3c;">' + e.message + '</span>';
+    }
+  };
+
+  // 卸载远程卡包
+  window.uninstallRemotePack = function(packId) {
+    RemoteCardPackLoader.uninstall(packId);
+    if (typeof refreshCardsFromRegistry === 'function') {
+      refreshCardsFromRegistry();
+    }
+    closeCardPackManager();
+    openCardPackManager();
   };
 
   // 切换卡包激活状态
