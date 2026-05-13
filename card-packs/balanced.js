@@ -49,6 +49,20 @@ window.CARD_PACKS['balanced'] = {
     // --- 中毒流血状态牌 ---
     { id: 'status_poison', name: '中毒', cost: 0, type: 'status', rarity: 'common', effect: { poison: 3 }, description: '每回合3点伤害，持续3回合', duration: 3, stackable: true },
     { id: 'status_bleed', name: '流血', cost: 0, type: 'status', rarity: 'common', effect: { bleed: 2 }, description: '回合开始2点伤害，持续2回合', duration: 2, stackable: true },
+
+    // --- V64 新增卡牌 ---
+    // 火球术 - 造成8点伤害 + 2层灼烧
+    { id: 'fireball', name: '火球术', cost: 2, type: 'attack', rarity: 'common', effect: { damage: 8, burnStacks: 2, burnDuration: 2 }, description: '造成8点伤害，施加2层灼烧' },
+    // 淬毒匕首 - 造成4点伤害 + 2层中毒
+    { id: 'poison_dagger', name: '淬毒匕首', cost: 1, type: 'attack', rarity: 'common', effect: { damage: 4, poisonStacks: 2, poisonDuration: 3 }, description: '造成4点伤害，施加2层中毒' },
+    // 横扫 - 造成8点伤害
+    { id: 'cleave', name: '横扫', cost: 1, type: 'attack', rarity: 'common', effect: { damage: 8 }, description: '造成8点伤害' },
+    // 强化防御 - 获得12点护甲 + 1层力量
+    { id: 'fortify', name: '强化防御', cost: 1, type: 'skill', rarity: 'common', effect: { block: 12, strength: 1 }, description: '获得12点护甲，获得1层力量' },
+    // 创伤 - 造成3点伤害 + 1层虚弱
+    { id: 'wound', name: '创伤', cost: 1, type: 'attack', rarity: 'common', effect: { damage: 3, weakStacks: 1, weakDuration: 1 }, description: '造成3点伤害，施加1层虚弱' },
+    // 治疗 - 恢复5点生命
+    { id: 'heal', name: '治疗', cost: 1, type: 'skill', rarity: 'common', effect: { heal: 5 }, description: '恢复5点生命' },
   ],
   relics: [
     {

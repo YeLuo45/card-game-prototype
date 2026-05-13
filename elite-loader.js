@@ -11,8 +11,10 @@ const ELITE_ENEMIES = {
     maxHp: 80, 
     attack: 18, 
     armor: 10, 
-    reward: "relic_ankh", 
+    reward: "relic_ankh",
     isElite: true,
+    aiType: 'aggressive',
+    difficulty: 1.2,
     intents: ['attack', 'defend', 'heavy', 'buff']
   },
   "elite_orc_chief": { 
@@ -21,8 +23,10 @@ const ELITE_ENEMIES = {
     maxHp: 100, 
     attack: 22, 
     armor: 15, 
-    reward: "relic_skull", 
+    reward: "relic_skull",
     isElite: true,
+    aiType: 'aggressive',
+    difficulty: 1.2,
     intents: ['attack', 'attack', 'defend', 'buff']
   },
   "elite_werewolf_alpha": { 
@@ -31,8 +35,10 @@ const ELITE_ENEMIES = {
     maxHp: 90, 
     attack: 25, 
     armor: 0, 
-    reward: "relic_shield", 
+    reward: "relic_shield",
     isElite: true,
+    aiType: 'aggressive',
+    difficulty: 1.3,
     intents: ['attack', 'buff', 'heavy']
   },
   "elite_slime_king": { 
@@ -41,8 +47,10 @@ const ELITE_ENEMIES = {
     maxHp: 120, 
     attack: 15, 
     armor: 20, 
-    reward: "relic_potion", 
+    reward: "relic_potion",
     isElite: true,
+    aiType: 'defensive',
+    difficulty: 1.1,
     intents: ['attack', 'defend', 'multihit']
   },
   "elite_dark_mage": { 
@@ -51,8 +59,10 @@ const ELITE_ENEMIES = {
     maxHp: 70, 
     attack: 30, 
     armor: 5, 
-    reward: "relic_staff", 
+    reward: "relic_staff",
     isElite: true,
+    aiType: 'control',
+    difficulty: 1.2,
     intents: ['attack', 'curse', 'buff']
   }
 };
@@ -70,6 +80,10 @@ const BOSS_ENEMIES = {
     phase2Attack: 45,
     phase2Threshold: 0.5, // 50%血量进入第二阶段
     reward: "relic_dragon_heart",
+    aiType: 'boss',
+    difficulty: 1.5,
+    specialAbility: { every: 3 },
+    secondPhaseThreshold: 0.5,
     intents: ['attack', 'dragonBreath', 'heavy', 'buff', 'defend'],
     special: 'dragonBreath'
   },
@@ -86,6 +100,10 @@ const BOSS_ENEMIES = {
     phase2Threshold: 0.5,
     phase3Threshold: 0.25,
     reward: "relic_dragon_heart",
+    aiType: 'boss',
+    difficulty: 1.5,
+    specialAbility: { every: 2 },
+    secondPhaseThreshold: 0.5,
     intents: ['darkAura', 'soulSiphon', 'abyssalStrike', 'buff'],
     special: 'darkAura'
   }
@@ -123,6 +141,16 @@ function startEliteBattle() {
   gameState.isEliteBattle = true;
   gameState.isBossBattle = false;
   
+  // V65 初始化敌人AI
+  if (typeof EnemyAI !== 'undefined') {
+    gameState.enemyAI = new EnemyAI(enemy.aiType || 'random', {
+      difficulty: enemy.difficulty || 1.0,
+      specialAbility: enemy.specialAbility || null,
+      secondPhaseThreshold: enemy.secondPhaseThreshold || 0.5
+    });
+    addLog(`🔮 AI类型: ${gameState.enemyAI.getTypeName()}`, 'info');
+  }
+  
   // 初始化战斗状态
   initBattleStateForCombat();
   
@@ -155,6 +183,15 @@ function startBossBattle() {
   gameState.bossPhase = 1;
   gameState.bossPhase2Triggered = false;
   gameState.bossPhase3Triggered = false;
+  
+  // V65 初始化Boss AI
+  if (typeof EnemyAI !== 'undefined') {
+    gameState.enemyAI = new EnemyAI(boss.aiType || 'boss', {
+      difficulty: boss.difficulty || 1.5,
+      specialAbility: boss.specialAbility || { every: 2 },
+      secondPhaseThreshold: boss.secondPhaseThreshold || 0.5
+    });
+  }
   
   // 显示Boss来袭动画
   showBossIntro(boss.name);

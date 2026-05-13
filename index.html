@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V61 — 卡包市场</title>
+  <title>DBG卡牌游戏 V65 — 敌人AI行为系统</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -147,7 +147,27 @@
       padding: 20px;
       text-align: center;
       border: 2px solid #8b0000;
+      transition: border-color 0.3s, box-shadow 0.3s;
     }
+    /* V65 Boss第二阶段红边框 */
+    #enemy-area.boss-phase2 {
+      border-color: #ff0000;
+      box-shadow: 0 0 20px rgba(255,0,0,0.5);
+    }
+    /* V65 AI类型标签 */
+    .enemy-ai-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .enemy-ai-badge.aggressive { background: rgba(255,0,0,0.6); }
+    .enemy-ai-badge.defensive { background: rgba(0,0,255,0.6); }
+    .enemy-ai-badge.control { background: rgba(128,0,128,0.6); }
+    .enemy-ai-badge.boss { background: rgba(139,0,0,0.8); }
+    .enemy-ai-badge.elite { background: rgba(139,69,19,0.6); }
     #enemy-name { font-size: 22px; font-weight: bold; color: #ff6b6b; margin-bottom: 10px; }
     #enemy-hp-bar {
       width: 100%;
@@ -3361,6 +3381,8 @@
 <script src="market-loader.js"></script>
 <!-- V62 Roguelike: 遗物系统核心 -->
 <script src="relics-loader.js"></script>
+<!-- V65 Enemy AI Behavior System -->
+<script src="enemy-ai.js"></script>
 <!-- V62 Roguelike: 精英与Boss系统 -->
 <script src="elite-loader.js"></script>
 <!-- V63 Meta Progress System -->
@@ -11892,206 +11914,411 @@ function advanceToNextChapter() {
 
 function rollEnemyIntent() {
   const enemy = gameState.enemy;
-  // V20/V27 Boss阶段权重：根据Boss类型和阶段选择意图
-  let weights;
-  if (enemy.id === 'abyssLord' && BOSS_PHASE_WEIGHTS.abyssLord) {
-    const phase = gameState.abyssLordPhase || 1;
-    weights = BOSS_PHASE_WEIGHTS.abyssLord[phase] || INTENT_WEIGHTS.abyssLord;
-  } else if (enemy.id === 'lordOfNothingness' && BOSS_PHASE_WEIGHTS.lordOfNothingness) {
-    const phase = gameState.lordOfNothingnessPhase || 1;
-    weights = BOSS_PHASE_WEIGHTS.lordOfNothingness[phase] || INTENT_WEIGHTS.lordOfNothingness;
-  } else if (enemy.id === 'archangel' && BOSS_PHASE_WEIGHTS.archangel) {
-    // V27 大天使长Boss阶段
-    const phase = gameState.archangelPhase || 1;
-    weights = BOSS_PHASE_WEIGHTS.archangel[phase] || INTENT_WEIGHTS.archangel;
-  } else if (enemy.id === 'azmodan' && BOSS_PHASE_WEIGHTS.azmodan) {
-    // V27 阿兹莫丹Boss阶段
-    const phase = gameState.azmodanPhase || 1;
-    weights = BOSS_PHASE_WEIGHTS.azmodan[phase] || INTENT_WEIGHTS.azmodan;
-  } else if (enemy.id === 'chaosGod' && BOSS_PHASE_WEIGHTS.chaosGod) {
-    // V27 混沌之神Boss阶段
-    const phase = gameState.chaosGodPhase || 1;
-    weights = BOSS_PHASE_WEIGHTS.chaosGod[phase] || INTENT_WEIGHTS.chaosGod;
-  } else {
-    weights = INTENT_WEIGHTS[enemy.id] || INTENT_WEIGHTS.slime;
-  }
-
-  const intent = weightedRandom(weights);
-
-  let value = 0;
-  switch (intent) {
-    case 'attack':
-      value = enemy.isBoss ? 12 : (enemy.id === 'goblin' ? 4 : 6);
-      if (enemy.id === 'fireElf') value = 5;
-      if (enemy.id === 'skeleton') value = 8;
-      if (enemy.id === 'bat') value = 5;
-      if (enemy.id === 'skeletonArcher') value = 6;
-      if (enemy.id === 'werewolf') value = 9;
-      if (enemy.id === 'shadowAssassin') value = 7;
-      if (enemy.id === 'ancientDragon') value = 10;
-      if (enemy.id === 'darkLord') value = 8;
-      if (enemy.id === 'slimeKing') value = 8;
-      if (enemy.id === 'abyssLord') value = 10 + gameState.abyssLordPhase * 2;
-      if (enemy.id === 'lordOfNothingness') value = 12 + gameState.lordOfNothingnessPhase * 3;
-      if (enemy.id === 'deathBringer') value = 12;
-      if (enemy.id === 'oblivionHound') value = 10;
-      if (enemy.id === 'voidTendril') value = 9;
-      if (enemy.id === 'shadowKnight') value = 11;
-      if (enemy.id === 'abyssStalker') value = 7;
-      if (enemy.id === 'voidWraith') value = 6;
-      if (enemy.id === 'nothingPhantom') value = 8;
-      break;
-    case 'defend':
-      value = enemy.isBoss ? 15 : (enemy.id === 'skeleton' ? 8 : 4);
-      if (enemy.id === 'werewolf') value = 10;
-      if (enemy.id === 'shadowAssassin') value = 6;
-      if (enemy.id === 'slimeKing') value = 12;
-      if (enemy.id === 'voidTendril') value = 10;
-      if (enemy.id === 'deathBringer') value = 8;
-      break;
-    case 'buff':
-      value = 0;
-      break;
-    case 'debuff':
-      value = 0;
-      break;
-    case 'heavy':
-      value = 8;
-      if (enemy.id === 'werewolf') value = 12;
-      if (enemy.id === 'ancientDragon') value = 15;
-      if (enemy.id === 'shadowKnight') value = 15;
-      if (enemy.id === 'oblivionHound') value = 14;
-      break;
-    case 'curse':
-      value = 0;
-      break;
+  
+  // V65: 如果有AI系统，使用AI决策意图
+  if (gameState.enemyAI && typeof gameState.enemyAI.chooseIntent === 'function') {
+    // 获取敌人可用意图列表
+    const availableIntents = enemy.intents || ['attack', 'defend', 'buff'];
+    
+    // 构建AI游戏状态
+    const aiState = {
+      enemyHp: gameState.enemyHp,
+      enemyMaxHp: gameState.enemyMaxHp,
+      playerHp: gameState.playerHp,
+      playerMaxHp: gameState.playerMaxHp,
+      playerShield: gameState.playerShield || 0,
+      enemyEnergy: 3, // 敌人默认每回合3能量
+      enemyArmor: gameState.enemyArmor || 0
+    };
+    
+    // V65 AI选择意图
+    const aiIntent = gameState.enemyAI.chooseIntent(availableIntents, aiState);
+    
+    // 检查AI触发的第二阶段
+    if (gameState.enemyAI._state && gameState.enemyAI._state.inSecondPhase) {
+      if (gameState.isBossBattle && !gameState.bossPhase2Triggered) {
+        gameState.bossPhase = 2;
+        gameState.bossPhase2Triggered = true;
+        if (enemy.phase2Attack) {
+          enemy.attack = enemy.phase2Attack;
+        }
+        addLog(`🐉 ${enemy.name} 进入第二阶段！伤害+50%`, 'danger');
+        // 触发遗物效果
+        triggerRelicHook('onBossPhaseChange');
+      }
+    }
+    
+    gameState.enemyIntent = aiIntent;
+    
+    // 计算意图值（基于原有逻辑，但考虑AI难度）
+    let baseValue = 0;
+    const difficulty = gameState.enemyAI.difficulty || 1.0;
+    
+    switch (aiIntent) {
+      case 'attack':
+        baseValue = enemy.isBoss ? 12 : (enemy.id === 'goblin' ? 4 : 6);
+        if (enemy.id === 'fireElf') baseValue = 5;
+        if (enemy.id === 'skeleton') baseValue = 8;
+        if (enemy.id === 'bat') baseValue = 5;
+        if (enemy.id === 'skeletonArcher') baseValue = 6;
+        if (enemy.id === 'werewolf') baseValue = 9;
+        if (enemy.id === 'shadowAssassin') baseValue = 7;
+        if (enemy.id === 'ancientDragon') baseValue = 10;
+        if (enemy.id === 'darkLord') baseValue = 8;
+        if (enemy.id === 'slimeKing') baseValue = 8;
+        if (enemy.id === 'abyssLord') baseValue = 10 + gameState.abyssLordPhase * 2;
+        if (enemy.id === 'lordOfNothingness') baseValue = 12 + gameState.lordOfNothingnessPhase * 3;
+        if (enemy.id === 'deathBringer') baseValue = 12;
+        if (enemy.id === 'oblivionHound') baseValue = 10;
+        if (enemy.id === 'voidTendril') baseValue = 9;
+        if (enemy.id === 'shadowKnight') baseValue = 11;
+        if (enemy.id === 'abyssStalker') baseValue = 7;
+        if (enemy.id === 'voidWraith') baseValue = 6;
+        if (enemy.id === 'nothingPhantom') baseValue = 8;
+        break;
+      case 'defend':
+        baseValue = enemy.isBoss ? 15 : (enemy.id === 'skeleton' ? 8 : 4);
+        if (enemy.id === 'werewolf') baseValue = 10;
+        if (enemy.id === 'shadowAssassin') baseValue = 6;
+        if (enemy.id === 'slimeKing') baseValue = 12;
+        if (enemy.id === 'voidTendril') baseValue = 10;
+        if (enemy.id === 'deathBringer') baseValue = 8;
+        break;
+      case 'buff':
+        baseValue = 0;
+        break;
+      case 'debuff':
+        baseValue = 0;
+        break;
+      case 'heavy':
+        baseValue = 8;
+        if (enemy.id === 'werewolf') baseValue = 12;
+        if (enemy.id === 'ancientDragon') baseValue = 15;
+        if (enemy.id === 'shadowKnight') baseValue = 15;
+        if (enemy.id === 'oblivionHound') baseValue = 14;
+        break;
+      case 'curse':
+        baseValue = 0;
+        break;
     case 'counter':
-      value = enemy.id === 'shadowAssassin' ? 5 : 3;
-      if (enemy.id === 'shadowKnight') value = 7;
+      baseValue = enemy.id === 'shadowAssassin' ? 5 : 3;
+      if (enemy.id === 'shadowKnight') baseValue = 7;
       break;
     case 'dragonScale':
-      value = 8;
+      baseValue = 8;
       break;
     case 'summon':
-      value = 0;
+      baseValue = 0;
       break;
     case 'multihit':
-      value = 4;
+      baseValue = 4;
       break;
     // V20 新增意图
     case 'voidBlast':
-      value = 15;
+      baseValue = 15;
       break;
     case 'voidSiphon':
-      value = 10;
+      baseValue = 10;
       break;
     case 'cardTheft':
-      value = 0;
+      baseValue = 0;
       break;
     case 'deckManipulation':
-      value = 0;
+      baseValue = 0;
       break;
     case 'charge':
-      value = 12;
+      baseValue = 12;
       break;
     case 'drain':
-      value = enemy.id === 'vampireBat' ? 6 : 8;
-      if (enemy.id === 'voidWraith') value = 7;
+      baseValue = enemy.id === 'vampireBat' ? 6 : 8;
+      if (enemy.id === 'voidWraith') baseValue = 7;
       break;
     case 'crushingBlow':
-      value = 14;
-      if (enemy.id === 'shadowKnight') value = 16;
+      baseValue = 14;
+      if (enemy.id === 'shadowKnight') baseValue = 16;
       break;
     // V20 深渊领主意图
     case 'darkAura':
-      value = enemy.darkAuraDamage || 5;
+      baseValue = enemy.darkAuraDamage || 5;
       break;
     case 'soulSiphon':
-      value = 12;
+      baseValue = 12;
       break;
     case 'abyssalStrike':
-      value = 15 + gameState.abyssLordPhase * 3;
+      baseValue = 15 + gameState.abyssLordPhase * 3;
       break;
     // V20 虚无之主意图
     case 'shadowSummon':
-      value = 0;
+      baseValue = 0;
       break;
     case 'voidDomain':
-      value = 0;
+      baseValue = 0;
       break;
     case 'annihilation':
-      value = 20 + gameState.lordOfNothingnessPhase * 5;
+      baseValue = 20 + gameState.lordOfNothingnessPhase * 5;
       break;
     // V20 新敌人特殊意图
     case 'evade':
-      value = 0;
+      baseValue = 0;
       break;
     case 'lifesteal':
-      value = 8;
-      if (enemy.id === 'deathBringer') value = 10;
+      baseValue = 8;
+      if (enemy.id === 'deathBringer') baseValue = 10;
       break;
     case 'constrict':
-      value = 7;
+      baseValue = 7;
       break;
     case 'packHunt':
-      value = 8;
+      baseValue = 8;
       break;
     case 'phaseShift':
-      value = 0;
+      baseValue = 0;
       break;
     // V27 大天使长意图
     case 'divineJudgment':
-      value = 15 + gameState.archangelPhase * 3;
+      baseValue = 15 + gameState.archangelPhase * 3;
       break;
     case 'celestialBlitz':
-      value = 12 + gameState.archangelPhase * 2;
+      baseValue = 12 + gameState.archangelPhase * 2;
       break;
     case 'holyNova':
-      value = 20 + gameState.archangelPhase * 5;
+      baseValue = 20 + gameState.archangelPhase * 5;
       break;
     // V27 阿兹莫丹意图
     case 'hellfire':
-      value = 18 + gameState.azmodanPhase * 3;
+      baseValue = 18 + gameState.azmodanPhase * 3;
       break;
     case 'soulHarvest':
-      value = 10 + gameState.azmodanPhase * 2;
+      baseValue = 10 + gameState.azmodanPhase * 2;
       break;
     case 'annihilatingFist':
-      value = 25 + gameState.azmodanPhase * 5;
+      baseValue = 25 + gameState.azmodanPhase * 5;
       break;
     // V27 混沌之神意图
     case 'chaosPulse':
-      value = 15 + gameState.chaosGodPhase * 3;
+      baseValue = 15 + gameState.chaosGodPhase * 3;
       break;
     case 'realitySwap':
-      value = 0;
+      baseValue = 0;
       break;
     case 'entropy':
-      value = 30 + gameState.chaosGodPhase * 5;
+      baseValue = 30 + gameState.chaosGodPhase * 5;
       break;
     // V33 敌人意图丰富化
     case 'multi_attack':
       // 连续攻击2-3次
       gameState.enemyIntentExtra = Math.random() < 0.5 ? 2 : 3;
-      value = enemy.isBoss ? 15 : 8;
+      baseValue = enemy.isBoss ? 15 : 8;
       break;
     case 'buff_stack':
       // 每回合+2攻击，显示累计
       gameState.enemyIntentExtra = 1;
-      value = 2;
+      baseValue = 2;
       break;
     case 'defend_revenge':
       // 护盾+反弹
-      gameState.enemyIntentExtra = Math.floor(value * 0.5);
+      gameState.enemyIntentExtra = Math.floor(baseValue * 0.5);
       break;
     case 'aoe':
       // 对玩家全体攻击
-      value = enemy.isBoss ? 25 : 15;
+      baseValue = enemy.isBoss ? 25 : 15;
       break;
-  }
+    default:
+      // 其他意图默认为0
+      baseValue = 0;
+    }
+    
+    // 应用AI难度倍率到伤害值
+    gameState.enemyIntentValue = Math.floor(baseValue * difficulty);
+    
+  } else {
+    // V65: 没有AI系统，使用原有随机权重逻辑（向后兼容）
+    // V20/V27 Boss阶段权重：根据Boss类型和阶段选择意图
+    let weights;
+    if (enemy.id === 'abyssLord' && BOSS_PHASE_WEIGHTS.abyssLord) {
+      const phase = gameState.abyssLordPhase || 1;
+      weights = BOSS_PHASE_WEIGHTS.abyssLord[phase] || INTENT_WEIGHTS.abyssLord;
+    } else if (enemy.id === 'lordOfNothingness' && BOSS_PHASE_WEIGHTS.lordOfNothingness) {
+      const phase = gameState.lordOfNothingnessPhase || 1;
+      weights = BOSS_PHASE_WEIGHTS.lordOfNothingness[phase] || INTENT_WEIGHTS.lordOfNothingness;
+    } else if (enemy.id === 'archangel' && BOSS_PHASE_WEIGHTS.archangel) {
+      const phase = gameState.archangelPhase || 1;
+      weights = BOSS_PHASE_WEIGHTS.archangel[phase] || INTENT_WEIGHTS.archangel;
+    } else if (enemy.id === 'azmodan' && BOSS_PHASE_WEIGHTS.azmodan) {
+      const phase = gameState.azmodanPhase || 1;
+      weights = BOSS_PHASE_WEIGHTS.azmodan[phase] || INTENT_WEIGHTS.azmodan;
+    } else if (enemy.id === 'chaosGod' && BOSS_PHASE_WEIGHTS.chaosGod) {
+      const phase = gameState.chaosGodPhase || 1;
+      weights = BOSS_PHASE_WEIGHTS.chaosGod[phase] || INTENT_WEIGHTS.chaosGod;
+    } else {
+      weights = INTENT_WEIGHTS[enemy.id] || INTENT_WEIGHTS.slime;
+    }
 
-  gameState.enemyIntent = intent;
-  gameState.enemyIntentValue = value;
+    const intent = weightedRandom(weights);
+
+    let value = 0;
+    switch (intent) {
+      case 'attack':
+        value = enemy.isBoss ? 12 : (enemy.id === 'goblin' ? 4 : 6);
+        if (enemy.id === 'fireElf') value = 5;
+        if (enemy.id === 'skeleton') value = 8;
+        if (enemy.id === 'bat') value = 5;
+        if (enemy.id === 'skeletonArcher') value = 6;
+        if (enemy.id === 'werewolf') value = 9;
+        if (enemy.id === 'shadowAssassin') value = 7;
+        if (enemy.id === 'ancientDragon') value = 10;
+        if (enemy.id === 'darkLord') value = 8;
+        if (enemy.id === 'slimeKing') value = 8;
+        if (enemy.id === 'abyssLord') value = 10 + gameState.abyssLordPhase * 2;
+        if (enemy.id === 'lordOfNothingness') value = 12 + gameState.lordOfNothingnessPhase * 3;
+        if (enemy.id === 'deathBringer') value = 12;
+        if (enemy.id === 'oblivionHound') value = 10;
+        if (enemy.id === 'voidTendril') value = 9;
+        if (enemy.id === 'shadowKnight') value = 11;
+        if (enemy.id === 'abyssStalker') value = 7;
+        if (enemy.id === 'voidWraith') value = 6;
+        if (enemy.id === 'nothingPhantom') value = 8;
+        break;
+      case 'defend':
+        value = enemy.isBoss ? 15 : (enemy.id === 'skeleton' ? 8 : 4);
+        if (enemy.id === 'werewolf') value = 10;
+        if (enemy.id === 'shadowAssassin') value = 6;
+        if (enemy.id === 'slimeKing') value = 12;
+        if (enemy.id === 'voidTendril') value = 10;
+        if (enemy.id === 'deathBringer') value = 8;
+        break;
+      case 'buff':
+        value = 0;
+        break;
+      case 'debuff':
+        value = 0;
+        break;
+      case 'heavy':
+        value = 8;
+        if (enemy.id === 'werewolf') value = 12;
+        if (enemy.id === 'ancientDragon') value = 15;
+        if (enemy.id === 'shadowKnight') value = 15;
+        if (enemy.id === 'oblivionHound') value = 14;
+        break;
+      case 'curse':
+        value = 0;
+        break;
+      case 'counter':
+        value = enemy.id === 'shadowAssassin' ? 5 : 3;
+        if (enemy.id === 'shadowKnight') value = 7;
+        break;
+      case 'dragonScale':
+        value = 8;
+        break;
+      case 'summon':
+        value = 0;
+        break;
+      case 'multihit':
+        value = 4;
+        break;
+      case 'voidBlast':
+        value = 15;
+        break;
+      case 'voidSiphon':
+        value = 10;
+        break;
+      case 'cardTheft':
+        value = 0;
+        break;
+      case 'deckManipulation':
+        value = 0;
+        break;
+      case 'charge':
+        value = 12;
+        break;
+      case 'drain':
+        value = enemy.id === 'vampireBat' ? 6 : 8;
+        if (enemy.id === 'voidWraith') value = 7;
+        break;
+      case 'crushingBlow':
+        value = 14;
+        if (enemy.id === 'shadowKnight') value = 16;
+        break;
+      case 'darkAura':
+        value = enemy.darkAuraDamage || 5;
+        break;
+      case 'soulSiphon':
+        value = 12;
+        break;
+      case 'abyssalStrike':
+        value = 15 + gameState.abyssLordPhase * 3;
+        break;
+      case 'shadowSummon':
+        value = 0;
+        break;
+      case 'voidDomain':
+        value = 0;
+        break;
+      case 'annihilation':
+        value = 20 + gameState.lordOfNothingnessPhase * 5;
+        break;
+      case 'evade':
+        value = 0;
+        break;
+      case 'lifesteal':
+        value = 8;
+        if (enemy.id === 'deathBringer') value = 10;
+        break;
+      case 'constrict':
+        value = 7;
+        break;
+      case 'packHunt':
+        value = 8;
+        break;
+      case 'phaseShift':
+        value = 0;
+        break;
+      case 'divineJudgment':
+        value = 15 + gameState.archangelPhase * 3;
+        break;
+      case 'celestialBlitz':
+        value = 12 + gameState.archangelPhase * 2;
+        break;
+      case 'holyNova':
+        value = 20 + gameState.archangelPhase * 5;
+        break;
+      case 'hellfire':
+        value = 18 + gameState.azmodanPhase * 3;
+        break;
+      case 'soulHarvest':
+        value = 10 + gameState.azmodanPhase * 2;
+        break;
+      case 'annihilatingFist':
+        value = 25 + gameState.azmodanPhase * 5;
+        break;
+      case 'chaosPulse':
+        value = 15 + gameState.chaosGodPhase * 3;
+        break;
+      case 'realitySwap':
+        value = 0;
+        break;
+      case 'entropy':
+        value = 30 + gameState.chaosGodPhase * 5;
+        break;
+      case 'multi_attack':
+        gameState.enemyIntentExtra = Math.random() < 0.5 ? 2 : 3;
+        value = enemy.isBoss ? 15 : 8;
+        break;
+      case 'buff_stack':
+        gameState.enemyIntentExtra = 1;
+        value = 2;
+        break;
+      case 'defend_revenge':
+        gameState.enemyIntentExtra = Math.floor(value * 0.5);
+        break;
+      case 'aoe':
+        value = enemy.isBoss ? 25 : 15;
+        break;
+    }
+
+    gameState.enemyIntent = intent;
+    gameState.enemyIntentValue = value;
+  }
 }
 
 function startPlayerTurn() {
@@ -15225,7 +15452,21 @@ function renderEnemy() {
   const enemy = gameState.enemy;
   if (!enemy) return;
   
-  document.getElementById('enemy-name').textContent = enemy.name;
+  // V65: 显示AI类型标签
+  let aiBadge = '';
+  if (gameState.enemyAI) {
+    const aiType = gameState.enemyAI.type;
+    const typeNames = { aggressive: '攻击', defensive: '防御', control: '控制', boss: 'Boss', random: '随机' };
+    const badgeText = typeNames[aiType] || aiType;
+    const badgeClass = aiType === 'random' ? 'elite' : aiType; // 普通敌人显示elite样式
+    aiBadge = `<span class="enemy-ai-badge ${badgeClass}">${badgeText}</span>`;
+  } else if (enemy.isElite) {
+    aiBadge = `<span class="enemy-ai-badge elite">精英</span>`;
+  } else if (enemy.isBoss) {
+    aiBadge = `<span class="enemy-ai-badge boss">Boss</span>`;
+  }
+  
+  document.getElementById('enemy-name').innerHTML = enemy.name + aiBadge;
   document.getElementById('enemy-hp-text').textContent = `${Math.max(0, gameState.enemyHp)}/${gameState.enemyMaxHp}`;
   
   const hpPercent = Math.max(0, gameState.enemyHp) / gameState.enemyMaxHp * 100;
@@ -15233,6 +15474,16 @@ function renderEnemy() {
   document.getElementById('enemy-hp-fill').textContent = `${Math.max(0, gameState.enemyHp)}/${gameState.enemyMaxHp}`;
   
   document.getElementById('enemy-armor').textContent = gameState.enemyArmor > 0 ? `🛡️ ${gameState.enemyArmor}` : '';
+  
+  // V65: Boss第二阶段边框效果
+  const enemyArea = document.getElementById('enemy-area');
+  if (enemyArea) {
+    if (gameState.enemyAI && gameState.enemyAI._state && gameState.enemyAI._state.inSecondPhase) {
+      enemyArea.classList.add('boss-phase2');
+    } else {
+      enemyArea.classList.remove('boss-phase2');
+    }
+  }
   
   // ===== V37 敌人意图图标化 =====
   const intentLabels = {
