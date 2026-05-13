@@ -7900,6 +7900,10 @@ let gameState = {
   enemyIntentValue: 0,
   playerDebuffs: [],
   enemyDebuffs: [],
+  // V64 状态效果系统
+  playerStatus: { weak: 0, vulnerable: 0, poison: 0, burning: 0, strength: 0 },
+  enemyStatus: { weak: 0, vulnerable: 0, poison: 0, burning: 0, strength: 0 },
+  maxHandSize: 10,
   thorns: 0,
   aoeDamage: 0,
   // V49 宠物主动技能状态
@@ -12091,8 +12095,50 @@ function rollEnemyIntent() {
 }
 
 function startPlayerTurn() {
+  // V64: Reset shield at start of turn
+  gameState.playerShield = 0;
   gameState.energy = gameState.maxEnergy;
   gameState.nextAttackMult = 1;
+  
+  // V64: Process player status effects - poison and burning deal damage at turn start
+  if (gameState.playerStatus.poison > 0) {
+    const poisonDmg = gameState.playerStatus.poison * 3;
+    gameState.playerHp -= poisonDmg;
+    flashPlayer();
+    showDamageNumber(poisonDmg, 'poison', 'player-area');
+    addLog(`玩家中毒！受到 ${poisonDmg} 点伤害（${gameState.playerStatus.poison}层）`, 'debuff');
+    gameState.playerStatus.poison = Math.max(0, gameState.playerStatus.poison - 1);
+  }
+  if (gameState.playerStatus.burning > 0) {
+    const burnDmg = gameState.playerStatus.burning * 2;
+    gameState.playerHp -= burnDmg;
+    flashPlayer();
+    showDamageNumber(burnDmg, 'damage', 'player-area');
+    addLog(`玩家灼烧！受到 ${burnDmg} 点伤害（${gameState.playerStatus.burning}层）`, 'debuff');
+    gameState.playerStatus.burning = Math.max(0, gameState.playerStatus.burning - 1);
+  }
+  // V64: Decrement weak/vulnerable (they last 1 turn)
+  if (gameState.playerStatus.weak > 0) gameState.playerStatus.weak--;
+  if (gameState.playerStatus.vulnerable > 0) gameState.playerStatus.vulnerable--;
+  
+  // V64: Process enemy status effects - poison and burning
+  if (gameState.enemyStatus.poison > 0) {
+    const poisonDmg = gameState.enemyStatus.poison * 3;
+    gameState.enemyHp -= poisonDmg;
+    showDamageNumber(poisonDmg, 'poison', 'enemy-area');
+    addLog(`敌人中毒！受到 ${poisonDmg} 点伤害（${gameState.enemyStatus.poison}层）`, 'debuff');
+    gameState.enemyStatus.poison = Math.max(0, gameState.enemyStatus.poison - 1);
+  }
+  if (gameState.enemyStatus.burning > 0) {
+    const burnDmg = gameState.enemyStatus.burning * 2;
+    gameState.enemyHp -= burnDmg;
+    showDamageNumber(burnDmg, 'damage', 'enemy-area');
+    addLog(`敌人灼烧！受到 ${burnDmg} 点伤害（${gameState.enemyStatus.burning}层）`, 'debuff');
+    gameState.enemyStatus.burning = Math.max(0, gameState.enemyStatus.burning - 1);
+  }
+  // V64: Decrement enemy weak/vulnerable
+  if (gameState.enemyStatus.weak > 0) gameState.enemyStatus.weak--;
+  if (gameState.enemyStatus.vulnerable > 0) gameState.enemyStatus.vulnerable--;
   
   // V15 盾墙: 下回合额外护甲在回合开始时应用
   if (gameState.nextTurnBlockBonus > 0) {
@@ -12205,8 +12251,22 @@ function drawCards(n) {
     }
     const card = gameState.drawPile.pop();
     if (card) {
-      gameState.hand.push(card);
-      audioManager.play('draw');
+      // V64: Hand size limit check - excess cards go to discard
+      if (gameState.hand.length >= gameState.maxHandSize) {
+        gameState.discardPile.push(card);
+        addLog(`手牌已满！${card.name || '卡牌'}被弃置`, 'debuff');
+      } else {
+        gameState.hand.push(card);
+        audioManager.play('draw');
+      }
+    }
+  }
+  // V64: If hand is over limit at end of draw, discard excess
+  while (gameState.hand.length > gameState.maxHandSize) {
+    const excessCard = gameState.hand.pop();
+    if (excessCard) {
+      gameState.discardPile.push(excessCard);
+      addLog(`手牌溢出！${excessCard.name || '卡牌'}被弃置`, 'debuff');
     }
   }
   // V52: Mark newly drawn cards for animation
@@ -12352,20 +12412,40 @@ function playCard(card, index) {
     
     // V15 burnStacks on attack
     if (effect.burnStacks && effect.burnDuration) {
+      // V64: Use new status system
+      gameState.enemyStatus.burning += effect.burnStacks;
+      // Also apply via old system for compatibility
       applyDebuffToEnemy('burn', effect.burnStacks, effect.burnDuration);
       addLog(`敌人被灼烧 ${effect.burnStacks} 层！`, 'debuff');
     }
     
     // V15 poisonStacks on attack
     if (effect.poisonStacks && effect.poisonDuration) {
+      // V64: Use new status system
+      gameState.enemyStatus.poison += effect.poisonStacks;
+      // Also apply via old system for compatibility
       gameState.poisonStacks += effect.poisonStacks;
       addLog(`敌人中毒 ${effect.poisonStacks} 层！`, 'debuff');
     }
     
     // V15 vulnerableStacks
     if (effect.vulnerableStacks) {
+      // V64: Use new status system
+      gameState.enemyStatus.vulnerable += effect.vulnerableStacks;
       applyDebuffToEnemy('vulnerable', effect.vulnerableStacks, 2);
       addLog(`敌人获得 ${effect.vulnerableStacks} 层易伤！`, 'debuff');
+    }
+    
+    // V64: weakStacks - apply weak to enemy
+    if (effect.weakStacks && effect.weakDuration) {
+      gameState.enemyStatus.weak += effect.weakStacks;
+      applyDebuffToEnemy('weak', effect.weakStacks, effect.weakDuration);
+      addLog(`敌人获得 ${effect.weakStacks} 层虚弱！`, 'debuff');
+    } else if (effect.weakStacks) {
+      // If no duration specified, default to 1 turn
+      gameState.enemyStatus.weak += effect.weakStacks;
+      applyDebuffToEnemy('weak', effect.weakStacks, 1);
+      addLog(`敌人获得 ${effect.weakStacks} 层虚弱！`, 'debuff');
     }
     
     // V15 deathMark kill heal
@@ -12473,11 +12553,18 @@ function playCard(card, index) {
       }
       audioManager.play('heal');
       addLog(`治疗 ${healAmount} 点生命`, 'heal');
+      // V63 Meta: 治疗追踪
+      try { window.metaManager && window.metaManager.onHealing(healAmount); } catch(e) {}
       // V15 removeDebuff (healingWave)
       if (effect.removeDebuff) {
         gameState.playerDebuffs = [];
         addLog('移除所有debuff！', 'info');
       }
+    }
+    // V64: strength effect - permanent damage boost
+    if (effect.strength) {
+      gameState.playerStatus.strength += effect.strength;
+      addLog(`获得 ${effect.strength} 层力量（+${effect.strength * 3} 伤害）`, 'buff');
     }
     // V15 sacrificeHp (bloodPact)
     if (effect.sacrificeHp && effect.draw) {
@@ -12828,6 +12915,16 @@ function dealDamageToEnemy(damage) {
   let isCritical = gameState.enemyNextCrit || false;
   gameState.enemyNextCrit = false;
 
+  // V64: Check attacker weak status - reduces damage by 50%
+  if (gameState.playerStatus.weak > 0) {
+    actualDamage = Math.floor(actualDamage * 0.5);
+    addLog('虚弱状态，伤害-50%', 'debuff');
+  }
+  
+  // V64: Check defender vulnerable status
+  if (gameState.enemyStatus.vulnerable > 0) {
+    actualDamage = Math.floor(actualDamage * 1.5);
+  }
   const hasVulnerable = gameState.enemyDebuffs.find(d => d.type === 'vulnerable');
   if (hasVulnerable) {
     actualDamage = Math.floor(damage * 1.5);
@@ -12836,6 +12933,14 @@ function dealDamageToEnemy(damage) {
   // V20 虚无领域：玩家伤害+25%
   if (gameState.voidDomainActive) {
     actualDamage = Math.floor(actualDamage * 1.25);
+  }
+  
+  // V64: Add attacker strength to damage
+  if (gameState.playerStatus.strength > 0) {
+    actualDamage += gameState.playerStatus.strength * 3;
+    if (gameState.playerStatus.strength > 0) {
+      addLog(`力量提升 +${gameState.playerStatus.strength * 3} 伤害`, 'buff');
+    }
   }
 
   if (gameState.enemyArmor > 0) {
@@ -13533,11 +13638,23 @@ function executeEnemyIntent() {
 }
 
 function dealDamageToPlayer(damage, isEnemyAttack = true) {
+  // V64: Check enemy attacker's weak status (enemy's attack is reduced)
+  if (isEnemyAttack && gameState.enemyStatus && gameState.enemyStatus.weak > 0) {
+    damage = Math.floor(damage * 0.5);
+    addLog('敌人虚弱，伤害-50%', 'debuff');
+  }
+  
   // V4 闪避判定
   if (isEnemyAttack && gameState.dodgeNext > 0) {
     gameState.dodgeNext--;
     addLog('闪避成功！', 'info');
     return;
+  }
+  
+  // V64: Check player's vulnerable status - increases damage taken by 50%
+  if (gameState.playerStatus.vulnerable > 0) {
+    damage = Math.floor(damage * 1.5);
+    addLog('易伤状态，受到伤害+50%', 'debuff');
   }
   
   const hasWeak = gameState.playerDebuffs.find(d => d.type === 'weak');
