@@ -3245,11 +3245,126 @@
       gap: 4px;
       flex-wrap: wrap;
     }
+
+    /* V62 战斗奖励选择UI */
+    .reward-modal { text-align: center; padding: 20px; }
+    .reward-modal h2 { color: #ffd700; font-size: 24px; margin-bottom: 15px; }
+    .reward-options { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
+    .reward-card {
+      background: linear-gradient(145deg, #2a2a4a, #1a1a3a);
+      border: 2px solid #ffd700;
+      border-radius: 8px;
+      padding: 15px;
+      width: 120px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      text-align: center;
+    }
+    .reward-card:hover { transform: scale(1.05); }
+    .reward-option {
+      background: linear-gradient(145deg, #2a2a4a, #1a1a3a);
+      border: 2px solid #888;
+      border-radius: 8px;
+      padding: 15px;
+      width: 120px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      text-align: center;
+    }
+    .reward-option:hover { transform: scale(1.05); }
+    .relic-reward { border-color: #9932cc; }
+    .heal-reward { border-color: #228b22; }
+    .reward-icon { font-size: 32px; margin-bottom: 8px; }
+    .reward-label { font-size: 16px; font-weight: bold; color: #fff; }
+    .reward-desc { font-size: 12px; color: #aaa; margin-top: 4px; }
+    .card-name { font-size: 14px; font-weight: bold; color: #fff; margin-bottom: 5px; }
+    .card-cost { font-size: 12px; color: #ffd700; margin-bottom: 5px; }
+    .card-desc { font-size: 11px; color: #aaa; }
+
+    /* V62 Boss来袭动画 */
+    #boss-intro {
+      animation: bossIntroFade 1.5s ease-in-out;
+    }
+    @keyframes bossIntroFade {
+      0% { opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* V63 Meta Achievement Popup */
+    .achievement-popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      background: rgba(0, 0, 0, 0.9);
+      border: 2px solid #ffd700;
+      border-radius: 16px;
+      padding: 20px 30px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      z-index: 10000;
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+      min-width: 300px;
+      box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+    }
+    .achievement-popup.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .achievement-popup-icon { font-size: 40px; }
+    .achievement-popup-content { flex: 1; }
+    .achievement-popup-title { font-size: 12px; color: #ffd700; margin-bottom: 4px; }
+    .achievement-popup-name { font-size: 18px; color: #fff; font-weight: bold; }
+    .achievement-popup-desc { font-size: 13px; color: #aaa; }
+    #achievement-popup-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; pointer-events: none; }
+
+    /* V63 Meta Stats/Achievement Modal */
+    .meta-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 10000; }
+    .meta-modal-content { background: linear-gradient(145deg, #1a1a2e, #16213e); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; position: relative; }
+    .meta-modal-title { text-align: center; color: #ffd700; margin-bottom: 20px; font-size: 22px; }
+    .meta-modal-close { position: absolute; top: 12px; right: 16px; font-size: 24px; color: #888; cursor: pointer; transition: color 0.2s; }
+    .meta-modal-close:hover { color: #fff; }
+    .meta-stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .meta-stat-item { background: rgba(0,0,0,0.3); padding: 12px; border-radius: 10px; text-align: center; }
+    .meta-stat-value { font-size: 22px; color: #fff; font-weight: bold; }
+    .meta-stat-label { font-size: 12px; color: #888; margin-top: 4px; }
+
+    /* V63 Achievements List */
+    .achievements-list { display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; }
+    .achievement-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 10px; transition: background 0.2s; }
+    .achievement-item.unlocked { border-left: 3px solid #ffd700; }
+    .achievement-item.locked { opacity: 0.6; }
+    .achievement-icon { font-size: 28px; }
+    .achievement-info { flex: 1; }
+    .achievement-name { font-size: 16px; color: #fff; font-weight: bold; }
+    .achievement-desc { font-size: 12px; color: #888; margin-top: 2px; }
+
+    /* V63 Difficulty Selector */
+    #difficulty-select-container { display: flex; gap: 8px; justify-content: center; margin: 10px 0; flex-wrap: wrap; }
+    .difficulty-btn { padding: 8px 16px; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+    .difficulty-btn.easy { background: linear-gradient(145deg, #27ae60, #2ecc71); color: #fff; }
+    .difficulty-btn.normal { background: linear-gradient(145deg, #3498db, #2980b9); color: #fff; }
+    .difficulty-btn.hard { background: linear-gradient(145deg, #e74c3c, #c0392b); color: #fff; }
+    .difficulty-btn.nightmare { background: linear-gradient(145deg, #8e44ad, #9b59b6); color: #fff; }
+    .difficulty-btn.locked { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.5); }
+    .difficulty-btn.selected { box-shadow: 0 0 15px rgba(255,255,255,0.5); transform: scale(1.05); }
+    .difficulty-label { font-weight: bold; }
+    .difficulty-lock { font-size: 12px; }
   </style>
-</head>
 <!-- V61 卡包市场 -->
 <script src="plugin-loader.js"></script>
 <script src="market-loader.js"></script>
+<!-- V62 Roguelike: 遗物系统核心 -->
+<script src="relics-loader.js"></script>
+<!-- V62 Roguelike: 精英与Boss系统 -->
+<script src="elite-loader.js"></script>
+<!-- V63 Meta Progress System -->
+<script src="meta-loader.js"></script>
 <script src="card-packs/starter.js"></script>
 <script src="card-packs/balanced.js"></script>
 <script src="card-packs/ironclad.js"></script>
@@ -3280,10 +3395,12 @@
     <button id="boss-rush-btn" class="menu-btn btn-boss"><span class="btn-icon">💀</span>BossRush</button>
     <button id="select-deck-btn" class="menu-btn btn-deck"><span class="btn-icon">🎴</span>选择牌组</button>
     <button id="progress-btn" class="menu-btn btn-lib"><span class="btn-icon">📖</span>图鉴</button>
-    <button id="achievements-btn" class="menu-btn btn-ach"><span class="btn-icon">🏆</span>成就</button>
-    <button id="leaderboard-btn" class="menu-btn btn-rank"><span class="btn-icon">📊</span>排行榜</button>
+    <button id="achievements-btn" class="menu-btn btn-ach" onclick="window.metaManager && window.metaManager.showAchievementsPanel()"><span class="btn-icon">🏆</span>成就</button>
+    <button id="stats-btn" class="menu-btn btn-rank" onclick="window.metaManager && window.metaManager.showStatsPanel()"><span class="btn-icon">📊</span>统计</button>
     <button id="battle-log-btn" class="menu-btn btn-full" onclick="openSettings()"><span class="btn-icon">⚙️</span>设置</button>
   </div>
+  <!-- V63 Difficulty Selector -->
+  <div id="difficulty-select-container"></div>
 </div>
 
 <!-- V29 初始遗物选择遮罩 -->
@@ -7846,6 +7963,7 @@ let gameState = {
   // V6 遗物系统
   relics: [], // 玩家拥有的遗物
   acquiredRelicIds: [], // 已获得的遗物ID（防止重复）
+  maxRelicSlots: 3, // V62 最大遗物槽位数
   // V9 成就系统
   unlockedAchievements: [], // 已解锁的成就ID列表
   achievementStats: {
@@ -11421,6 +11539,9 @@ function battleContinueStartCombat() {
   gameState.enemyMaxHp = enemy.hp;
   gameState.enemyArmor = enemy.armor || 0;
   
+  // V63 Meta: 战斗开始
+  try { window.metaManager && window.metaManager.onBattleStart(window.gameStateDifficulty || 'normal'); } catch(e) {}
+
   // 重置战斗状态
   gameState.energy = 3;
   gameState.turn = 1;
@@ -11983,6 +12104,9 @@ function startPlayerTurn() {
   // V6 遗物效果: 回合开始时
   applyRelicEffect('startOfTurn');
 
+  // V62 遗物效果钩子: 回合开始时触发（支持新的钩子格式）
+  triggerRelicHook('onTurnStart');
+
   // V25 宠物效果: 回合开始时
   applyPetEffect('startOfTurn');
 
@@ -12131,6 +12255,9 @@ function playCard(card, index) {
   }
   gameState.guidebook.cards[card.id].timesPlayed++;
   gameState.guidebook.cards[card.id].discovered = true;
+
+  // V63 Meta: 卡牌使用追踪
+  try { window.metaManager && window.metaManager.onCardUsed(card.id); } catch(e) {}
 
   const effect = card.effect || card;
 
@@ -12734,6 +12861,8 @@ function dealDamageToEnemy(damage) {
       addLog(`💥 暴击！伤害翻倍！`, 'damage');
     }
     gameState.enemyHp -= actualDamage;
+    // V63 Meta: 记录伤害
+    try { window.metaManager && window.metaManager.onDamageDealt(actualDamage); } catch(e) {}
     // V28 统计：记录伤害
     if (gameState.statistics) {
       gameState.statistics.totalDamage += actualDamage;
@@ -13537,6 +13666,9 @@ function checkEnemyDeath() {
     if (isBoss) {
       audioManager.play('enemyDeath');
       addLog('🏆 击败Boss！', 'info');
+      // V63 Meta: Boss击杀追踪
+      try { window.metaManager && window.metaManager.onBossKill(gameState.enemy.id); } catch(e) {}
+      try { window.metaManager && window.metaManager.onBattleEnd(true, window.gameStateDifficulty || 'normal'); } catch(e) {}
       completeNode(gameState.currentNode);
       gameState.totalBattlesWon++;
       gameState.achievementStats.totalBossesDefeated++;
@@ -13578,7 +13710,10 @@ function checkEnemyDeath() {
     // 战斗胜利
     addLog(`${gameState.enemy.name} 被击败！`, 'info');
     audioManager.play('enemyDeath');
-    
+
+    // V62 遗物效果：战斗结束时触发
+    triggerRelicHook('onBattleEnd');
+
     // V33 章节战斗追踪：非Boss战胜利后计数
     chapterState.currentBattleInChapter++;
     chapterState.defeatedEnemiesThisChapter.push(gameState.enemy.id);
@@ -13604,6 +13739,9 @@ function checkEnemyDeath() {
         addLog(`🦋 击杀+5金币！`, 'info');
       }
     });
+    
+    // V63 Meta: 非Boss战斗胜利
+    try { window.metaManager && window.metaManager.onBattleEnd(true, window.gameStateDifficulty || 'normal'); } catch(e) {}
     
     completeNode(gameState.currentNode);
     gameState.totalBattlesWon++;
@@ -13658,6 +13796,8 @@ function checkPlayerDeath() {
     gameState.playerHp = 0;
     renderUI();
     addLog('你被击败了...', 'info');
+    // V63 Meta: 战斗失败
+    try { window.metaManager && window.metaManager.onBattleEnd(false, window.gameStateDifficulty || 'normal'); } catch(e) {}
     // V39 BossRush: 如果是BossRush模式，显示失败界面
     if (gameState.isBossRush) {
       setTimeout(() => showBossRushGameOver(), 500);
@@ -15143,6 +15283,13 @@ function updatePetsDisplay() {
 
 // V46: 新游戏开始流程 - 先初始化游戏状态，再打开牌组选择
 function startNewGame() {
+  // V63 Meta: 重置当前统计数据
+  try { window.metaManager && window.metaManager.onGameStart(); } catch(e) {}
+
+  // V63 Meta: 设置难度
+  const diff = window.selectedDifficulty || 'normal';
+  window.gameStateDifficulty = diff;
+
   // 初始化音效系统
   audioManager.init();
 
@@ -15356,6 +15503,7 @@ function saveGame(slot) {
     gold: gameState.gold,
     relics: gameState.relics,
     acquiredRelicIds: gameState.acquiredRelicIds,
+    maxRelicSlots: gameState.maxRelicSlots, // V62
     deck: gameState.deck,
     totalBattlesWon: gameState.totalBattlesWon,
     totalGoldEarned: gameState.totalGoldEarned,
@@ -15477,6 +15625,7 @@ function loadGame(slot) {
       totalGoldEarned: saveData.totalGoldEarned || 0,
       relics: saveData.relics || [],
       acquiredRelicIds: saveData.acquiredRelicIds || [],
+      maxRelicSlots: saveData.maxRelicSlots || 3, // V62
       unlockedAchievements: saveData.unlockedAchievements || [],
       achievementStats: saveData.achievementStats || {
         totalEnemiesDefeated: 0,
@@ -16279,6 +16428,9 @@ function startRandomBattle() {
     drawCard();
   }
 
+  // V62 遗物效果：战斗开始时触发
+  triggerRelicHook('onStartOfCombat');
+
   // 显示战斗界面
   updateBattleUI();
   renderEnemy();
@@ -16497,6 +16649,124 @@ window.addEventListener('offline', updateOnlineStatus);
   <div id="talent-equip-list"></div>
   <button class="upgrade-action-btn" style="margin-top:15px" onclick="closeTalentEquipModal()">关闭</button>
 </div>
+
+<!-- V62 战斗奖励选择UI -->
+<script>
+// V62: 战斗奖励选择UI函数
+function showBattleRewardModal() {
+  const modal = document.createElement('div');
+  modal.id = 'battle-reward-modal';
+  modal.className = 'modal-overlay';
+
+  const cardRewards = getRandomCards(3);
+  const hasRelicSlot = gameState.relics && gameState.relics.length < gameState.maxRelicSlots;
+  const healAmount = Math.floor(gameState.playerMaxHp * 0.2);
+
+  modal.innerHTML = `
+    <div class="modal-content reward-modal">
+      <h2>⚔️ 胜利！选择你的奖励</h2>
+      <div class="reward-options">
+        ${cardRewards.map((card, i) => `
+          <div class="reward-card" onclick="selectCardReward('${card.id}')">
+            <div class="card-name">${card.name}</div>
+            <div class="card-cost">消耗:${card.cost}</div>
+            <div class="card-desc">${card.description}</div>
+          </div>
+        `).join('')}
+        ${hasRelicSlot ? `
+          <div class="reward-option relic-reward" onclick="selectRelicReward()">
+            <div class="reward-icon">🎁</div>
+            <div class="reward-label">遗物</div>
+            <div class="reward-desc">随机遗物</div>
+          </div>
+        ` : ''}
+        <div class="reward-option heal-reward" onclick="selectHealReward()">
+          <div class="reward-icon">💚</div>
+          <div class="reward-label">回复</div>
+          <div class="reward-desc">+${healAmount} HP</div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function getRandomCards(count) {
+  const allCards = [];
+  Object.values(CardPackRegistry.packs).forEach(pack => {
+    if (pack.cards) allCards.push(...pack.cards);
+  });
+  // 也从CARDS对象获取基础卡牌
+  if (typeof CARDS !== 'undefined') {
+    Object.values(CARDS).forEach(card => {
+      if (card && card.id && !allCards.find(c => c.id === card.id)) {
+        allCards.push(card);
+      }
+    });
+  }
+  // Fisher-Yates shuffle
+  const shuffled = [...allCards];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.slice(0, count);
+}
+
+function selectCardReward(cardId) {
+  // 将卡牌加入牌组
+  if (!gameState.deck) gameState.deck = [];
+  // 获取完整卡牌对象
+  let cardObj = null;
+  Object.values(CardPackRegistry.packs).forEach(pack => {
+    if (pack.cards) {
+      const found = pack.cards.find(c => c.id === cardId);
+      if (found) cardObj = found;
+    }
+  });
+  if (!cardObj && CARDS && CARDS[cardId]) {
+    cardObj = CARDS[cardId];
+  }
+  if (cardObj) {
+    gameState.deck.push(cardObj.id || cardId);
+    addLog(`卡牌 ${cardObj.name || cardId} 加入牌组`, 'success');
+  }
+  closeBattleRewardModal();
+  returnToMap();
+}
+
+function selectRelicReward() {
+  const availableRelics = Object.keys(RELICS_V62).filter(id => !gameState.relics.includes(id));
+  if (availableRelics.length === 0) {
+    showNotification('没有可获得的遗物了', 'info');
+    return;
+  }
+  const relicId = availableRelics[Math.floor(Math.random() * availableRelics.length)];
+  gameState.relics.push(relicId);
+  const relic = RELICS_V62[relicId];
+  if (relic) {
+    addLog(`获得遗物：${relic.name}`, 'success');
+  }
+  closeBattleRewardModal();
+  returnToMap();
+}
+
+function selectHealReward() {
+  const healAmount = Math.floor(gameState.playerMaxHp * 0.2);
+  gameState.playerHp = Math.min(gameState.playerHp + healAmount, gameState.playerMaxHp);
+  addLog(`回复 ${healAmount} HP`, 'heal');
+  closeBattleRewardModal();
+  returnToMap();
+}
+
+function closeBattleRewardModal() {
+  const modal = document.getElementById('battle-reward-modal');
+  if (modal) modal.remove();
+}
+</script>
+
+<!-- V63 Achievement Popup Container -->
+<div id="achievement-popup-container"></div>
 
 </body>
 </html>
