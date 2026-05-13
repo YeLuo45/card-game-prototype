@@ -274,6 +274,14 @@
     .card.fate { background: linear-gradient(145deg, #1b4e4e, #3f6b6b); border: 2px solid #00ffff; }
     .card.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 2px solid #00ff7f; }
     .card.status { background: linear-gradient(145deg, #4e4e4e, #6b6b6b); border: 2px solid #a0a0a0; }
+    /* V67: 卡牌稀有度 */
+    .card.common { border: 2px solid #ccc; }
+    .card.rare { border: 2px solid #4488ff; }
+    .card.legendary { border: 2px solid #ffcc00; animation: legendaryGlow 2s infinite; }
+    @keyframes legendaryGlow {
+      0%, 100% { box-shadow: 0 0 5px #ffcc00; }
+      50% { box-shadow: 0 0 20px #ffcc00; }
+    }
     .card-cost {
       position: absolute;
       top: -8px;
@@ -12702,7 +12710,7 @@ function playCard(card, index) {
         gameState.enemyHp = Math.max(0, gameState.enemyHp - damage);
         addLog(`穿刺打击！无视护甲造成 ${damage} 点伤害`, 'damage');
       } else {
-        dealDamageToEnemy(damage);
+        dealDamageToEnemy(damage, card);
       }
     }
     
@@ -12710,7 +12718,7 @@ function playCard(card, index) {
     if (attackContext.extraHits) {
       const extraDamage = Math.floor(damage * attackContext.extraHitMult);
       for (let i = 0; i < attackContext.extraHits; i++) {
-        dealDamageToEnemy(extraDamage);
+        dealDamageToEnemy(extraDamage, card);
         addLog(`遗物触发额外攻击！造成 ${extraDamage} 点伤害`, 'damage');
       }
     }
@@ -13238,7 +13246,28 @@ function playCard(card, index) {
   checkEnemyDeath();
 }
 
-function dealDamageToEnemy(damage) {
+function dealDamageToEnemy(damage, card = null) {
+  // V67: 处理卡牌关键词缀
+  let keywords = card?.keywords || [];
+  let criticalChance = 0.25; // 默认暴击几率
+  let lifestealPercent = 0;
+  let piercePercent = 0;
+  let burnStacks = 0;
+  
+  if (keywords.includes('critical') && Math.random() < criticalChance) {
+    damage *= 2;
+    addLog(`💥 暴击！伤害翻倍！`, 'damage');
+  }
+  if (keywords.includes('lifesteal')) {
+    lifestealPercent = 0.3; // 默认30%吸血
+  }
+  if (keywords.includes('pierce')) {
+    piercePercent = 1.0; // 100%无视护甲
+  }
+  if (keywords.includes('burn')) {
+    burnStacks = 2; // 默认2层灼烧
+  }
+
   // V20 敌人闪避判定
   if (gameState.enemyDodgeNext && damage > 0) {
     gameState.enemyDodgeNext = false;
@@ -13276,6 +13305,13 @@ function dealDamageToEnemy(damage) {
     if (gameState.playerStatus.strength > 0) {
       addLog(`力量提升 +${gameState.playerStatus.strength * 3} 伤害`, 'buff');
     }
+  }
+
+  // V67: pierce - 忽视护甲
+  if (piercePercent > 0 && gameState.enemyArmor > 0) {
+    const pierceAmount = Math.floor(gameState.enemyArmor * piercePercent);
+    gameState.enemyArmor -= pierceAmount;
+    addLog(`穿透：无视 ${pierceAmount} 点护甲`, 'damage');
   }
 
   if (gameState.enemyArmor > 0) {
@@ -13328,6 +13364,24 @@ function dealDamageToEnemy(damage) {
     }
     showDamageNumber(actualDamage, isCritical ? 'critical' : 'damage', 'enemy-area');
     addLog(`造成 ${actualDamage} 点伤害`, 'damage');
+    
+    // V67: 处理lifesteal关键词缀
+    if (lifestealPercent > 0 && actualDamage > 0) {
+      const healAmount = Math.floor(actualDamage * lifestealPercent);
+      const actualHeal = Math.min(healAmount, gameState.playerMaxHp - gameState.playerHp);
+      gameState.playerHp += actualHeal;
+      if (actualHeal > 0) {
+        showDamageNumber(actualHeal, 'heal', 'player-area');
+        addLog(`吸血回复 ${actualHeal} 点生命`, 'heal');
+      }
+    }
+    
+    // V67: 处理burn关键词缀
+    if (burnStacks > 0) {
+      applyDebuffToEnemy('burn', burnStacks, 3);
+      addLog(`灼烧敌人 ${burnStacks} 层！`, 'debuff');
+    }
+    
     // V6 遗物效果: 造成伤害时
     applyRelicEffect('onDamage', { damage: actualDamage });
 
@@ -15515,6 +15569,8 @@ function renderHand() {
   gameState.hand.forEach((card, index) => {
     const div = document.createElement('div');
     div.className = `card ${card.type}`;
+    // V67: 添加稀有度样式
+    if (card.rarity) div.classList.add(card.rarity);
     // V52: Add card-drawn class to newly drawn cards for animation
     if (gameState.newlyDrawnIndices && gameState.newlyDrawnIndices.includes(index)) {
       div.classList.add('card-drawn');

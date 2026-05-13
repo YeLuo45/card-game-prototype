@@ -48,6 +48,18 @@ window.CARD_PACKS['ironclad'] = {
     { id: 'ironGuard', name: '铁卫', cost: 1, type: 'skill', rarity: 'rare', archetype: 'ironclad', effect: { block: 8, thorns: 3 }, description: '获得8点护甲和3点荆棘' },
     // 盾墙 - 大量护甲，下回合额外获得
     { id: 'shieldWall', name: '盾墙', cost: 2, type: 'skill', rarity: 'rare', archetype: 'ironclad', effect: { block: 18, nextTurnBlockBonus: 8 }, description: '获得18点护甲，下回合额外获得8点' },
+
+    // === V67 Ironclad职业卡 (5张) ===
+    // 铁壁 - 获得15护盾
+    { id: 'ironWall2', name: '铁壁', cost: 2, type: 'skill', rarity: 'common', archetype: 'ironclad', effect: { block: 15 }, description: '获得15点护甲。' },
+    // 血祭 - 失去3生命造成5伤害
+    { id: 'bloodSacrifice', name: '血祭', cost: 1, type: 'attack', rarity: 'rare', archetype: 'ironclad', effect: { sacrificeHp: 3, damage: 5 }, description: '牺牲3点生命，造成5点伤害。' },
+    // 战吼 - +1能量，抽1张牌
+    { id: 'warCry2', name: '战吼', cost: 0, type: 'skill', rarity: 'common', effect: { gainEnergy: 1, draw: 1 }, description: '获得1能量，抽1张牌。' },
+    // 狂暴 - 本回合+3攻击+1能量
+    { id: 'berserk', name: '狂暴', cost: 2, type: 'attack', rarity: 'rare', archetype: 'ironclad', effect: { strength: 3, gainEnergy: 1 }, description: '本回合获得3层力量和1能量。' },
+    // 不屈 - 获得20护盾
+    { id: 'unbreakable', name: '不屈', cost: 3, type: 'skill', rarity: 'legendary', archetype: 'ironclad', effect: { block: 20 }, description: '获得20点护甲。' },
   ],
   relics: [
     {

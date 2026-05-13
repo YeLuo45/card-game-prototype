@@ -101,6 +101,92 @@ const RELICS_V62 = {
       gameState.energy += 2;
       addLog(`遗物 ${this.name} 提供2能量`, 'info');
     }
+  },
+
+  // ========== V67 新增遗物 ==========
+
+  // 普通遗物：锈铁戒指
+  "rustyRing": {
+    id: "rustyRing",
+    name: "锈铁戒指",
+    description: "每次攻击+1伤害",
+    rarity: "common",
+    icon: "💍",
+    effect: { attackBonus: 1 },
+    onAttackDealt: function(card, damage) {
+      return damage + 1;
+    }
+  },
+
+  // 普通遗物：生命符咒
+  "lifeCharm": {
+    id: "lifeCharm",
+    name: "生命符咒",
+    description: "每场战斗开始时+3生命",
+    rarity: "common",
+    icon: "📿",
+    effect: { healOnCombatStart: 3 },
+    onStartOfCombat: function() {
+      gameState.playerHp = Math.min(gameState.playerHp + 3, gameState.playerMaxHp);
+      addLog(`遗物 ${this.name} 回复3点生命`, 'heal');
+    }
+  },
+
+  // 普通遗物：迅捷之靴
+  "swiftBoots": {
+    id: "swiftBoots",
+    name: "迅捷之靴",
+    description: "首次出牌时+1能量",
+    rarity: "common",
+    icon: "👢",
+    effect: { energyOnFirstCard: 1 },
+    onFirstCardPlayed: function() {
+      gameState.energy += 1;
+      addLog(`遗物 ${this.name} 首次出牌提供1能量`, 'info');
+    }
+  },
+
+  // 稀有遗物：燃烧之核
+  "burningCore": {
+    id: "burningCore",
+    name: "燃烧之核",
+    description: "攻击附带灼烧，伤害+20%",
+    rarity: "rare",
+    icon: "🔥",
+    effect: { attackBonusPercent: 20, burn: true },
+    onAttackDealt: function(card, damage) {
+      return Math.floor(damage * 1.2);
+    }
+  },
+
+  // 稀有遗物：诅咒之瓶
+  "cursedBottle": {
+    id: "cursedBottle",
+    name: "诅咒之瓶",
+    description: "攻击有15%几率施加虚弱",
+    rarity: "rare",
+    icon: "🧴",
+    effect: { weakChance: 0.15 },
+    onAttackDealt: function(card, damage) {
+      if (Math.random() < 0.15) {
+        addLog(`遗物 ${this.name} 施加虚弱状态`, 'debuff');
+      }
+      return damage;
+    }
+  },
+
+  // 传奇遗物：黑暗心脏
+  "darkHeart": {
+    id: "darkHeart",
+    name: "黑暗心脏",
+    description: "击杀敌人恢复5生命，攻击+2",
+    rarity: "legendary",
+    icon: "🖤",
+    effect: { attackBonus: 2, healOnKill: 5 },
+    onEnemyKilled: function() {
+      gameState.playerHp = Math.min(gameState.playerHp + 5, gameState.playerMaxHp);
+      addLog(`遗物 ${this.name} 击杀回复5点生命`, 'heal');
+    }
   }
 };
 
@@ -222,4 +308,17 @@ if (typeof window !== 'undefined') {
   window.getRandomRelicId = getRandomRelicId;
   window.getRelicIcon = getRelicIcon;
   window.getRelicRarityColor = getRelicRarityColor;
+
+  // V67: 遗物稀有度CSS样式注入
+  const relicStyle = document.createElement('style');
+  relicStyle.textContent = `
+    .relic.common { border: 2px solid #888; }
+    .relic.rare { border: 2px solid #4488ff; box-shadow: 0 0 5px #4488ff; }
+    .relic.legendary { border: 2px solid #ffcc00; animation: legendaryGlow 2s infinite; }
+    @keyframes legendaryGlow {
+      0%, 100% { box-shadow: 0 0 5px #ffcc00; }
+      50% { box-shadow: 0 0 15px #ffcc00, 0 0 25px #ff6600; }
+    }
+  `;
+  document.head.appendChild(relicStyle);
 }

@@ -63,6 +63,50 @@ window.CARD_PACKS['balanced'] = {
     { id: 'wound', name: '创伤', cost: 1, type: 'attack', rarity: 'common', effect: { damage: 3, weakStacks: 1, weakDuration: 1 }, description: '造成3点伤害，施加1层虚弱' },
     // 治疗 - 恢复5点生命
     { id: 'heal', name: '治疗', cost: 1, type: 'skill', rarity: 'common', effect: { heal: 5 }, description: '恢复5点生命' },
+
+    // === V67 新增卡牌 ===
+
+    // --- 攻击型 (6张) ---
+    // 雷霆一击 - 8伤害，20%暴击
+    { id: 'thunderStrike', name: '雷霆一击', cost: 2, type: 'attack', rarity: 'rare', keywords: ['critical'], effect: { damage: 8, criticalChance: 0.2 }, description: '造成8点伤害。20%几率暴击。' },
+    // 吸血之刃 - 6伤害+吸血
+    { id: 'vampiricBlade', name: '吸血之刃', cost: 3, type: 'attack', rarity: 'rare', keywords: ['lifesteal'], effect: { damage: 6, lifesteal: 0.5 }, description: '造成6点伤害，回复造成伤害的50%。' },
+    // 连击 - 3伤害，下回合+3叠加
+    { id: 'combo', name: '连击', cost: 1, type: 'attack', rarity: 'common', effect: { damage: 3, comboBonus: 3 }, description: '造成3点伤害，下回合攻击+3。' },
+    // 穿刺 - 10伤害，50%护甲穿透
+    { id: 'piercing', name: '穿刺', cost: 2, type: 'attack', rarity: 'rare', keywords: ['pierce'], effect: { damage: 10, armorPierce: 0.5 }, description: '造成10点伤害，50%护甲穿透。' },
+    // 火焰冲击 - 5伤害+灼烧3层
+    { id: 'flameBurst', name: '火焰冲击', cost: 2, type: 'attack', rarity: 'common', keywords: ['burn'], effect: { damage: 5, burnStacks: 3, burnDuration: 2 }, description: '造成5点伤害，施加3层灼烧。' },
+    // 紧急防御 - 4伤害+5护盾
+    { id: 'emergencyBlock', name: '紧急防御', cost: 1, type: 'attack', rarity: 'common', effect: { damage: 4, block: 5 }, description: '造成4点伤害，获得5点护甲。' },
+
+    // --- 技能型 (5张) ---
+    // 护盾精通 - 8护盾+本回合格挡+50%
+    { id: 'shieldMastery', name: '护盾精通', cost: 1, type: 'skill', rarity: 'rare', effect: { block: 8, blockBonus: 0.5 }, description: '获得8点护甲，本回合格挡+50%。' },
+    // 能量灌注 - +2能量，下回合跳过抽牌
+    { id: 'energyInfusion', name: '能量灌注', cost: 0, type: 'skill', rarity: 'common', effect: { gainEnergy: 2, skipDraw: true }, description: '获得2能量，下回合跳过抽牌阶段。' },
+    // 净化 - 移除负面状态+5护盾
+    { id: 'purify', name: '净化', cost: 1, type: 'skill', rarity: 'common', effect: { removeDebuff: true, block: 5 }, description: '移除所有负面状态，获得5点护甲。' },
+    // 迅捷 - 本回合下次出牌免费
+    { id: 'swift', name: '迅捷', cost: 0, type: 'skill', rarity: 'rare', effect: { freeNextCard: true }, description: '本回合下次出牌不消耗能量。' },
+    // 反弹 - 10护盾+受伤反弹50%
+    { id: 'counter', name: '反弹', cost: 2, type: 'skill', rarity: 'rare', effect: { block: 10, counterReflect: 0.5 }, description: '获得10点护盾，受伤时反弹50%伤害。' },
+
+    // --- 诅咒型 (3张) ---
+    // 虚弱诅咒 - 敌人+2层虚弱持续2回合
+    { id: 'weakCurse2', name: '虚弱诅咒', cost: 1, type: 'curse', rarity: 'common', effect: { weakStacks: 2, weakDuration: 2 }, description: '敌人获得2层虚弱，持续2回合。' },
+    // 迟缓 - 敌人本回合无法攻击
+    { id: 'slow', name: '迟缓', cost: 1, type: 'curse', rarity: 'common', effect: { stun: 1 }, description: '敌人本回合无法攻击。' },
+    // 冰冻 - 敌人冻结1回合
+    { id: 'freeze', name: '冰冻', cost: 1, type: 'curse', rarity: 'rare', effect: { freeze: 1 }, description: '敌人冻结1回合，无法行动。' },
+
+    // --- 治疗型 (3张) ---
+    // 急救 - 恢复6生命
+    { id: 'firstAid2', name: '急救', cost: 1, type: 'skill', rarity: 'common', effect: { heal: 6 }, description: '恢复6点生命。' },
+    // 生命之泉 - 本回合每次攻击恢复2生命
+    { id: 'healingSpring', name: '生命之泉', cost: 2, type: 'skill', rarity: 'rare', effect: { healPerAttack: 2, healDuration: 1 }, description: '本回合每次攻击恢复2点生命。' },
+    // 痊愈 - 移除负面+恢复10生命
+    { id: 'fullHeal', name: '痊愈', cost: 3, type: 'skill', rarity: 'legendary', effect: { removeDebuff: true, heal: 10 }, description: '移除所有负面状态，恢复10点生命。' },
   ],
   relics: [
     {
