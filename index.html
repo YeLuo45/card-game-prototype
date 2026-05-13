@@ -2591,6 +2591,11 @@
       font-size: 24px;
       text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(39,174,96,0.6);
     }
+    .damage-number.status {
+      color: #ffcc00;
+      font-size: 18px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(255,204,0,0.6);
+    }
     
     @keyframes damageFloat {
       0% { opacity: 1; transform: translateY(0) scale(1); }
@@ -2616,6 +2621,26 @@
     @keyframes cardFlyOut {
       0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
       100% { opacity: 0; transform: translateY(-200px) rotate(15deg) scale(0.5); }
+    }
+    
+    /* V66 卡牌飞向敌人动画 */
+    .card-fly-to-enemy {
+      position: fixed;
+      z-index: 9998;
+      transition: all 0.3s ease-out;
+      pointer-events: none;
+      opacity: 0.9;
+    }
+    .card-fly-to-enemy.hit {
+      filter: brightness(2);
+    }
+    @keyframes cardFlyToEnemy {
+      0% { transform: scale(1) translateY(0); opacity: 0.9; }
+      70% { transform: scale(1.1) translateY(-100px); opacity: 1; }
+      100% { transform: scale(0.3) translateY(-300px); opacity: 0; }
+    }
+    .card-fly-to-enemy {
+      animation: cardFlyToEnemy 0.35s ease-out forwards;
     }
     
     /* 手牌可玩高亮 */
@@ -2654,7 +2679,17 @@
     
     @keyframes enemyHitFlash {
       0%, 100% { filter: brightness(1); }
-      50% { filter: brightness(2) hue-rotate(-30deg); }
+      50% { filter: brightness(2) sepia(1) hue-rotate(-50deg); }
+    }
+    
+    /* 敌人攻击警告/闪红 */
+    .enemy-attack-warning {
+      animation: enemyAttackWarn 0.3s ease-out;
+    }
+    
+    @keyframes enemyAttackWarn {
+      0%, 100% { box-shadow: 0 0 0 rgba(255,0,0,0); }
+      50% { box-shadow: 0 0 30px rgba(255,0,0,0.8), inset 0 0 20px rgba(255,0,0,0.3); }
     }
     
     /* 玩家受击闪烁 */
@@ -3259,6 +3294,22 @@
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+    /* V66 状态图标pulse动画 */
+    .status-icon.pulse {
+      animation: statusPulse 0.4s ease-out;
+    }
+    .status-icon.active {
+      animation: statusGlow 1.5s ease-in-out infinite;
+    }
+    @keyframes statusPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.4); filter: brightness(1.5); }
+      100% { transform: scale(1); }
+    }
+    @keyframes statusGlow {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.3); }
     }
     #player-status-icons, #enemy-status-icons {
       display: flex;
@@ -5491,6 +5542,14 @@ function flashEnemy() {
   }
 }
 
+// V66 敌人头像闪红（攻击指示）
+function triggerHitFlash(element) {
+  if (element) {
+    element.classList.add('enemy-hit');
+    setTimeout(() => element.classList.remove('enemy-hit'), 200);
+  }
+}
+
 // 玩家受击闪烁
 function flashPlayer() {
   const playerArea = document.getElementById('player-area');
@@ -5504,6 +5563,34 @@ function flashPlayer() {
 function animateCardFly(cardEl) {
   if (cardEl) {
     cardEl.classList.add('card-fly');
+  }
+}
+
+// V66 敌人攻击警告闪烁
+function triggerEnemyAttackWarning() {
+  const enemyArea = document.getElementById('enemy-area');
+  if (enemyArea) {
+    enemyArea.classList.add('enemy-attack-warning');
+    setTimeout(() => enemyArea.classList.remove('enemy-attack-warning'), 300);
+  }
+}
+
+// V66 状态图标pulse效果
+function triggerStatusPulse(element) {
+  if (element) {
+    element.classList.add('pulse');
+    setTimeout(() => element.classList.remove('pulse'), 400);
+  }
+}
+
+// V66 状态图标active(持续发光)效果
+function setStatusActive(element, active) {
+  if (element) {
+    if (active) {
+      element.classList.add('active');
+    } else {
+      element.classList.remove('active');
+    }
   }
 }
 
@@ -12556,6 +12643,27 @@ function playCard(card, index) {
     let damage = effect.damage || 0;
     let hits = effect.hits || 1;
     
+    // V66: Animate card flying toward enemy before damage
+    const handContainer = document.getElementById('hand');
+    if (handContainer && handContainer.children[index]) {
+      const cardEl = handContainer.children[index];
+      // Create clone for flying animation
+      const clone = cardEl.cloneNode(true);
+      clone.className = `card-fly-to-enemy ${card.type}`;
+      clone.style.width = cardEl.offsetWidth + 'px';
+      const rect = cardEl.getBoundingClientRect();
+      clone.style.left = rect.left + 'px';
+      clone.style.top = rect.top + 'px';
+      document.body.appendChild(clone);
+      // Trigger hit flash on enemy at animation midpoint
+      setTimeout(() => {
+        const enemyArea = document.getElementById('enemy-area');
+        if (enemyArea) triggerHitFlash(enemyArea);
+      }, 175);
+      // Remove clone after animation
+      setTimeout(() => clone.remove(), 350);
+    }
+    
     // V15 combo bonus check (before damage modifications)
     if (effect.comboBonus && gameState.comboActive) {
       damage = 20; // 20 damage if combo is active
@@ -13533,7 +13641,9 @@ function executeEnemyIntent() {
   switch (intent) {
     case 'attack':
       intentText = `攻击 ${value}`;
-      dealDamageToPlayer(value, true);
+      // V66: Flash enemy red before attack
+      triggerEnemyAttackWarning();
+      setTimeout(() => dealDamageToPlayer(value, true), 150);
       // V7 蝙蝠特殊：攻击带毒
       if (enemy.id === 'bat') {
         applyDebuffToPlayer('poison', 2, 2);
