@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>卡牌DBG V18 - 斩杀史莱姆</title>
+  <title>卡牌DBG V21 - 斩杀史莱姆</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -312,6 +312,40 @@
     .shop-card .sc-cost { color: #f39c12; font-size: 11px; text-align: center; margin: 4px 0; }
     .shop-card .sc-effect { color: #aaa; font-size: 10px; text-align: center; }
     .shop-card .sc-upgrade-info { color: #2ecc71; font-size: 10px; text-align: center; margin-top: 4px; }
+    /* === RELIC STYLES === */
+    .relic-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .relic-item {
+      background: linear-gradient(145deg, #0f3460, #1a4a7a);
+      border: 2px solid #555;
+      border-radius: 10px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .relic-item:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+    .relic-item.equipped { border-color: #2ecc71; box-shadow: 0 0 15px rgba(46,204,113,0.5); }
+    .relic-item.fine { border-left: 4px solid #4a90d9; }
+    .relic-item.epic { border-left: 4px solid #9b59b6; }
+    .relic-icon { font-size: 32px; margin-bottom: 6px; }
+    .relic-name { font-weight: bold; color: #fff; font-size: 13px; margin-bottom: 4px; }
+    .relic-desc { color: #aaa; font-size: 11px; }
+    .relic-type { color: #f39c12; font-size: 10px; margin-top: 4px; }
+    #equipped-relics { display: flex; gap: 6px; align-items: center; }
+    .equipped-relic {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      background: #0f3460;
+      border: 2px solid #4a90d9;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+    }
+    .equipped-relic.epic { border-color: #9b59b6; }
   </style>
 </head>
 <body>
@@ -348,9 +382,10 @@
     </div>
     <div class="hand-area" id="hand-area"></div>
     <div class="bottom-bar">
-      <div>
+      <div style="display:flex;align-items:center;gap:16px;">
         <span class="draw-info" id="deck-info">抽牌堆: 20 | 弃牌堆: 0</span>
-        <span id="gold-display" style="margin-left:16px;color:#f39c12;font-weight:bold;">💰 <span id="gold-amount">0</span></span>
+        <span id="gold-display" style="color:#f39c12;font-weight:bold;">💰 <span id="gold-amount">0</span></span>
+        <div id="equipped-relics" style="display:flex;gap:4px;"></div>
       </div>
       <div style="display:flex;gap:8px;">
         <button class="btn small blue" onclick="openDeckModal()">📚 牌组</button>
@@ -386,6 +421,18 @@
     </div>
   </div>
 
+  <!-- Relic Selection Modal -->
+  <div class="modal-overlay" id="relic-modal">
+    <div class="modal">
+      <h2>🎁 选择遗物 <span id="relic-equipped-count">(0/3)</span></h2>
+      <div class="modal-hint">选择最多3个遗物装备到战斗中</div>
+      <div class="relic-list" id="relic-list"></div>
+      <div class="modal-actions">
+        <button class="btn green" onclick="confirmRelicSelection()">确认装备</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 // ==================== CARD GAME DBG V18 ====================
 // 战斗阶段工作流引擎
@@ -417,6 +464,196 @@ const RARITY_LABELS = {
   epic: '◆',
   legendary: '★'
 };
+
+// ==================== RELIC SYSTEM ====================
+const RELIC_TEMPLATES = {
+  '锋利之爪': { type: 'attack', value: 3, desc: '攻击伤害+3', rarity: 'fine', icon: '🐾' },
+  '暴击之刃': { type: 'crit', value: 15, desc: '暴击率+15%', rarity: 'epic', icon: '⚔️' },
+  '石盾': { type: 'block', value: 5, desc: '每回合开始获得5护盾', rarity: 'fine', icon: '🛡️' },
+  '生命护符': { type: 'hp', value: 10, desc: '最大HP+10', rarity: 'fine', icon: '💚' },
+  '能量核心': { type: 'energy', value: 1, desc: '每回合额外获得1能量', rarity: 'epic', icon: '🔋' },
+  '吸血匕首': { type: 'lifesteal', value: 10, desc: '造成伤害的10%转化为生命', rarity: 'epic', icon: '🗡️' },
+  '闪避斗篷': { type: 'dodge', value: 20, desc: '20%几率闪避攻击', rarity: 'fine', icon: '🧥' },
+  '燃烧之核': { type: 'burn', value: 3, desc: '攻击时附加3点灼烧', rarity: 'epic', icon: '🔥' }
+};
+
+class Relic {
+  constructor(name, template) {
+    this.name = name;
+    this.type = template.type;
+    this.value = template.value;
+    this.desc = template.desc;
+    this.rarity = template.rarity;
+    this.icon = template.icon;
+  }
+}
+
+const RelicManager = {
+  owned: [],
+  equipped: [],
+  tempEnergyBonus: 0,
+
+  addRelic(name) {
+    const template = RELIC_TEMPLATES[name];
+    if (!template) return;
+    const relic = new Relic(name, template);
+    this.owned.push(relic);
+  },
+
+  equipRelic(index) {
+    if (this.equipped.length >= 3) {
+      showMessage('最多只能装备3个遗物！');
+      return;
+    }
+    const relic = this.owned[index];
+    if (!relic) return;
+    this.equipped.push(relic);
+    this.owned.splice(index, 1);
+    renderRelicModal();
+    updateEquippedRelicsUI();
+  },
+
+  unequipRelic(index) {
+    if (index < 0 || index >= this.equipped.length) return;
+    const relic = this.equipped[index];
+    this.owned.push(relic);
+    this.equipped.splice(index, 1);
+    renderRelicModal();
+    updateEquippedRelicsUI();
+  },
+
+  getEquipped() {
+    return this.equipped;
+  },
+
+  onAttack(damage) {
+    let dmg = damage;
+    // attack加成
+    this.equipped.forEach(r => {
+      if (r.type === 'attack') dmg += r.value;
+    });
+    // crit判定
+    this.equipped.forEach(r => {
+      if (r.type === 'crit' && Math.random() * 100 < r.value) {
+        dmg *= 2;
+        showMessage(`暴击！伤害翻倍！`);
+      }
+    });
+    return dmg;
+  },
+
+  onTurnStart() {
+    let block = 0, energy = 0, hp = 0;
+    this.equipped.forEach(r => {
+      if (r.type === 'block') block += r.value;
+      if (r.type === 'energy') energy += r.value;
+      if (r.type === 'hp') hp += r.value;
+    });
+    return { block, energy, hp };
+  },
+
+  onEnemyAttack(baseDamage) {
+    for (const r of this.equipped) {
+      if (r.type === 'dodge' && Math.random() * 100 < r.value) {
+        showMessage(`闪避了攻击！`);
+        return 0;
+      }
+    }
+    return baseDamage;
+  },
+
+  onLifesteal(damage) {
+    let total = 0;
+    this.equipped.forEach(r => {
+      if (r.type === 'lifesteal') total += Math.floor(damage * r.value / 100);
+    });
+    return total;
+  },
+
+  onBurn() {
+    let burn = 0;
+    this.equipped.forEach(r => {
+      if (r.type === 'burn') burn += r.value;
+    });
+    return burn;
+  },
+
+  clearEquipped() {
+    this.equipped = [];
+    this.tempEnergyBonus = 0;
+  }
+};
+
+function tryDropRelic() {
+  if (Math.random() < 0.3) {
+    const templates = Object.keys(RELIC_TEMPLATES);
+    const name = templates[Math.floor(Math.random() * templates.length)];
+    RelicManager.addRelic(name);
+    showMessage(`🎁 获得遗物：${name}！`, 2000);
+  }
+}
+
+function openRelicModal() {
+  renderRelicModal();
+  document.getElementById('relic-modal').classList.add('active');
+}
+
+function closeRelicModal() {
+  document.getElementById('relic-modal').classList.remove('active');
+}
+
+function renderRelicModal() {
+  const list = document.getElementById('relic-list');
+  const allRelics = [...RelicManager.equipped, ...RelicManager.owned];
+  const equippedIndices = new Set(RelicManager.equipped.map((_, i) => i));
+
+  let html = '';
+  allRelics.forEach((relic, i) => {
+    const isEquipped = i < RelicManager.equipped.length;
+    html += `
+      <div class="relic-item ${relic.rarity} ${isEquipped ? 'equipped' : ''}" onclick="toggleRelicEquip(${i})">
+        <div class="relic-icon">${relic.icon}</div>
+        <div class="relic-name">${relic.name}</div>
+        <div class="relic-desc">${relic.desc}</div>
+        <div class="relic-type">${isEquipped ? '✅ 已装备' : '点击装备'}</div>
+      </div>
+    `;
+  });
+  list.innerHTML = html;
+  document.getElementById('relic-equipped-count').textContent = `(${RelicManager.equipped.length}/3)`;
+}
+
+function toggleRelicEquip(globalIndex) {
+  if (globalIndex < RelicManager.equipped.length) {
+    // unequip
+    RelicManager.unequipRelic(globalIndex);
+  } else {
+    // equip
+    const ownedIndex = globalIndex - RelicManager.equipped.length;
+    RelicManager.equipRelic(ownedIndex);
+  }
+}
+
+function confirmRelicSelection() {
+  closeRelicModal();
+  // Apply HP bonus from relics
+  const hpBonus = RelicManager.equipped.reduce((sum, r) => r.type === 'hp' ? sum + r.value : sum, 0);
+  if (hpBonus > 0) {
+    state.player.maxHp += hpBonus;
+    state.player.hp += hpBonus;
+    showMessage(`生命护符生效：最大HP+${hpBonus}`);
+  }
+  startLevelCombat();
+}
+
+function updateEquippedRelicsUI() {
+  const container = document.getElementById('equipped-relics');
+  let html = '';
+  RelicManager.equipped.forEach(r => {
+    html += `<div class="equipped-relic ${r.rarity}" title="${r.name}: ${r.desc}">${r.icon}</div>`;
+  });
+  container.innerHTML = html;
+}
 
 // ==================== EVENT BUS ====================
 const EventBus = {
@@ -714,26 +951,35 @@ const CardHooks = {
   
   '打击_0': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
     }
   },
   '打击_1': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
     }
   },
   '打击_2': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
       // Draw 1 card
       if (state.drawPile.length > 0) state.hand.push(state.drawPile.pop());
       else if (state.discardPile.length > 0) {
@@ -772,26 +1018,35 @@ const CardHooks = {
 
   '重击_0': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
     }
   },
   '重击_1': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
     }
   },
   '重击_2': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
       // Draw 1 card
       if (state.drawPile.length > 0) state.hand.push(state.drawPile.pop());
       else if (state.discardPile.length > 0) {
@@ -804,18 +1059,24 @@ const CardHooks = {
 
   '重拳_0': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
     }
   },
   '重拳_1': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
       // Draw 1 card
       if (state.drawPile.length > 0) state.hand.push(state.drawPile.pop());
       else if (state.discardPile.length > 0) {
@@ -827,10 +1088,13 @@ const CardHooks = {
   },
   '重拳_2': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
       // Draw 2 cards
       for (let i = 0; i < 2; i++) {
         if (state.drawPile.length > 0) state.hand.push(state.drawPile.pop());
@@ -882,26 +1146,35 @@ const CardHooks = {
 
   '斩击_0': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
     }
   },
   '斩击_1': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
     }
   },
   '斩击_2': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
     }
   },
 
@@ -933,26 +1206,35 @@ const CardHooks = {
 
   '猛击_0': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
     }
   },
   '猛击_1': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
     }
   },
   '猛击_2': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
       // Draw 1 card
       if (state.drawPile.length > 0) state.hand.push(state.drawPile.pop());
       else if (state.discardPile.length > 0) {
@@ -984,26 +1266,35 @@ const CardHooks = {
 
   '快攻_0': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
     }
   },
   '快攻_1': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
     }
   },
   '快攻_2': {
     onPlay: (state, card) => {
-      const dmg = Math.max(0, card.value - state.enemy.block);
-      state.enemy.hp = Math.max(0, state.enemy.hp - dmg);
+      let dmg = card.value;
+      dmg = RelicManager.onAttack(dmg);
+      const actualDmg = Math.max(0, dmg - state.enemy.block);
+      state.enemy.hp = Math.max(0, state.enemy.hp - actualDmg);
       state.enemy.block = 0;
-      showMessage(`${card.name}造成${card.value}点伤害！`);
+      state.lastDamageDealt = actualDmg;
+      showMessage(`${card.name}造成${dmg}点伤害！`);
       // Draw 1 card
       if (state.drawPile.length > 0) state.hand.push(state.drawPile.pop());
       else if (state.discardPile.length > 0) {
@@ -1195,13 +1486,20 @@ function executeEnemyIntent() {
   const e = state.enemy;
 
   if (intent === INTENTS.ATTACK || intent === INTENTS.MULTI) {
+    let finalDamage = intentValue;
+    finalDamage = RelicManager.onEnemyAttack(finalDamage);
+    if (finalDamage === 0) {
+      // dodge succeeded
+      updateUI();
+      return;
+    }
     const hits = intent === INTENTS.MULTI ? 2 : 1;
     for (let h = 0; h < hits; h++) {
-      const dmg = Math.max(0, intentValue - state.player.block);
+      const dmg = Math.max(0, finalDamage - state.player.block);
       state.player.hp = Math.max(0, state.player.hp - dmg);
       state.player.block = 0;
-      if (h === 0) showMessage(` ${e.name}攻击！造成${intentValue}点伤害（${dmg}穿透护盾）`);
-      else showMessage(` ${e.name}连击！再造成${intentValue}点伤害`);
+      if (h === 0) showMessage(` ${e.name}攻击！造成${finalDamage}点伤害（${dmg}穿透护盾）`);
+      else showMessage(` ${e.name}连击！再造成${finalDamage}点伤害`);
     }
     if (e.ability === 'lifesteal') {
       e.hp = Math.min(e.maxHp, e.hp + Math.floor(intentValue * 0.3));
@@ -1416,10 +1714,22 @@ function startGame() {
   if (state.playerDeck.length === 0) {
     state.playerDeck = createStarterDeck();
   }
+  // Initialize starting relics
+  RelicManager.addRelic('锋利之爪');
+  RelicManager.addRelic('石盾');
   _startLevel();
 }
 
 function _startLevel() {
+  // Show relic selection modal if player has relics
+  if (RelicManager.owned.length > 0) {
+    openRelicModal();
+    return;
+  }
+  startLevelCombat();
+}
+
+function startLevelCombat() {
   const enemyDef = ENEMIES[state.currentLevel];
   state.enemy = {
     name: enemyDef.name, portrait: enemyDef.portrait,
@@ -1428,6 +1738,13 @@ function _startLevel() {
     ability: enemyDef.ability, block: 0,
     intent: null, intentValue: 0,
   };
+  
+  // Apply HP bonus from relics
+  const bonuses = RelicManager.onTurnStart();
+  if (bonuses.hp > 0) {
+    state.player.maxHp += bonuses.hp;
+    state.player.hp += bonuses.hp;
+  }
   
   // Reset phase engine
   phaseEngine.turn = 0;
@@ -1452,8 +1769,27 @@ function playCard(index) {
   state.player.energy -= card.cost;
   state.hand.splice(index, 1);
   
+  // Reset damage tracker for relics
+  state.lastDamageDealt = 0;
+  
   // Execute card effect via CardHooks
   executeCardHook(state, card, 'onPlay');
+  
+  // Apply relic effects for attack cards
+  if (card.type === 'attack' && state.lastDamageDealt > 0) {
+    // Lifesteal
+    const lifesteal = RelicManager.onLifesteal(state.lastDamageDealt);
+    if (lifesteal > 0) {
+      state.player.hp = Math.min(state.player.maxHp, state.player.hp + lifesteal);
+      showMessage(`🩸 吸血回复${lifesteal}点生命！`);
+    }
+    // Burn
+    const burn = RelicManager.onBurn();
+    if (burn > 0) {
+      state.enemy.burnDamage = (state.enemy.burnDamage || 0) + burn;
+      showMessage(`🔥 灼烧附加${burn}点伤害！`);
+    }
+  }
   
   // After play hook
   EventBus.emit('card:after_play', { card, state });
@@ -1464,6 +1800,7 @@ function playCard(index) {
   
   // Check for enemy death
   if (state.enemy.hp <= 0) {
+    tryDropRelic(); // 30% chance to drop relic
     // 过关获得金币奖励
     const goldReward = 10 + state.currentLevel * 5;
     state.gold += goldReward;
@@ -1471,6 +1808,7 @@ function playCard(index) {
     if (state.currentLevel < ENEMIES.length - 1) {
       setTimeout(() => {
         state.currentLevel++;
+        RelicManager.clearEquipped(); // Clear equipped relics before next level
         _startLevel();
       }, 1800);
     } else {
@@ -1499,6 +1837,20 @@ EventBus.on('turn:start', ({ turn }) => {
   // Reset player energy and block at start of turn
   state.player.energy = state.player.maxEnergy;
   state.player.block = 0;
+  
+  // Apply relic bonuses at turn start
+  const bonuses = RelicManager.onTurnStart();
+  if (bonuses.block > 0) {
+    state.player.block += bonuses.block;
+    showMessage(`🛡️ 石盾生效：获得${bonuses.block}护盾`);
+  }
+  if (bonuses.energy > 0) {
+    RelicManager.tempEnergyBonus = bonuses.energy;
+    state.player.energy += bonuses.energy;
+    showMessage(`🔋 能量核心生效：获得${bonuses.energy}额外能量`);
+  }
+  // HP bonus is permanent, applied once when relic is equipped
+  
   updateUI();
 });
 
