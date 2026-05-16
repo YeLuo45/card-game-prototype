@@ -173,6 +173,44 @@
     .phase-indicator {
       font-size: 12px; color: #f39c12; margin-left: 8px;
     }
+    /* === FUSION ANIMATIONS === */
+    .card.fusion-fade-out {
+      animation: fusionFadeOut 0.4s ease-out forwards;
+    }
+    @keyframes fusionFadeOut {
+      0% { opacity: 1; transform: scale(1) translateX(0); }
+      100% { opacity: 0; transform: scale(0.3) translateX(var(--fusion-direction, 50px)); }
+    }
+    .card.fusion-appear {
+      animation: fusionAppear 0.5s ease-out forwards;
+    }
+    @keyframes fusionAppear {
+      0% { opacity: 0; transform: scale(0) rotate(-180deg); }
+      60% { opacity: 1; transform: scale(1.2) rotate(10deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+    .fusion-particles {
+      position: absolute;
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(243,156,18,0.8) 0%, transparent 70%);
+      animation: particleBurst 0.5s ease-out forwards;
+      pointer-events: none;
+      z-index: 100;
+    }
+    @keyframes particleBurst {
+      0% { transform: scale(0); opacity: 1; }
+      100% { transform: scale(3); opacity: 0; }
+    }
+    .card-rarity {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      font-size: 14px;
+      font-weight: bold;
+      text-shadow: 0 0 6px rgba(0,0,0,0.8);
+      z-index: 5;
+    }
     /* === DECK MANAGEMENT MODAL === */
     .modal-overlay {
       position: fixed; inset: 0;
@@ -358,6 +396,28 @@ const MIN_DECK_SIZE = 10;
 const MAX_UPGRADE_LEVEL = 3;
 const UPGRADE_GOLD_COST = 15;
 
+// ==================== RARITY SYSTEM ====================
+const RARITY = {
+  NORMAL: 'normal',    // 普通 - 白色#aaa
+  FINE: 'fine',        // 优秀 - 蓝色#4a90d9  
+  EPIC: 'epic',        // 史诗 - 紫色#9b59b6
+  LEGENDARY: 'legendary' // 传说 - 金色#f39c12
+};
+
+const RARITY_COLORS = {
+  normal: '#aaa',
+  fine: '#4a90d9',
+  epic: '#9b59b6',
+  legendary: '#f39c12'
+};
+
+const RARITY_LABELS = {
+  normal: '',
+  fine: '✦',
+  epic: '◆',
+  legendary: '★'
+};
+
 // ==================== EVENT BUS ====================
 const EventBus = {
   listeners: {},
@@ -442,6 +502,64 @@ fusionRegistry.register(['重击', '斩击'], {name:'破甲斩', cost:2, type:'a
 
 // 守护者：护盾+硬撑 → 守护天使 (8护盾+被动, 2费, 技能)
 fusionRegistry.register(['护盾', '硬撑'], {name:'守护天使', cost:2, type:'skill', value:8, description:'获得8点护盾+每回合开始获得2护盾'}, 1);
+
+// ==================== ADVANCED FUSION RECIPES ====================
+
+// --- 优秀品质 (Fine) - 需要已有融合卡 ---
+
+// 雷霆之势：剑气 + 猛击 → 电闪雷鸣 (18伤害, 2费, 优秀)
+fusionRegistry.register(['剑气', '猛击'], {name:'电闪雷鸣', cost:2, type:'attack', value:18, description:'造成18点伤害', rarity:RARITY.FINE}, 2);
+
+// 钢铁防线：铜墙铁壁 + 刚岩之盾 → 固若金汤 (20护盾, 3费, 优秀)
+fusionRegistry.register(['铜墙铁壁', '刚岩之盾'], {name:'固若金汤', cost:3, type:'skill', value:20, description:'获得20点护盾', rarity:RARITY.FINE}, 2);
+
+// 生命汲取：狂暴连击 + 剑气 → 嗜血攻击 (15伤害+吸血3, 2费, 优秀)
+fusionRegistry.register(['狂暴连击', '剑气'], {name:'嗜血攻击', cost:2, type:'attack', value:15, description:'造成15点伤害+吸血3', rarity:RARITY.FINE}, 2);
+
+// 疾风之翼：疾风迅雷 + 疾风迅雷 → 风之化身 (12伤害+抽1, 0费, 优秀)
+fusionRegistry.register(['疾风迅雷', '疾风迅雷'], {name:'风之化身', cost:0, type:'attack', value:12, description:'造成12点伤害+抽1张', rarity:RARITY.FINE}, 1);
+
+// --- 史诗品质 (Epic) - 需要高级融合卡 ---
+
+// 龙息：雷霆一击 + 电闪雷鸣 → 烈焰龙息 (25伤害, 3费, 史诗)
+fusionRegistry.register(['雷霆一击', '电闪雷鸣'], {name:'烈焰龙息', cost:3, type:'attack', value:25, description:'造成25点伤害', rarity:RARITY.EPIC}, 2);
+
+// 神圣庇护：守护天使 + 圣光护体 → 天使之光 (15护盾+每回合回复2HP, 2费, 史诗)
+fusionRegistry.register(['守护天使', '圣光护体'], {name:'天使之光', cost:2, type:'skill', value:15, description:'获得15护盾+每回合回复2HP', rarity:RARITY.EPIC}, 2);
+
+// 不屈守卫：坚韧不屈 + 固若金汤 → 壁垒要塞 (25护盾+每回合+3护盾, 3费, 史诗)
+fusionRegistry.register(['坚韧不屈', '固若金汤'], {name:'壁垒要塞', cost:3, type:'skill', value:25, description:'获得25护盾+每回合+3护盾', rarity:RARITY.EPIC}, 2);
+
+// 暗影利刃：破甲斩 + 嗜血攻击 → 暗影杀手 (20伤害+吸血5, 2费, 史诗)
+fusionRegistry.register(['破甲斩', '嗜血攻击'], {name:'暗影杀手', cost:2, type:'attack', value:20, description:'造成20点伤害+吸血5', rarity:RARITY.EPIC}, 2);
+
+// --- 传说品质 (Legendary) - 需要终极融合卡 ---
+
+// 终焉之剑：烈焰龙息 + 暗影杀手 → 终焉 (40伤害, 4费, 传说)
+fusionRegistry.register(['烈焰龙息', '暗影杀手'], {name:'终焉', cost:4, type:'attack', value:40, description:'造成40点伤害', rarity:RARITY.LEGENDARY}, 3);
+
+// 永恒守护：天使之光 + 壁垒要塞 → 永恒圣盾 (30护盾+每回合+5护盾+回复3HP, 3费, 传说)
+fusionRegistry.register(['天使之光', '壁垒要塞'], {name:'永恒圣盾', cost:3, type:'skill', value:30, description:'获得30护盾+每回合+5护盾+回复3HP', rarity:RARITY.LEGENDARY}, 3);
+
+// 风暴之主：风之化身 + 电闪雷鸣 → 风暴化身 (15伤害+抽2+5护盾, 1费, 传说)
+fusionRegistry.register(['风之化身', '电闪雷鸣'], {name:'风暴化身', cost:1, type:'attack', value:15, description:'造成15点伤害+抽2张+获得5护盾', rarity:RARITY.LEGENDARY}, 2);
+
+// --- 额外稀有配方 ---
+
+// 幻影：快攻 + 疾风迅雷 → 幻影突击 (10伤害+下次攻击+50%, 0费, 优秀)
+fusionRegistry.register(['快攻', '疾风迅雷'], {name:'幻影突击', cost:0, type:'attack', value:10, description:'造成10点伤害+下次攻击伤害+50%', rarity:RARITY.FINE}, 1);
+
+// 荆棘之墙：铁壁 + 铜墙铁壁 → 荆棘壁垒 (18护盾+反伤3, 2费, 优秀)
+fusionRegistry.register(['铁壁', '铜墙铁壁'], {name:'荆棘壁垒', cost:2, type:'skill', value:18, description:'获得18护盾+敌人攻击受伤3', rarity:RARITY.FINE}, 1);
+
+// 双重咆哮：狂暴连击 + 狂暴连击 → 毁灭风暴 (28伤害, 3费, 史诗)
+fusionRegistry.register(['狂暴连击', '狂暴连击'], {name:'毁灭风暴', cost:3, type:'attack', value:28, description:'造成28点伤害', rarity:RARITY.EPIC}, 2);
+
+// 再生：圣光护体 + 守护天使 → 生命绽放 (12护盾+每回合回复5HP, 2费, 史诗)
+fusionRegistry.register(['圣光护体', '守护天使'], {name:'生命绽放', cost:2, type:'skill', value:12, description:'获得12护盾+每回合回复5HP', rarity:RARITY.EPIC}, 2);
+
+// 绝望：破甲斩 + 破甲斩 → 绝望之刃 (22伤害+敌人护盾-5, 2费, 优秀)
+fusionRegistry.register(['破甲斩', '破甲斩'], {name:'绝望之刃', cost:2, type:'attack', value:22, description:'造成22点伤害+敌人护盾降低5', rarity:RARITY.FINE}, 1);
 
 // ==================== PHASE ENGINE ====================
 const PHASES = {
@@ -1488,6 +1606,7 @@ function executeFusion(indexA, indexB) {
     description: recipe.output.description,
     upgradeLevel: 0,  // Fused cards cannot be upgraded
     isFused: true,    // Mark as fused for special handling
+    rarity: recipe.output.rarity || RARITY.NORMAL,
   };
 
   // Add new card to hand
@@ -1496,6 +1615,26 @@ function executeFusion(indexA, indexB) {
   // Discard the original cards
   state.discardPile.push(cardA, cardB);
 
+  // Animation: Add fade-out class to both card positions
+  const handEl = document.getElementById('hand-area');
+  const cardEls = handEl.querySelectorAll('.card');
+  if (cardEls[idx1]) {
+    cardEls[idx1].style.setProperty('--fusion-direction', '50px');
+    cardEls[idx1].classList.add('fusion-fade-out');
+  }
+  if (cardEls[idx2]) {
+    cardEls[idx2].style.setProperty('--fusion-direction', '-50px');
+    cardEls[idx2].classList.add('fusion-fade-out');
+  }
+
+  // Show particle effect
+  const particles = document.createElement('div');
+  particles.className = 'fusion-particles';
+  particles.style.left = '50%';
+  particles.style.top = '50%';
+  particles.style.transform = 'translate(-50%, -50%)';
+  handEl.appendChild(particles);
+
   showMessage(`融合成功：${newCard.name}！`, 2000);
 
   // Exit fusion mode
@@ -1503,10 +1642,23 @@ function executeFusion(indexA, indexB) {
   fusionFirstCard = null;
   document.getElementById('fusion-btn').classList.remove('active');
 
-  // Update UI
-  renderHand();
-  updateUI();
-  updateDeckInfo();
+  // After animation, re-render hand with new card appearing
+  setTimeout(() => {
+    renderHand();
+    updateUI();
+    updateDeckInfo();
+    // Add appear animation to the new card
+    setTimeout(() => {
+      const newCardEls = handEl.querySelectorAll('.card');
+      const lastCard = newCardEls[newCardEls.length - 1];
+      if (lastCard) {
+        lastCard.classList.add('fusion-appear');
+        setTimeout(() => lastCard.classList.remove('fusion-appear'), 500);
+      }
+      // Remove particles
+      if (particles.parentNode) particles.parentNode.removeChild(particles);
+    }, 50);
+  }, 400);
 
   // Check if hand is empty or game over
   EventBus.emit('card:fusion_complete', { newCard, state });
@@ -1526,10 +1678,13 @@ function renderHand() {
     if (isFirstFusion) el.classList.add('fusion-selected');
 
     const typeLabel = card.type === 'attack' ? '攻击' : card.type === 'skill' ? '技能' : '能力';
+    const rarityLabel = RARITY_LABELS[card.rarity] || '';
+    const rarityColor = RARITY_COLORS[card.rarity] || RARITY_COLORS.normal;
     el.innerHTML = `
       <div class="c-cost">${card.cost}</div>
       ${card.upgradeLevel > 0 ? `<div class="c-upgrade">★${card.upgradeLevel}</div>` : ''}
       ${card.isFused ? `<div class="c-fused">⚡融合</div>` : ''}
+      ${rarityLabel ? `<div class="card-rarity" style="color:${rarityColor}">${rarityLabel}</div>` : ''}
       <div class="c-name">${card.name}</div>
       <div class="c-type">${typeLabel}</div>
       <div class="c-effect">${card.description}</div>`;
