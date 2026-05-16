@@ -97,6 +97,14 @@
     }
     .card.unplayable { opacity: 0.5; cursor: not-allowed; }
     .card.unplayable:hover { transform: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .card.fusion-selected { border-color: #2ecc71; box-shadow: 0 0 20px rgba(46,204,113,0.6); }
+    .card.fusion-selected:hover { transform: translateY(-10px) scale(1.05); box-shadow: 0 12px 28px rgba(46,204,113,0.6); }
+    .card .c-fused {
+      position: absolute; top: -6px; left: -6px;
+      background: linear-gradient(135deg, #9b59b6, #8e44ad);
+      color: #fff; font-size: 9px; font-weight: bold;
+      padding: 2px 5px; border-radius: 6px;
+    }
     .card .c-cost {
       background: #e94560; color: #fff; width: 24px; height: 24px;
       border-radius: 50%; display: flex; align-items: center;
@@ -135,6 +143,11 @@
     .btn:disabled { background: #444; cursor: not-allowed; transform: none; }
     .btn.green { background: #27ae60; }
     .btn.green:hover { background: #2ecc71; }
+    .btn.green.active { background: #2ecc71; box-shadow: 0 0 15px rgba(46,204,113,0.6); animation: pulse-green 1s infinite; }
+    @keyframes pulse-green {
+      0%, 100% { box-shadow: 0 0 15px rgba(46,204,113,0.6); }
+      50% { box-shadow: 0 0 25px rgba(46,204,113,0.9); }
+    }
     .btn.blue { background: #3498db; }
     .btn.blue:hover { background: #5dade2; }
     .btn.small { padding: 6px 14px; font-size: 13px; }
@@ -303,6 +316,7 @@
       </div>
       <div style="display:flex;gap:8px;">
         <button class="btn small blue" onclick="openDeckModal()">📚 牌组</button>
+        <button class="btn small green" id="fusion-btn" onclick="toggleFusionMode()">🔥 融合</button>
         <button class="btn" id="end-turn-btn" onclick="phaseEngine.endPlayerAction()" disabled>结束回合</button>
       </div>
     </div>
@@ -366,6 +380,68 @@ const EventBus = {
     }
   }
 };
+
+// ==================== FUSION REGISTRY ====================
+class FusionRegistry {
+  constructor() {
+    this.recipes = [];  // { inputs: [nameA, nameB], output: {name, cost, type, value, description}, costEnergy }
+  }
+
+  register(inputs, output, costEnergy) {
+    // inputs: [cardNameA, cardNameB] - 无序匹配
+    // output: {name, cost, type, value, description}
+    // costEnergy: 融合消耗能量数
+    this.recipes.push({ inputs: [...inputs], output, costEnergy });
+  }
+
+  findRecipe(cardA, cardB) {
+    // 无序匹配，返回配方或null
+    for (const recipe of this.recipes) {
+      const [a, b] = recipe.inputs;
+      if ((cardA === a && cardB === b) || (cardA === b && cardB === a)) {
+        return recipe;
+      }
+    }
+    return null;
+  }
+
+  getAllRecipes() {
+    return this.recipes;
+  }
+}
+
+const fusionRegistry = new FusionRegistry();
+
+// 10个默认融合配方
+// 钢斩：打击+打击 → 剑气 (14伤害, 2费, 攻击)
+fusionRegistry.register(['打击', '打击'], {name:'剑气', cost:2, type:'attack', value:14, description:'造成14点伤害'}, 1);
+
+// 铁壁：防御+防御 → 铜墙铁壁 (12护盾, 2费, 技能)
+fusionRegistry.register(['防御', '防御'], {name:'铜墙铁壁', cost:2, type:'skill', value:12, description:'获得12点护盾'}, 1);
+
+// 双杀：重击+重拳 → 狂暴连击 (20伤害, 3费, 攻击)
+fusionRegistry.register(['重击', '重拳'], {name:'狂暴连击', cost:3, type:'attack', value:20, description:'造成20点伤害'}, 1);
+
+// 守护：硬撑+护盾 → 圣光护体 (10护盾+抽1, 2费, 技能)
+fusionRegistry.register(['硬撑', '护盾'], {name:'圣光护体', cost:2, type:'skill', value:10, description:'获得10点护盾+抽1张'}, 1);
+
+// 速攻：快攻+斩击 → 疾风迅雷 (8伤害, 0费, 攻击)
+fusionRegistry.register(['快攻', '斩击'], {name:'疾风迅雷', cost:0, type:'attack', value:8, description:'造成8点伤害'}, 0);
+
+// 刚盾：铁壁+防御 → 刚岩之盾 (16护盾, 3费, 技能)
+fusionRegistry.register(['铁壁', '防御'], {name:'刚岩之盾', cost:3, type:'skill', value:16, description:'获得16点护盾'}, 1);
+
+// 猛攻：猛击+打击 → 雷霆一击 (16伤害, 2费, 攻击)
+fusionRegistry.register(['猛击', '打击'], {name:'雷霆一击', cost:2, type:'attack', value:16, description:'造成16点伤害'}, 1);
+
+// 强撑：硬撑+硬撑 → 坚韧不屈 (12护盾+抽2, 2费, 技能)
+fusionRegistry.register(['硬撑', '硬撑'], {name:'坚韧不屈', cost:2, type:'skill', value:12, description:'获得12点护盾+抽2张'}, 1);
+
+// 重斩：重击+斩击 → 破甲斩 (18伤害, 2费, 攻击)
+fusionRegistry.register(['重击', '斩击'], {name:'破甲斩', cost:2, type:'attack', value:18, description:'造成18点伤害'}, 1);
+
+// 守护者：护盾+硬撑 → 守护天使 (8护盾+被动, 2费, 技能)
+fusionRegistry.register(['护盾', '硬撑'], {name:'守护天使', cost:2, type:'skill', value:8, description:'获得8点护盾+每回合开始获得2护盾'}, 1);
 
 // ==================== PHASE ENGINE ====================
 const PHASES = {
@@ -934,6 +1010,10 @@ const state = {
   playerDeck: [],
 };
 
+// 融合状态管理
+let fusionMode = false;      // 是否在融合模式
+let fusionFirstCard = null;   // 融合第一张卡（index或null）
+
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -1308,7 +1388,160 @@ EventBus.on('phase:enter', ({ phase }) => {
   if (phase === PHASES.DRAW) {
     updateUI();
   }
+  // Exit fusion mode when entering a new phase
+  if (phase !== PHASES.PLAYER_ACTION) {
+    exitFusionMode();
+  }
 });
+
+// ==================== FUSION SYSTEM ====================
+
+function toggleFusionMode() {
+  if (phaseEngine.currentPhase !== PHASES.PLAYER_ACTION) {
+    showMessage('融合只能在行动阶段进行！');
+    return;
+  }
+  if (fusionMode) {
+    exitFusionMode();
+  } else {
+    enterFusionMode();
+  }
+}
+
+function enterFusionMode() {
+  fusionMode = true;
+  fusionFirstCard = null;
+  document.getElementById('fusion-btn').classList.add('active');
+  showMessage('选择第一张卡进行融合', 2000);
+  renderHand();
+}
+
+function exitFusionMode() {
+  fusionMode = false;
+  fusionFirstCard = null;
+  document.getElementById('fusion-btn').classList.remove('active');
+  renderHand();
+}
+
+function handleFusionCardClick(index) {
+  if (!fusionMode || phaseEngine.currentPhase !== PHASES.PLAYER_ACTION) return;
+
+  const card = state.hand[index];
+  if (!card) return;
+
+  if (fusionFirstCard === null) {
+    // First card selection
+    fusionFirstCard = index;
+    showMessage('选择第二张卡', 2000);
+    renderHand();
+  } else if (fusionFirstCard === index) {
+    // Clicked same card, deselect
+    fusionFirstCard = null;
+    showMessage('已取消，请重新选择第一张卡', 1500);
+    renderHand();
+  } else {
+    // Second card selection - execute fusion
+    executeFusion(fusionFirstCard, index);
+  }
+}
+
+function executeFusion(indexA, indexB) {
+  const cardA = state.hand[indexA];
+  const cardB = state.hand[indexB];
+
+  if (!cardA || !cardB) {
+    showMessage('融合失败：卡牌无效');
+    exitFusionMode();
+    return;
+  }
+
+  // Find recipe
+  const recipe = fusionRegistry.findRecipe(cardA.name, cardB.name);
+
+  if (!recipe) {
+    showMessage('无法融合：没有匹配的配方！');
+    exitFusionMode();
+    return;
+  }
+
+  // Check energy
+  if (state.player.energy < recipe.costEnergy) {
+    showMessage(`能量不足！需要${recipe.costEnergy}能量`);
+    exitFusionMode();
+    return;
+  }
+
+  // Perform fusion
+  state.player.energy -= recipe.costEnergy;
+
+  // Remove both cards from hand (remove higher index first to avoid shifting issues)
+  const [idx1, idx2] = indexA < indexB ? [indexA, indexB] : [indexB, indexA];
+  state.hand.splice(idx1, 1);
+  state.hand.splice(idx2 - 1, 1);
+
+  // Create new fused card (not upgradable, can only have 1 copy)
+  const newCard = {
+    name: recipe.output.name,
+    cost: recipe.output.cost,
+    type: recipe.output.type,
+    value: recipe.output.value,
+    description: recipe.output.description,
+    upgradeLevel: 0,  // Fused cards cannot be upgraded
+    isFused: true,    // Mark as fused for special handling
+  };
+
+  // Add new card to hand
+  state.hand.push(newCard);
+
+  // Discard the original cards
+  state.discardPile.push(cardA, cardB);
+
+  showMessage(`融合成功：${newCard.name}！`, 2000);
+
+  // Exit fusion mode
+  fusionMode = false;
+  fusionFirstCard = null;
+  document.getElementById('fusion-btn').classList.remove('active');
+
+  // Update UI
+  renderHand();
+  updateUI();
+  updateDeckInfo();
+
+  // Check if hand is empty or game over
+  EventBus.emit('card:fusion_complete', { newCard, state });
+}
+
+function renderHand() {
+  const c = document.getElementById('hand-area');
+  c.innerHTML = '';
+  state.hand.forEach((card, i) => {
+    const el = document.createElement('div');
+    const canPlay = state.player.energy >= card.cost && phaseEngine.currentPhase === PHASES.PLAYER_ACTION;
+    const isFirstFusion = fusionMode && fusionFirstCard === i;
+
+    el.className = 'card';
+    if (!canPlay && !fusionMode) el.classList.add('unplayable');
+    if (card.upgradeLevel > 0) el.classList.add('lv' + card.upgradeLevel);
+    if (isFirstFusion) el.classList.add('fusion-selected');
+
+    const typeLabel = card.type === 'attack' ? '攻击' : card.type === 'skill' ? '技能' : '能力';
+    el.innerHTML = `
+      <div class="c-cost">${card.cost}</div>
+      ${card.upgradeLevel > 0 ? `<div class="c-upgrade">★${card.upgradeLevel}</div>` : ''}
+      ${card.isFused ? `<div class="c-fused">⚡融合</div>` : ''}
+      <div class="c-name">${card.name}</div>
+      <div class="c-type">${typeLabel}</div>
+      <div class="c-effect">${card.description}</div>`;
+
+    if (fusionMode) {
+      el.onclick = () => handleFusionCardClick(i);
+    } else if (canPlay) {
+      el.onclick = () => playCard(i);
+    }
+    c.appendChild(el);
+  });
+}
 
 // Initialize
 window.startGame = startGame;
@@ -1316,6 +1549,9 @@ window.openDeckModal = openDeckModal;
 window.closeDeckModal = closeDeckModal;
 window.removeCardFromDeck = removeCardFromDeck;
 window.upgradeCardInDeck = upgradeCardInDeck;
+window.toggleFusionMode = toggleFusionMode;
+window.handleFusionCardClick = handleFusionCardClick;
+window.executeFusion = executeFusion;
 </script>
 </body>
 </html>
