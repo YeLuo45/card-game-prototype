@@ -440,6 +440,73 @@
     #end-turn:hover { transform: scale(1.05); }
     #end-turn:disabled { background: #555; cursor: not-allowed; }
 
+    /* 融合预览 */
+    #fusion-preview {
+      display: none;
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.95);
+      border: 2px solid #ffd700;
+      border-radius: 12px;
+      padding: 15px 20px;
+      min-width: 280px;
+      z-index: 200;
+      text-align: center;
+    }
+    #fusion-preview.show { display: block; }
+    #fusion-preview-title { font-size: 16px; color: #ffd700; margin-bottom: 10px; font-weight: bold; }
+    #fusion-preview-content { display: flex; align-items: center; justify-content: center; gap: 15px; }
+    .fusion-card-mini {
+      padding: 8px 12px;
+      border-radius: 8px;
+      min-width: 80px;
+      font-size: 11px;
+    }
+    .fusion-card-mini.attack { background: linear-gradient(145deg, #8b0000, #cd5c5c); border: 2px solid #ff6347; }
+    .fusion-card-mini.skill { background: linear-gradient(145deg, #00008b, #4169e1); border: 2px solid #6495ed; }
+    .fusion-card-mini.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 2px solid #da70d6; }
+    .fusion-card-mini.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 2px solid #00ff7f; }
+    .fusion-card-mini .mini-cost { color: #ffd700; font-weight: bold; }
+    .fusion-card-mini .mini-name { color: #fff; margin: 4px 0; }
+    .fusion-card-mini .mini-stats { color: #aaa; font-size: 10px; }
+    .fusion-arrow { font-size: 24px; color: #ffd700; }
+    .fusion-result { padding: 10px 15px; border-radius: 10px; min-width: 100px; }
+    .fusion-result.attack { background: linear-gradient(145deg, #8b0000, #cd5c5c); border: 3px solid #ff6347; }
+    .fusion-result.skill { background: linear-gradient(145deg, #00008b, #4169e1); border: 3px solid #6495ed; }
+    .fusion-result.power { background: linear-gradient(145deg, #4b0082, #9370db); border: 3px solid #da70d6; }
+    .fusion-result.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 3px solid #00ff7f; }
+    .fusion-result .result-cost { color: #ffd700; font-weight: bold; font-size: 14px; }
+    .fusion-result .result-name { color: #fff; font-weight: bold; margin: 4px 0; }
+    .fusion-result .result-stats { color: #aaa; font-size: 10px; }
+    .fusion-result .result-effect { color: #aaffaa; font-size: 10px; margin-top: 4px; }
+    #fusion-mode-btn {
+      padding: 8px 16px;
+      font-size: 14px;
+      background: linear-gradient(145deg, #9b59b6, #8e44ad);
+      border: none;
+      border-radius: 15px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    #fusion-mode-btn:hover { transform: scale(1.05); }
+    #fusion-mode-btn.active { background: linear-gradient(145deg, #e74c3c, #c0392b); }
+    #fusion-confirm-btn {
+      padding: 8px 16px;
+      font-size: 14px;
+      background: linear-gradient(145deg, #2ecc71, #27ae60);
+      border: none;
+      border-radius: 15px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: bold;
+      display: none;
+    }
+    #fusion-confirm-btn.show { display: inline-block; }
+    #fusion-confirm-btn:hover { transform: scale(1.05); }
+
     /* 战斗日志 */
     #log-panel {
       position: fixed;
@@ -2865,7 +2932,15 @@
     <div id="controls">
       <span id="deck-info">牌组: <span id="deck-count">13</span> | 弃牌堆: <span id="discard-count">0</span></span>
       <button id="deck-preview-btn" style="padding:8px 16px;font-size:14px;background:linear-gradient(145deg,#3498db,#2980b9);border:none;border-radius:15px;color:#fff;cursor:pointer;font-weight:bold;">🃏 牌组</button>
+      <button id="fusion-mode-btn">🔥 融合</button>
       <button id="end-turn">结束回合</button>
+    </div>
+
+    <!-- 融合预览 -->
+    <div id="fusion-preview">
+      <div id="fusion-preview-title">卡牌融合预览</div>
+      <div id="fusion-preview-content"></div>
+      <button id="fusion-confirm-btn">确认融合</button>
     </div>
   </div>
 </div>
@@ -8740,6 +8815,201 @@ function finishDeckReplace() {
   const overlaySubtitle = document.getElementById('overlay-subtitle');
   if (overlayTitle) overlayTitle.textContent = '🎉 战斗胜利！选择奖励卡牌';
   if (overlaySubtitle) overlaySubtitle.textContent = `牌组：${gameState.deck.length}张 | 选择卡牌加入你的牌组`;
+}
+
+// ===== 融合系统状态 =====
+let fusionMode = false;
+let fusionSelectedCards = [];
+
+// ===== 融合预览函数 =====
+function previewFusion(cardA, cardB) {
+  // 1. 相同名字 → 升级（level+1）
+  if (cardA.name === cardB.name) {
+    return {
+      name: cardA.name,
+      type: cardA.type,
+      attack: (cardA.attack || 0) + 2,
+      hp: (cardA.hp || 0) + 2,
+      cost: cardA.cost,
+      level: (cardA.level || 0) + 1,
+      effect: `升级！${cardA.name} Lv.${(cardA.level || 0) + 1}`,
+      description: cardA.description,
+      fused: true,
+      fusionType: 'upgrade'
+    };
+  }
+  
+  // 2. 相同类型不同名字 → 属性融合（攻击/生命取平均+10%）
+  if (cardA.type === cardB.type) {
+    const avgAttack = Math.round(((cardA.attack || 0) + (cardB.attack || 0)) / 2 * 1.1);
+    const avgHp = Math.round(((cardA.hp || 0) + (cardB.hp || 0)) / 2 * 1.1);
+    const avgCost = Math.round(((cardA.cost || 0) + (cardB.cost || 0)) / 2);
+    return {
+      name: `${cardA.name}+${cardB.name}`,
+      type: cardA.type,
+      attack: avgAttack,
+      hp: avgHp,
+      cost: avgCost,
+      effect: `属性融合！攻击力${avgAttack}，生命值${avgHp}`,
+      description: `融合卡牌：${cardA.name} + ${cardB.name}`,
+      fused: true,
+      fusionType: 'merge'
+    };
+  }
+  
+  // 3. 不同类型 → 特殊融合（生成新卡）
+  const specialTypes = ['special', 'power'];
+  const newType = specialTypes.includes(cardA.type) ? cardA.type : (specialTypes.includes(cardB.type) ? cardB.type : 'special');
+  const combinedAttack = Math.round(((cardA.attack || 0) + (cardB.attack || 0)) * 0.8);
+  const combinedHp = Math.round(((cardA.hp || 0) + (cardB.hp || 0)) * 0.8);
+  const combinedCost = Math.max(1, Math.round(((cardA.cost || 0) + (cardB.cost || 0)) * 0.7));
+  
+  return {
+    name: `${cardA.name}⌘${cardB.name}`,
+    type: newType,
+    attack: combinedAttack,
+    hp: combinedHp,
+    cost: combinedCost,
+    effect: `特殊融合！${cardA.name} × ${cardB.name}`,
+    description: `特殊融合卡牌：${cardA.type} + ${cardB.type}`,
+    fused: true,
+    fusionType: 'special'
+  };
+}
+
+function updateFusionPreview() {
+  const preview = document.getElementById('fusion-preview');
+  const content = document.getElementById('fusion-preview-content');
+  const confirmBtn = document.getElementById('fusion-confirm-btn');
+  
+  if (!fusionMode || fusionSelectedCards.length === 0) {
+    preview.classList.remove('show');
+    confirmBtn.classList.remove('show');
+    return;
+  }
+  
+  preview.classList.add('show');
+  
+  if (fusionSelectedCards.length === 1) {
+    // 只选了第一张卡，显示该卡信息
+    const card = fusionSelectedCards[0];
+    content.innerHTML = `
+      <div class="fusion-card-mini ${card.type}">
+        <div class="mini-cost">费用: ${card.cost}</div>
+        <div class="mini-name">${card.name}</div>
+        <div class="mini-stats">${getCardTypeName(card.type)}</div>
+      </div>
+      <div class="fusion-arrow">→</div>
+      <div class="fusion-result" style="background:rgba(50,50,50,0.5);border:2px dashed #666;">
+        <div style="color:#888;">选择第二张卡牌</div>
+      </div>
+    `;
+    confirmBtn.classList.remove('show');
+  } else if (fusionSelectedCards.length === 2) {
+    // 两张卡都选了，显示融合预览
+    const [cardA, cardB] = fusionSelectedCards;
+    const result = previewFusion(cardA, cardB);
+    
+    content.innerHTML = `
+      <div class="fusion-card-mini ${cardA.type}">
+        <div class="mini-cost">费用: ${cardA.cost}</div>
+        <div class="mini-name">${cardA.name}</div>
+        <div class="mini-stats">${getCardTypeName(cardA.type)}</div>
+      </div>
+      <div class="fusion-arrow">+</div>
+      <div class="fusion-card-mini ${cardB.type}">
+        <div class="mini-cost">费用: ${cardB.cost}</div>
+        <div class="mini-name">${cardB.name}</div>
+        <div class="mini-stats">${getCardTypeName(cardB.type)}</div>
+      </div>
+      <div class="fusion-arrow">→</div>
+      <div class="fusion-result ${result.type}">
+        <div class="result-cost">费用: ${result.cost}</div>
+        <div class="result-name">${result.name}</div>
+        <div class="result-stats">攻击: ${result.attack} | 生命: ${result.hp}</div>
+        <div class="result-effect">${result.effect}</div>
+      </div>
+    `;
+    confirmBtn.classList.add('show');
+  }
+}
+
+function toggleFusionMode() {
+  fusionMode = !fusionMode;
+  fusionSelectedCards = [];
+  
+  const btn = document.getElementById('fusion-mode-btn');
+  btn.classList.toggle('active', fusionMode);
+  btn.textContent = fusionMode ? '🔙 取消融合' : '🔥 融合';
+  
+  updateFusionPreview();
+  renderHand();
+}
+
+function handleFusionCardClick(card, index) {
+  if (!fusionMode) return false;
+  
+  // 查找是否已选中
+  const existingIndex = fusionSelectedCards.findIndex(c => c.uid === card.uid);
+  
+  if (existingIndex !== -1) {
+    // 取消选中
+    fusionSelectedCards.splice(existingIndex, 1);
+  } else if (fusionSelectedCards.length < 2) {
+    // 选中
+    fusionSelectedCards.push(card);
+  }
+  
+  updateFusionPreview();
+  renderHand();
+  return true;
+}
+
+function confirmFusion() {
+  if (fusionSelectedCards.length !== 2) return;
+  
+  const [cardA, cardB] = fusionSelectedCards;
+  const result = previewFusion(cardA, cardB);
+  
+  // 从手牌移除这两张卡
+  const idxA = gameState.hand.findIndex(c => c.uid === cardA.uid);
+  const idxB = gameState.hand.findIndex(c => c.uid === cardB.uid);
+  
+  if (idxA !== -1) gameState.hand.splice(idxA, 1);
+  if (idxB !== -1) {
+    const newIdxB = gameState.hand.findIndex(c => c.uid === cardB.uid);
+    if (newIdxB !== -1) gameState.hand.splice(newIdxB, 1);
+  }
+  
+  // 添加融合结果卡牌到手牌
+  result.uid = Date.now();
+  gameState.hand.push(result);
+  
+  addLog(`融合成功：${cardA.name} + ${cardB.name} → ${result.name}`, 'info');
+  audioManager.play('fusion');
+  
+  // 退出融合模式
+  fusionMode = false;
+  fusionSelectedCards = [];
+  
+  document.getElementById('fusion-mode-btn').classList.remove('active');
+  document.getElementById('fusion-mode-btn').textContent = '🔥 融合';
+  
+  renderHand();
+  updateFusionPreview();
+}
+
+function getCardTypeName(type) {
+  const names = {
+    attack: '攻击',
+    skill: '技能',
+    power: '力量',
+    special: '特殊',
+    curse: '诅咒',
+    fate: '命运',
+    status: '状态'
+  };
+  return names[type] || type;
 }
 
 // ===== 游戏状态 =====
@@ -15982,11 +16252,23 @@ function renderHand() {
       </div>
     `;
     
-    if (gameState.energy >= card.cost && !gameState.gameOver) {
+    if (fusionMode) {
+      // 融合模式下点击卡牌
+      div.onclick = () => {
+        audioManager.play('click');
+        handleFusionCardClick(card, index);
+      };
+    } else if (gameState.energy >= card.cost && !gameState.gameOver) {
       div.onclick = () => {
         audioManager.play('click');
         playCard(card, index);
       };
+    }
+    
+    // 融合模式：添加选中状态显示
+    if (fusionMode && fusionSelectedCards.some(c => c.uid === card.uid)) {
+      div.style.boxShadow = '0 0 15px #ffd700, 0 0 30px rgba(255,215,0,0.5)';
+      div.style.border = '3px solid #ffd700';
     }
     
     container.appendChild(div);
@@ -17279,6 +17561,9 @@ document.getElementById('boss-rush-btn').onclick = showBossRushInfo;
 document.getElementById('select-deck-btn').onclick = openDeckSelectModal;
 document.getElementById('deck-select-confirm-btn').onclick = confirmDeckSelection;
 document.getElementById('deck-select-cancel-btn').onclick = closeDeckSelectModal;
+// 融合按钮
+document.getElementById('fusion-mode-btn').onclick = toggleFusionMode;
+document.getElementById('fusion-confirm-btn').onclick = confirmFusion;
 document.getElementById('close-daily-btn').onclick = () => {
   document.getElementById('daily-overlay').classList.remove('show');
 };
