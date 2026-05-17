@@ -183,6 +183,35 @@
       border-radius: 20px;
       font-weight: bold;
     }
+    /* 敌人意图预览图标 V51 */
+    .enemy-intent-display {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    .enemy-intent-icon {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      animation: intentPulse 2s ease-in-out infinite;
+    }
+    @keyframes intentPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .enemy-intent-icon.attack { background: linear-gradient(145deg, #8b0000, #cd5c5c); color: #fff; border: 2px solid #ff6347; }
+    .enemy-intent-icon.defend { background: linear-gradient(145deg, #006400, #228b22); color: #fff; border: 2px solid #90ee90; }
+    .enemy-intent-icon.buff { background: linear-gradient(145deg, #00008b, #4169e1); color: #fff; border: 2px solid #6495ed; }
+    .enemy-intent-icon.debuff { background: linear-gradient(145deg, #4b0082, #8b008b); color: #fff; border: 2px solid #da70d6; }
+    .enemy-intent-icon.multi { background: linear-gradient(145deg, #ff4500, #ff6347); color: #fff; border: 2px solid #ffa500; }
+    .enemy-intent-icon.special { background: linear-gradient(145deg, #b8860b, #ffd700); color: #000; border: 2px solid #ffe135; }
+    .enemy-intent-icon.heal { background: linear-gradient(145deg, #006400, #00fa9a); color: #fff; border: 2px solid #7fff00; }
+    .enemy-intent-icon.aoe { background: linear-gradient(145deg, #8b0000, #ff4500); color: #fff; border: 2px solid #ff8c00; }
+    .enemy-intent-icon.drain { background: linear-gradient(145deg, #8b008b, #dc143c); color: #fff; border: 2px solid #ff1493; }
     #enemy-debuffs {
       display: flex;
       justify-content: center;
@@ -2899,6 +2928,7 @@
 
     <!-- 敌人区域 -->
     <div id="enemy-area">
+      <div class="enemy-intent-display" id="enemy-intent-display"></div>
       <div id="enemy-name">史莱姆</div>
       <div id="enemy-hp-bar"><div id="enemy-hp-fill"></div></div>
       <div id="enemy-info">
@@ -16356,6 +16386,91 @@ function renderEnemy() {
     // === 其他 ===
   };
   document.getElementById('enemy-intent').textContent = `意图: ${intentLabels[gameState.enemyIntent] || gameState.enemyIntent}`;
+  
+  // ===== V51 敌人意图预览图标 =====
+  renderEnemyIntentPreview();
+}
+
+function renderEnemyIntentPreview() {
+  const intentDisplay = document.getElementById('enemy-intent-display');
+  if (!intentDisplay) return;
+  
+  const intent = gameState.enemyIntent;
+  const value = gameState.enemyIntentValue;
+  const extra = gameState.enemyIntentExtra || 0;
+  
+  // 意图类型分类与颜色
+  const intentConfig = {
+    // ATTACK ⚔️ 红色
+    attack:       { icon: '⚔️', label: `攻击 ${value}`, class: 'attack' },
+    heavy:        { icon: '💥', label: `重击 ${value}`, class: 'attack' },
+    charge:       { icon: '🦬', label: `冲锋 ${value}`, class: 'attack' },
+    crushingBlow: { icon: '💀', label: `粉碎 ${value}`, class: 'attack' },
+    holyStrike:   { icon: '⚜️', label: `圣击 ${value}`, class: 'attack' },
+    voidBlast:    { icon: '🌀', label: `虚空 ${value}`, class: 'attack' },
+    abyssalStrike:{ icon: '⚔️', label: `深渊 ${value}`, class: 'attack' },
+    multihit:     { icon: '🔪', label: `分裂 ${value}×3`, class: 'multi' },
+    multi_attack: { icon: '⚔️', label: `×${extra}连击 ${value}`, class: 'multi' },
+    aoe:          { icon: '💥', label: `范围 ${value}`, class: 'aoe' },
+    // DEFEND 🛡️ 绿色
+    defend:         { icon: '🛡️', label: `防御 +${value}`, class: 'defend' },
+    dragonScale:    { icon: '🐉', label: `龙鳞 +${value}`, class: 'defend' },
+    divineShield:   { icon: '🛡️', label: `神盾 +${value}`, class: 'defend' },
+    defend_revenge: { icon: '🛡️', label: `${value}反弹`, class: 'defend' },
+    evade:          { icon: '💨', label: `闪避`, class: 'defend' },
+    // BUFF ⬆️ 蓝色
+    buff:        { icon: '✨', label: `强化`, class: 'buff' },
+    buff_stack:  { icon: '⬆️', label: `×${extra} +${value}`, class: 'buff' },
+    berserk:     { icon: '😈', label: `狂暴`, class: 'buff' },
+    phaseShift:  { icon: '👻', label: `虚影`, class: 'special' },
+    // DEBUFF ⬇️ 紫色
+    debuff:          { icon: '💀', label: `减益`, class: 'debuff' },
+    curse:           { icon: '☠️', label: `诅咒`, class: 'debuff' },
+    poisonAttack:   { icon: '🟣', label: `中毒 ${value}`, class: 'debuff' },
+    weakAttack:     { icon: '💨', label: `弱化 ${value}`, class: 'debuff' },
+    soulDrain:      { icon: '💀', label: `魂吸 ${value}`, class: 'debuff' },
+    shadowSummon:   { icon: '👤', label: `暗影召唤`, class: 'special' },
+    summon:         { icon: '👹', label: `召唤`, class: 'special' },
+    reanimate:      { icon: '💀', label: `复活`, class: 'special' },
+    // MULTI 🔥 橙色
+    counter:         { icon: '⚡', label: `反击 ${value}`, class: 'multi' },
+    counterattack:   { icon: '⚡', label: `反击 ${value}`, class: 'multi' },
+    inferno:         { icon: '🔥', label: `地狱火 ${value}`, class: 'multi' },
+    demonFire:       { icon: '🔥', label: `魔焰 ${value}`, class: 'multi' },
+    chaosBolt:       { icon: '🌀', label: `混沌 ${value}`, class: 'multi' },
+    packHunt:        { icon: '🐺', label: `围猎 ${value}`, class: 'multi' },
+    constrict:       { icon: '🦑', label: `绞缠 ${value}`, class: 'multi' },
+    // SPECIAL ⭐ 金色
+    heal:            { icon: '💚', label: `治疗 ${value}`, class: 'heal' },
+    drain:           { icon: '🩸', label: `吸血 ${value}`, class: 'drain' },
+    lifesteal:       { icon: '🩸', label: `偷取 ${value}`, class: 'drain' },
+    radiant:         { icon: '🌟', label: `神圣 ${value}`, class: 'special' },
+    holyNova:        { icon: '✝️', label: `新星 ${value}`, class: 'special' },
+    divineJudgment:  { icon: '⚖️', label: `审判 ${value}`, class: 'special' },
+    celestialBlitz:  { icon: '☁️', label: `天闪 ${value}`, class: 'special' },
+    realityDistort:  { icon: '🌀', label: `扭曲`, class: 'special' },
+    annihilate:      { icon: '💥', label: `湮灭 ${value}`, class: 'aoe' },
+    darkAura:        { icon: '👁️', label: `暗环 ${value}`, class: 'special' },
+    soulSiphon:      { icon: '💀', label: `魂吸 ${value}`, class: 'drain' },
+    voidDomain:      { icon: '🌀', label: `虚无`, class: 'special' },
+    annihilation:    { icon: '💀', label: `湮灭`, class: 'aoe' },
+    // Boss技能
+    hellfire:        { icon: '🔥', label: `狱火 ${value}`, class: 'multi' },
+    soulHarvest:     { icon: '💀', label: `魂收 ${value}`, class: 'drain' },
+    annihilatingFist:{ icon: '💥', label: `湮灭拳 ${value}`, class: 'attack' },
+    chaosPulse:      { icon: '🌀', label: `混沌 ${value}`, class: 'multi' },
+    realitySwap:     { icon: '🔄', label: `互换`, class: 'special' },
+    entropy:         { icon: '💀', label: `熵 ${value}`, class: 'aoe' },
+  };
+  
+  const config = intentConfig[intent];
+  if (!config) {
+    intentDisplay.innerHTML = '';
+    return;
+  }
+  
+  intentDisplay.innerHTML = `<span class="enemy-intent-icon ${config.class}">${config.icon} <span>${config.label}</span></span>`;
+}
   
   const debuffContainer = document.getElementById('enemy-debuffs');
   debuffContainer.innerHTML = '';
