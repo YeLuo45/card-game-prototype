@@ -2948,6 +2948,277 @@
 </div>
 
 <script>
+// ===== 插件化注册表系统 (Registry Pattern) =====
+// 参考 nanobot-design 的 ToolRegistry 模式实现
+
+// ----- CardEffectRegistry: 卡牌效果注册表 -----
+const CardEffectRegistry = {
+  _effects: {},
+  register(id, handler) {
+    this._effects[id] = handler;
+  },
+  execute(id, context) {
+    const handler = this._effects[id];
+    if (handler) return handler(context);
+    return context;
+  },
+  has(id) {
+    return id in this._effects;
+  },
+  list() {
+    return Object.keys(this._effects);
+  }
+};
+
+// 内置卡牌效果
+CardEffectRegistry.register('damage', (ctx) => {
+  const { value, target } = ctx;
+  if (target === 'enemy') {
+    dealDamageToEnemy(value);
+  } else if (target === 'player') {
+    dealDamageToPlayer(value, false);
+  }
+  return ctx;
+});
+
+CardEffectRegistry.register('block', (ctx) => {
+  const { value } = ctx;
+  gameState.playerShield += value;
+  addLog(`获得 ${value} 点护甲`, 'block');
+  return ctx;
+});
+
+CardEffectRegistry.register('draw', (ctx) => {
+  const { value } = ctx;
+  for (let i = 0; i < value; i++) drawCard();
+  return ctx;
+});
+
+CardEffectRegistry.register('gainEnergy', (ctx) => {
+  const { value } = ctx;
+  gameState.energy = Math.min(gameState.maxEnergy, gameState.energy + value);
+  addLog(`获得 ${value} 点能量`, 'info');
+  return ctx;
+});
+
+CardEffectRegistry.register('gainShield', (ctx) => {
+  const { value } = ctx;
+  gameState.playerShield += value;
+  addLog(`护甲 +${value}`, 'block');
+  return ctx;
+});
+
+CardEffectRegistry.register('heal', (ctx) => {
+  const { value } = ctx;
+  const healAmt = Math.min(value, gameState.playerMaxHp - gameState.playerHp);
+  gameState.playerHp += healAmt;
+  addLog(`治疗 ${healAmt} 点生命`, 'heal');
+  return ctx;
+});
+
+CardEffectRegistry.register('applyStatus', (ctx) => {
+  const { status, stacks, duration } = ctx;
+  applyDebuffToEnemy(status, stacks, duration);
+  return ctx;
+});
+
+CardEffectRegistry.register('removeStatus', (ctx) => {
+  const { status } = ctx;
+  gameState.enemyDebuffs = gameState.enemyDebuffs.filter(d => d.type !== status);
+  return ctx;
+});
+
+// ----- RelicEffectRegistry: 遗物效果注册表 -----
+const RelicEffectRegistry = {
+  _handlers: {},
+  // trigger: 'startOfCombat' | 'startOfTurn' | 'onAttack' | 'onDamage' | 'onVictory' | 'onKill'
+  register(id, config) {
+    // config: { trigger, condition, effect }
+    this._handlers[id] = config;
+  },
+  // 兼容旧格式：register(id, trigger, handler)
+  registerLegacy(id, trigger, handler) {
+    this._handlers[id] = { trigger, handler };
+  },
+  execute(trigger, context = {}) {
+    let result = { ...context };
+    Object.entries(this._handlers).forEach(([id, config]) => {
+      if (config.trigger !== trigger) return;
+      if (config.condition && !config.condition(context)) return;
+      if (typeof config.handler === 'function') {
+        result = config.handler(result) || result;
+      }
+    });
+    return result;
+  },
+  has(id) {
+    return id in this._handlers;
+  },
+  list() {
+    return Object.keys(this._handlers);
+  }
+};
+
+// 内置遗物效果（示例）
+RelicEffectRegistry.register('brokenChain', {
+  trigger: 'startOfCombat',
+  handler: (ctx) => {
+    gameState.energy += 1;
+    addLog('断裂的锁链：战斗开始获得1能量', 'info');
+    return ctx;
+  }
+});
+
+RelicEffectRegistry.register('leatherArmor', {
+  trigger: 'startOfCombat',
+  handler: (ctx) => {
+    gameState.playerShield += 5;
+    addLog('皮甲：战斗开始获得5护甲', 'block');
+    return ctx;
+  }
+});
+
+RelicEffectRegistry.register('bloodChalice', {
+  trigger: 'startOfTurn',
+  handler: (ctx) => {
+    const healAmt = Math.min(2, gameState.playerMaxHp - gameState.playerHp);
+    if (healAmt > 0) {
+      gameState.playerHp += healAmt;
+      addLog(`鲜血圣杯：回复 ${healAmt} 生命`, 'heal');
+    }
+    return ctx;
+  }
+});
+
+// ----- PetSkillRegistry: 宠物技能注册表 -----
+const PetSkillRegistry = {
+  _skills: {},
+  register(id, skill) {
+    // skill: { name, cost, cooldown, desc, execute }
+    this._skills[id] = skill;
+  },
+  get(id) {
+    return this._skills[id] || null;
+  },
+  execute(id, petId) {
+    const skill = this._skills[id];
+    if (skill && typeof skill.execute === 'function') {
+      return skill.execute(petId);
+    }
+  },
+  has(id) {
+    return id in this._skills;
+  },
+  list() {
+    return Object.keys(this._skills);
+  }
+};
+
+// 内置宠物技能
+PetSkillRegistry.register('battleBear_roar', {
+  name: '怒吼',
+  cost: 2,
+  cooldown: 3,
+  desc: '本回合攻击力+50%',
+  execute: (petId) => {
+    gameState.attackDamageMod *= 1.5;
+    addLog('🐻 怒吼！攻击力+50%！');
+  }
+});
+
+PetSkillRegistry.register('slime_slimeAttack', {
+  name: '黏液攻击',
+  cost: 2,
+  cooldown: 2,
+  desc: '造成3点伤害，并使敌人减速1回合',
+  execute: (petId) => {
+    dealDamageToEnemy(3);
+    applyDebuffToEnemy('slow', 1, 1);
+    addLog('🟢 史莱姆发动黏液攻击！造成3点伤害，敌人减速1回合！', 'damage');
+  }
+});
+
+PetSkillRegistry.register('fireSprite_flameImpact', {
+  name: '火焰冲击',
+  cost: 2,
+  cooldown: 2,
+  desc: '造成5点伤害，30%概率灼烧',
+  execute: (petId) => {
+    dealDamageToEnemy(5);
+    if (Math.random() < 0.3) {
+      applyDebuffToEnemy('burn', 2, 2);
+      addLog('🔥 火精灵发动火焰冲击！造成5点伤害，敌人灼烧！', 'damage');
+    } else {
+      addLog('🔥 火精灵发动火焰冲击！造成5点伤害！', 'damage');
+    }
+  }
+});
+
+PetSkillRegistry.register('healBunny_healingAura', {
+  name: '治愈光环',
+  cost: 2,
+  cooldown: 3,
+  desc: '回复10点生命',
+  execute: (petId) => {
+    const heal = 10;
+    gameState.playerHp = Math.min(gameState.playerMaxHp, gameState.playerHp + heal);
+    showDamageNumber(heal, 'heal', 'player-area');
+    addLog('🐰 治疗兔发动治愈光环！回复' + heal + '点生命！', 'heal');
+  }
+});
+
+// ----- ArchetypeRegistry: 流派注册表 -----
+const ArchetypeRegistry = {
+  _archetypes: {},
+  register(id, config) {
+    // config: { name, icon, color, tags, levels }
+    this._archetypes[id] = config;
+  },
+  get(id) {
+    return this._archetypes[id] || null;
+  },
+  has(id) {
+    return id in this._archetypes;
+  },
+  list() {
+    return Object.keys(this._archetypes);
+  },
+  // 获取所有激活的流派（通过卡牌数量）
+  getActive(minCount = 3) {
+    const counts = {};
+    const allCards = [...(gameState.deck||[]), ...(gameState.hand||[]), ...(gameState.drawPile||[]), ...(gameState.discardPile||[])];
+    allCards.forEach(card => {
+      const a = card.archetype;
+      if (!a) return;
+      const archs = Array.isArray(a) ? a : [a];
+      archs.forEach(arch => {
+        counts[arch] = (counts[arch] || 0) + 1;
+      });
+    });
+    return Object.entries(counts)
+      .filter(([id, count]) => count >= minCount && this._archetypes[id])
+      .map(([id]) => id);
+  },
+  // 获取流派的累加效果
+  getBonuses(id) {
+    const archetype = this._archetypes[id];
+    if (!archetype) return {};
+    const allCards = [...(gameState.deck||[]), ...(gameState.hand||[]), ...(gameState.drawPile||[]), ...(gameState.discardPile||[])];
+    const count = allCards.filter(card => {
+      const a = card.archetype;
+      if (!a) return false;
+      const archs = Array.isArray(a) ? a : [a];
+      return archs.includes(id);
+    }).length;
+    if (count < 3) return {};
+    const bonuses = {};
+    archetype.levels.forEach(level => {
+      if (count >= level.count) Object.assign(bonuses, level.effect);
+    });
+    return bonuses;
+  }
+};
+
 // ===== 卡牌数据 =====
 const CARDS = {
   strike:  { id: 'strike',  name: '打击',    cost: 1, type: 'attack', archetype: 'berserker', effect: { damage: 6 }, description: '造成6点伤害' },
@@ -3187,6 +3458,12 @@ const ARCHETYPES = {
     ]
   }
 };
+
+// ===== V32 流派协同系统 =====
+// 迁移 ARCHETYPES 到 ArchetypeRegistry
+Object.entries(ARCHETYPES).forEach(([id, config]) => {
+  ArchetypeRegistry.register(id, config);
+});
 
 // V32 流派协同系统 - 检测引擎
 // 在牌组中统计指定流派的卡牌数量
