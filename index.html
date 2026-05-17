@@ -1471,6 +1471,184 @@
       color: #ccc;
     }
 
+    /* V56 宠物进化树样式 */
+    #pet-evolution-tree-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      z-index: 600;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    #pet-evolution-tree-overlay.show { display: flex; }
+    #pet-evolution-tree-container {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      border: 3px solid #ffd700;
+      border-radius: 15px;
+      padding: 20px;
+      max-width: 500px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    #pet-evolution-tree-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #333;
+    }
+    #pet-evolution-tree-title {
+      font-size: 24px;
+      color: #ffd700;
+    }
+    #close-evolution-tree-btn {
+      background: #e74c3c;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    #close-evolution-tree-btn:hover { background: #c0392b; }
+    .evo-tree-empty {
+      text-align: center;
+      color: #888;
+      padding: 30px;
+    }
+    .evo-tree-pet-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .evo-tree-pet-item {
+      background: rgba(0,0,0,0.4);
+      border-radius: 10px;
+      padding: 15px;
+      border: 2px solid #444;
+    }
+    .evo-tree-pet-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .evo-tree-pet-icon {
+      font-size: 30px;
+    }
+    .evo-tree-pet-name {
+      font-size: 16px;
+      color: #ffd700;
+      font-weight: bold;
+    }
+    .evo-tree-pet-status {
+      font-size: 12px;
+      margin-left: auto;
+    }
+    .evo-tree-chain {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+    .evo-node {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 15px;
+      border-radius: 10px;
+      border: 2px solid #555;
+      background: rgba(50,50,50,0.5);
+      width: 100%;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .evo-node:hover {
+      transform: scale(1.02);
+      box-shadow: 0 5px 15px rgba(255,215,0,0.2);
+    }
+    .evo-node.current {
+      border-color: #2ecc71;
+      background: rgba(46,204,113,0.2);
+    }
+    .evo-node.locked {
+      opacity: 0.6;
+      border-color: #666;
+    }
+    .evo-node.evolved {
+      border-color: #ffd700;
+      background: rgba(255,215,0,0.2);
+    }
+    .evo-node-icon {
+      font-size: 28px;
+    }
+    .evo-node-info {
+      flex: 1;
+    }
+    .evo-node-name {
+      font-size: 14px;
+      color: #fff;
+      font-weight: bold;
+    }
+    .evo-node-status {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 3px;
+    }
+    .evo-arrow {
+      color: #ffd700;
+      font-size: 20px;
+      padding: 5px 0;
+    }
+    .evo-condition {
+      font-size: 11px;
+      color: #9b59b6;
+      background: rgba(155,89,182,0.2);
+      padding: 3px 8px;
+      border-radius: 5px;
+      margin-left: 10px;
+    }
+    .evo-progress {
+      font-size: 11px;
+      color: #4ecdc4;
+      margin-left: 10px;
+    }
+    .evo-tooltip {
+      display: none;
+      position: absolute;
+      background: rgba(0,0,0,0.95);
+      border: 1px solid #ffd700;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 12px;
+      color: #fff;
+      z-index: 100;
+      min-width: 180px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    }
+    .evo-node:hover .evo-tooltip { display: block; }
+    .evo-tooltip-title {
+      color: #ffd700;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .evo-tooltip-desc {
+      color: #ccc;
+      font-size: 11px;
+    }
+    .evo-tooltip-stats {
+      color: #2ecc71;
+      font-size: 11px;
+      margin-top: 5px;
+    }
+
     /* V25 宠物商店遮罩 */
     #petshop-overlay {
       display: none;
@@ -3298,6 +3476,18 @@
   <div id="pet-select-actions">
     <button id="pet-select-confirm">确认选择</button>
     <button id="pet-select-skip">跳过（不选宠物）</button>
+    <button id="view-evolution-tree-btn" style="background: linear-gradient(145deg, #9b59b6, #8e44ad); color: #fff; border: none; padding: 10px 20px; border-radius: 15px; cursor: pointer; font-weight: bold;">🌳 进化树</button>
+  </div>
+</div>
+
+<!-- V56 宠物进化树遮罩 -->
+<div id="pet-evolution-tree-overlay">
+  <div id="pet-evolution-tree-container">
+    <div id="pet-evolution-tree-header">
+      <div id="pet-evolution-tree-title">🌳 宠物进化树</div>
+      <button id="close-evolution-tree-btn">✕ 关闭</button>
+    </div>
+    <div id="pet-evolution-tree-content"></div>
   </div>
 </div>
 
@@ -7751,6 +7941,122 @@ function updatePetActiveSkill(petId) {
     };
   }
 }
+
+// V56 显示宠物进化树界面
+function showPetEvolutionTree() {
+  const overlay = document.getElementById('pet-evolution-tree-overlay');
+  const content = document.getElementById('pet-evolution-tree-content');
+  
+  content.innerHTML = '';
+  
+  // 获取玩家拥有的宠物（包含可进化的宠物）
+  const ownedPets = gameState.ownedPetIds || [];
+  const evolvablePets = ownedPets.filter(id => PET_EVOLUTIONS[id]);
+  
+  if (evolvablePets.length === 0) {
+    content.innerHTML = '<div class="evo-tree-empty">你还没有拥有可进化的宠物</div>';
+  } else {
+    const petList = document.createElement('div');
+    petList.className = 'evo-tree-pet-list';
+    
+    evolvablePets.forEach(petId => {
+      const petData = PETS[petId];
+      const evolution = PET_EVOLUTIONS[petId];
+      const progress = getEvolutionProgress(petId);
+      const evolvedForm = evolution.evolvesTo ? PETS[evolution.evolvesTo] : null;
+      
+      const item = document.createElement('div');
+      item.className = 'evo-tree-pet-item';
+      
+      // 状态标签
+      let statusClass = 'locked';
+      let statusText = '未解锁';
+      if (progress.evolved) {
+        statusClass = 'evolved';
+        statusText = '⚡已进化';
+      } else if (progress.current > 0) {
+        statusClass = 'current';
+        statusText = `进行中 ${progress.percentage}%`;
+      }
+      
+      item.innerHTML = `
+        <div class="evo-tree-pet-header">
+          <span class="evo-tree-pet-icon">${petData.icon}</span>
+          <span class="evo-tree-pet-name">${petData.name}</span>
+          <span class="evo-tree-pet-status" style="color: ${progress.evolved ? '#ffd700' : (progress.current > 0 ? '#4ecdc4' : '#888')}">${statusText}</span>
+        </div>
+        <div class="evo-tree-chain">
+          <div class="evo-node ${progress.evolved ? 'evolved' : (progress.current > 0 ? 'current' : '')}" style="position:relative;">
+            <span class="evo-node-icon">${petData.icon}</span>
+            <div class="evo-node-info">
+              <div class="evo-node-name">${petData.name}</div>
+              <div class="evo-node-status">当前形态</div>
+            </div>
+            ${progress.evolved ? '' : `<span class="evo-condition">${getConditionText(evolution.condition)}: ${progress.current}/${progress.requirement}</span>`}
+            <div class="evo-tooltip">
+              <div class="evo-tooltip-title">${petData.name}</div>
+              <div class="evo-tooltip-desc">${petData.description}</div>
+            </div>
+          </div>
+          <div class="evo-arrow">⬇️</div>
+          <div class="evo-node locked" style="position:relative;">
+            <span class="evo-node-icon">${evolution.icon || '❓'}</span>
+            <div class="evo-node-info">
+              <div class="evo-node-name">${evolution.name}</div>
+              <div class="evo-node-status">进化后</div>
+            </div>
+            <span class="evo-condition">${getConditionText(evolution.condition)}: ${progress.current}/${evolution.requirement}</span>
+            <div class="evo-tooltip">
+              <div class="evo-tooltip-title">${evolution.name}</div>
+              <div class="evo-tooltip-desc">${evolution.description}</div>
+              <div class="evo-tooltip-stats">属性: HP×${evolution.statBonus.hp} ATK×${evolution.statBonus.attack}</div>
+              <div class="evo-tooltip-desc" style="margin-top:5px;">🆕 新技能: ${evolution.skillName}</div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      petList.appendChild(item);
+    });
+    
+    content.appendChild(petList);
+  }
+  
+  overlay.classList.add('show');
+}
+
+// V56 获取条件显示文本
+function getConditionText(condition) {
+  const conditionMap = {
+    'killCount': '击杀',
+    'damageDealt': '伤害',
+    'damageBlocked': '格挡',
+    'battlesWon': '胜利',
+    'criticalHits': '暴击'
+  };
+  return conditionMap[condition] || condition;
+}
+
+// V56 关闭宠物进化树
+function closePetEvolutionTree() {
+  document.getElementById('pet-evolution-tree-overlay').classList.remove('show');
+}
+
+// 初始化宠物进化树按钮事件
+document.addEventListener('DOMContentLoaded', () => {
+  const viewTreeBtn = document.getElementById('view-evolution-tree-btn');
+  if (viewTreeBtn) {
+    viewTreeBtn.addEventListener('click', () => {
+      closePetSelect();
+      showPetEvolutionTree();
+    });
+  }
+  
+  const closeBtn = document.getElementById('close-evolution-tree-btn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closePetEvolutionTree);
+  }
+});
 
 // 宠物池
 const PET_POOL = Object.values(PETS);
