@@ -607,6 +607,103 @@
     .compendium-card.undiscovered .card-name { color: #666; }
     .compendium-card.undiscovered .card-type { display: none; }
 
+    /* 遗物图鉴 */
+    #relic-compendium {
+      display: none;
+      background: rgba(0,0,0,0.9);
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 200;
+      flex-direction: column;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    #relic-compendium.show { display: flex; }
+    #relic-compendium .compendium-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    #relic-compendium .compendium-header h2 { color: #ffd700; margin: 0; }
+    #relic-compendium .compendium-stats { color: #aaa; font-size: 14px; }
+    #relic-compendium .compendium-close {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 28px;
+      cursor: pointer;
+      padding: 5px 10px;
+    }
+    #relic-compendium .compendium-close:hover { color: #ffd700; }
+    #relic-compendium .compendium-filter {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    #relic-compendium .compendium-filter button {
+      padding: 8px 20px;
+      font-size: 14px;
+      background: rgba(255,255,255,0.1);
+      border: 2px solid transparent;
+      border-radius: 20px;
+      color: #aaa;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #relic-compendium .compendium-filter button:hover { background: rgba(255,255,255,0.2); color: #fff; }
+    #relic-compendium .compendium-filter button.active {
+      background: rgba(255,215,0,0.2);
+      border-color: #ffd700;
+      color: #ffd700;
+    }
+    #relic-compendium .compendium-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 15px;
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .relic-item {
+      padding: 15px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .relic-item:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(255,215,0,0.3); }
+    .relic-item.discovered { border: 3px solid #ffd700; }
+    .relic-item.undiscovered { border: 3px solid #555; background: rgba(50,50,50,0.6) !important; }
+    .relic-item .relic-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    .relic-item.starting .relic-icon { background: linear-gradient(145deg, #b8860b, #daa520); border: 2px solid #ffd700; }
+    .relic-item.common .relic-icon { background: linear-gradient(145deg, #1e90ff, #4169e1); border: 2px solid #95a5a6; }
+    .relic-item.rare .relic-icon { background: linear-gradient(145deg, #9b59b6, #8e44ad); border: 2px solid #3498db; }
+    .relic-item.legendary .relic-icon { background: linear-gradient(145deg, #e74c3c, #c0392b); border: 2px solid #f39c12; }
+    .relic-item .relic-name { font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+    .relic-item .relic-desc { font-size: 10px; color: #aaa; line-height: 1.3; }
+    .relic-item .relic-rarity { font-size: 10px; margin-top: 4px; color: #888; }
+    .relic-item.undiscovered .relic-name { color: #666; }
+    .relic-item.undiscovered .relic-icon { background: #333; border-color: #555; }
+    .relic-item.undiscovered .relic-desc, .relic-item.undiscovered .relic-rarity { display: none; }
+    .relic-item .undiscovered-icon {
+      font-size: 30px;
+      color: #666;
+    }
+
     /* 卡牌详情弹窗 */
     #compendium-detail {
       display: none;
@@ -3348,7 +3445,7 @@
       <span id="floor-display">🏠 第1章 第1层</span>
       <span class="hp">❤️ <span id="map-hp">80</span>/<span id="map-max-hp">80</span></span>
       <span class="energy">💰 <span id="map-gold">0</span></span>
-      <span id="relics-header" style="color:#ffd700;font-size:14px;">🎁 遗物: <span id="relics-count">0</span></span>
+      <span id="relics-header" style="color:#ffd700;font-size:14px;cursor:pointer;" onclick="openRelicCompendium()">🏺 遗物: <span id="relics-count">0</span></span>
       <span id="pets-header" style="color:#4ecdc4;font-size:14px;cursor:pointer;" onclick="showPetsShop()">🐾 宠物: <span id="pets-count">0</span></span>
       <span id="achievements-header" style="color:#9b59b6;font-size:14px;cursor:pointer;" onclick="showAchievements()">🏆 成就: <span id="achievements-count">0</span></span>
       <span id="guidebook-header" style="color:#3498db;font-size:14px;cursor:pointer;" onclick="showCardGuidebook()">📖 图鉴: <span id="guidebook-count">0</span></span>
@@ -9586,6 +9683,9 @@ function addRelic(relic) {
   gameState.relics.push({ ...relic });
   gameState.acquiredRelicIds.push(relic.id);
   
+  // 发现遗物到图鉴
+  discoverRelic(relic.id);
+  
   // 应用遗物效果
   if (relic.effect && relic.effect.maxHpBonus) {
     gameState.playerMaxHp += relic.effect.maxHpBonus;
@@ -10702,6 +10802,7 @@ function grantStartingRelic() {
   if (startingRelic && !gameState.acquiredRelicIds.includes(startingRelic.id)) {
     gameState.relics.push({ ...startingRelic });
     gameState.acquiredRelicIds.push(startingRelic.id);
+    discoverRelic(startingRelic.id);
     // 初始遗物效果：最大能量+1
     if (startingRelic.effect.maxEnergyBonus) {
       gameState.maxEnergy += startingRelic.effect.maxEnergyBonus;
@@ -10742,6 +10843,7 @@ function selectStarterRelic(relic) {
   // 添加遗物
   gameState.relics.push({ ...relic });
   gameState.acquiredRelicIds.push(relic.id);
+  discoverRelic(relic.id);
   
   // 应用遗物效果
   if (relic.effect.maxEnergyBonus) {
@@ -10937,6 +11039,7 @@ function startDailyChallenge() {
   const starterRelic = challenge.startingRelic;
   gameState.relics.push({ ...starterRelic });
   gameState.acquiredRelicIds.push(starterRelic.id);
+  discoverRelic(starterRelic.id);
   if (starterRelic.effect.maxEnergyBonus) {
     gameState.maxEnergy += starterRelic.effect.maxEnergyBonus;
   }
@@ -11092,6 +11195,7 @@ function startBossRush() {
   const starterRelic = random.pick(STARTER_RELICS_POOL);
   gameState.relics.push({ ...starterRelic });
   gameState.acquiredRelicIds.push(starterRelic.id);
+  discoverRelic(starterRelic.id);
   if (starterRelic.effect.maxEnergyBonus) {
     gameState.maxEnergy += starterRelic.effect.maxEnergyBonus;
   }
@@ -13697,6 +13801,7 @@ function buyShopRelic(index) {
   gameState.gold -= price;
   gameState.relics.push({ ...relic });
   gameState.acquiredRelicIds.push(relic.id);
+  discoverRelic(relic.id);
   gameState.boughtRelicIndices.push(index);
 
   // 更新最大遗物数
@@ -18859,6 +18964,101 @@ function updateOnlineStatus() {
 
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
+
+// ===== 遗物图鉴功能 =====
+let relicCompendiumFilter = 'all';
+let discoveredRelics = JSON.parse(localStorage.getItem('discoveredRelics') || '[]');
+
+// 打开遗物图鉴
+function openRelicCompendium() {
+  document.getElementById('relic-compendium').classList.add('show');
+  renderRelicCompendium();
+}
+
+// 关闭遗物图鉴
+function closeRelicCompendium() {
+  document.getElementById('relic-compendium').classList.remove('show');
+}
+
+// 渲染遗物图鉴
+function renderRelicCompendium() {
+  const grid = document.getElementById('relic-compendium-grid');
+  const totalRelics = Object.keys(RELICS).length;
+  let discovered = 0;
+  
+  // 计算已发现遗物
+  Object.keys(RELICS).forEach(id => {
+    if (discoveredRelics.includes(id)) discovered++;
+  });
+  
+  document.getElementById('relic-compendium-discovered').textContent = discovered;
+  document.getElementById('relic-compendium-total').textContent = totalRelics;
+  
+  // 筛选遗物
+  const filteredRelics = Object.entries(RELICS).filter(([id, relic]) => {
+    if (relicCompendiumFilter === 'all') return true;
+    if (relicCompendiumFilter === 'starting') return relic.rarity === 'starting';
+    return relic.rarity === relicCompendiumFilter;
+  });
+  
+  grid.innerHTML = '';
+  filteredRelics.forEach(([id, relic]) => {
+    const isDiscovered = discoveredRelics.includes(id);
+    const itemEl = document.createElement('div');
+    itemEl.className = `relic-item ${relic.rarity} ${isDiscovered ? 'discovered' : 'undiscovered'}`;
+    
+    if (isDiscovered) {
+      itemEl.innerHTML = `
+        <div class="relic-icon">${relic.icon}</div>
+        <div class="relic-name">${relic.name}</div>
+        <div class="relic-desc">${relic.description}</div>
+        <div class="relic-rarity">${getRarityName(relic.rarity)}</div>
+      `;
+      itemEl.onclick = () => showRelicDetail(relic);
+    } else {
+      itemEl.innerHTML = `
+        <div class="relic-icon"><span class="undiscovered-icon">❓</span></div>
+        <div class="relic-name">未发现</div>
+      `;
+    }
+    
+    grid.appendChild(itemEl);
+  });
+}
+
+// 显示遗物详情
+function showRelicDetail(relic) {
+  alert(`${relic.icon} ${relic.name}\n\n稀有度: ${getRarityName(relic.rarity)}\n效果: ${relic.description}`);
+}
+
+// 获取稀有度中文名
+function getRarityName(rarity) {
+  const names = {
+    starting: '初始',
+    common: '普通',
+    rare: '稀有',
+    legendary: '传说'
+  };
+  return names[rarity] || rarity;
+}
+
+// 遗物发现时调用
+function discoverRelic(relicId) {
+  if (!discoveredRelics.includes(relicId)) {
+    discoveredRelics.push(relicId);
+    localStorage.setItem('discoveredRelics', JSON.stringify(discoveredRelics));
+  }
+}
+
+// 切换遗物图鉴筛选
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('relic-filter-btn')) {
+    relicCompendiumFilter = e.target.dataset.rarity;
+    document.querySelectorAll('.relic-filter-btn').forEach(btn => btn.classList.remove('active'));
+    e.target.classList.add('active');
+    renderRelicCompendium();
+  }
+});
 </script>
 
 <!-- V42 扭蛋抽卡模态框 -->
@@ -18953,6 +19153,23 @@ window.addEventListener('offline', updateOnlineStatus);
     </div>
   </div>
   <div class="detail-effect" id="detail-effect"></div>
+</div>
+
+<!-- 遗物图鉴 -->
+<div id="relic-compendium">
+  <div class="compendium-header">
+    <h2>🏺 遗物图鉴</h2>
+    <div class="compendium-stats">已发现: <span id="relic-compendium-discovered">0</span>/<span id="relic-compendium-total">0</span></div>
+    <button class="compendium-close" onclick="closeRelicCompendium()">✕</button>
+  </div>
+  <div class="compendium-filter">
+    <button data-rarity="all" class="relic-filter-btn active">全部</button>
+    <button data-rarity="starting" class="relic-filter-btn">初始</button>
+    <button data-rarity="common" class="relic-filter-btn">普通</button>
+    <button data-rarity="rare" class="relic-filter-btn">稀有</button>
+    <button data-rarity="legendary" class="relic-filter-btn">传说</button>
+  </div>
+  <div class="compendium-grid" id="relic-compendium-grid"></div>
 </div>
 
 <!-- Replay System UI -->
