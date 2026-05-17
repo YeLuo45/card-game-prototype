@@ -2577,6 +2577,38 @@
     }
     .gacha-btn:hover { transform: scale(1.05); }
     .gacha-btn:disabled { background: #555; color: #888; cursor: not-allowed; transform: none; }
+
+    /* Replay System */
+    #replay-panel {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.9);
+      border: 2px solid #ffd700;
+      border-radius: 15px;
+      padding: 15px 20px;
+      z-index: 200;
+      min-width: 400px;
+    }
+    #replay-panel.show { display: block; }
+    #replay-title { color: #ffd700; font-size: 16px; font-weight: bold; margin-bottom: 10px; text-align: center; }
+    #replay-controls { display: flex; align-items: center; gap: 10px; }
+    #replay-progress-container { flex: 1; position: relative; height: 20px; background: #333; border-radius: 10px; cursor: pointer; }
+    #replay-progress-bar { height: 100%; background: linear-gradient(90deg, #2ecc71, #ffd700); border-radius: 10px; transition: width 0.1s; }
+    #replay-keyframes { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; }
+    .replay-kf-marker { position: absolute; top: -5px; width: 8px; height: 30px; background: #ff6b6b; border-radius: 4px; transform: translateX(-50%); pointer-events: auto; cursor: pointer; }
+    .replay-kf-marker:hover { background: #ffd700; }
+    #replay-time { color: #aaa; font-size: 12px; min-width: 80px; text-align: center; }
+    .replay-btn { padding: 8px 15px; background: linear-gradient(145deg, #3498db, #2980b9); border: none; border-radius: 15px; color: #fff; cursor: pointer; font-size: 14px; }
+    .replay-btn:hover { transform: scale(1.05); }
+    .replay-btn.active { background: linear-gradient(145deg, #e74c3c, #c0392b); }
+    #replay-speed-btn { background: linear-gradient(145deg, #9b59b6, #8e44ad); font-size: 12px; padding: 6px 10px; }
+    #replay-close-btn { background: linear-gradient(145deg, #555, #333); font-size: 12px; padding: 6px 10px; }
+    .replay-kill { background: #ff6b6b; }
+    .replay-damage { background: #f39c12; }
+    .replay-milestone { background: #9b59b6; }
   </style>
 </head>
 <body>
@@ -3160,6 +3192,15 @@ function registerAllPhases() {
       gameState.archetypeState = {};
       gameState.archetypeState.killTriggered = false;
       applyArchetypeEffects('battleStart');
+      
+      // V53: 开始Replay录制
+      if (!ReplaySystem.currentRunId) {
+        ReplaySystem.currentRunId = 'run_' + Date.now();
+      }
+      if (ReplaySystem.recorder) {
+        ReplaySystem.startNewBattle();
+        ReplaySystem.recordBattleStart(enemy);
+      }
       
       if (checkTutorialTrigger('battleStart')) {
         showTutorial('t1_battle');
@@ -4649,6 +4690,521 @@ function getCardUpgradeInfo(card) {
   }
   return null;
 }
+
+// ===== V53 观战Replay系统 =====
+// ReplayRecorder - 记录战斗过程
+class ReplayRecorder {
+  constructor(runId) {
+    this.runId = runId;
+    this.battleIndex = 0;
+    this.frames = [];
+    this.keyFrames = [];
+    this.startTime = Date.now();
+  }
+
+  // 记录事件帧
+  record(action, data) {
+    const frame = {
+      timestamp: Date.now() - this.startTime,
+      action: action,
+      data: { ...data },
+      gameState: this.captureSnapshot()
+    };
+    this.frames.push(frame);
+
+    // 检测关键帧
+    if (this.isKeyFrame(action, data)) {
+      this.keyFrames.push({
+        index: this.frames.length - 1,
+        type: this.getKeyFrameType(action, data),
+        timestamp: frame.timestamp,
+        summary: this.getKeyFrameSummary(action, data)
+      });
+    }
+  }
+
+  // 捕获当前游戏状态快照（仅关键数据）
+  captureSnapshot() {
+    return {
+      turn: gameState.turn,
+      playerHp: gameState.playerHp,
+      playerMaxHp: gameState.playerMaxHp,
+      playerShield: gameState.playerShield,
+      energy: gameState.energy,
+      enemyHp: gameState.enemyHp,
+      enemyMaxHp: gameState.enemyMaxHp,
+      enemyArmor: gameState.enemyArmor,
+      handCount: gameState.hand ? gameState.hand.length : 0,
+      deckCount: gameState.drawPile ? gameState.drawPile.length : 0
+    };
+  }
+
+  // 判断是否为关键帧
+  isKeyFrame(action, data) {
+    // 击杀敌人
+    if (action === 'enemy_death') return true;
+    // 高伤害
+    if (action === 'damage' && data.damage && data.damage >= 20) return true;
+    // 造成大伤害
+    if (action === 'deal_damage' && data.value && data.value >= 25) return true;
+    // 关键状态变化
+    if (action === 'buff' && data.type === 'vulnerable') return true;
+    if (action === 'buff' && data.type === 'weak') return true;
+    // 玩家受重伤
+    if (action === 'player_damage' && data.damage && data.damage >= 15) return true;
+    // 结束回合
+    if (action === 'turn_end') return true;
+    return false;
+  }
+
+  getKeyFrameType(action, data) {
+    if (action === 'enemy_death') return 'kill';
+    if (action === 'deal_damage' && data.value >= 25) return 'bigDamage';
+    if (action === 'player_damage' && data.damage >= 15) return 'bigDamage';
+    return 'milestone';
+  }
+
+  getKeyFrameSummary(action, data) {
+    switch(action) {
+      case 'enemy_death': return '击杀敌人';
+      case 'deal_damage': return `造成${data.value}点伤害`;
+      case 'player_damage': return `受到${data.damage}点伤害`;
+      case 'turn_end': return `回合${gameState.turn}结束`;
+      default: return action;
+    }
+  }
+
+  // 获取完整replay数据
+  getReplay() {
+    return {
+      runId: this.runId,
+      battleIndex: this.battleIndex,
+      startTime: this.startTime,
+      frames: this.frames,
+      keyFrames: this.keyFrames,
+      duration: Date.now() - this.startTime
+    };
+  }
+
+  // 获取关键帧
+  getKeyFrames() {
+    return this.keyFrames;
+  }
+
+  // 重置以开始新战斗
+  resetForNewBattle() {
+    this.battleIndex++;
+    this.frames = [];
+    this.keyFrames = [];
+    this.startTime = Date.now();
+  }
+}
+
+// ReplayPlayer - 回放战斗
+class ReplayPlayer {
+  constructor(replayData) {
+    this.data = replayData;
+    this.currentFrame = 0;
+    this.isPlaying = false;
+    this.speed = 1;
+    this.intervalId = null;
+    this.onFrameUpdate = null;
+    this.onEnd = null;
+  }
+
+  // 开始回放
+  play() {
+    if (this.isPlaying) return;
+    if (this.currentFrame >= this.data.frames.length) {
+      this.currentFrame = 0;
+    }
+    this.isPlaying = true;
+    this.scheduleNextFrame();
+  }
+
+  scheduleNextFrame() {
+    if (!this.isPlaying || this.currentFrame >= this.data.frames.length) {
+      this.isPlaying = false;
+      if (this.onEnd) this.onEnd();
+      return;
+    }
+    const frame = this.data.frames[this.currentFrame];
+    const delay = Math.max(50, 200 / this.speed); // 基础200ms，最快50ms
+    this.intervalId = setTimeout(() => {
+      if (this.onFrameUpdate) {
+        this.onFrameUpdate(frame, this.currentFrame, this.data.frames.length);
+      }
+      this.currentFrame++;
+      this.scheduleNextFrame();
+    }, delay);
+  }
+
+  // 暂停
+  pause() {
+    this.isPlaying = false;
+    if (this.intervalId) {
+      clearTimeout(this.intervalId);
+      this.intervalId = null;
+    }
+  }
+
+  // 跳转到指定帧
+  seek(frameIndex) {
+    this.currentFrame = Math.max(0, Math.min(frameIndex, this.data.frames.length - 1));
+    if (this.onFrameUpdate) {
+      const frame = this.data.frames[this.currentFrame];
+      this.onFrameUpdate(frame, this.currentFrame, this.data.frames.length);
+    }
+  }
+
+  // 设置播放速度
+  setSpeed(multiplier) {
+    this.speed = Math.max(0.25, Math.min(4, multiplier));
+  }
+
+  // 获取进度 0-1
+  getProgress() {
+    if (this.data.frames.length === 0) return 0;
+    return this.currentFrame / this.data.frames.length;
+  }
+
+  // 获取当前时间
+  getCurrentTime() {
+    if (this.currentFrame > 0 && this.currentFrame <= this.data.frames.length) {
+      return this.data.frames[this.currentFrame - 1].timestamp;
+    }
+    return 0;
+  }
+
+  getTotalTime() {
+    if (this.data.frames.length > 0) {
+      return this.data.frames[this.data.frames.length - 1].timestamp;
+    }
+    return 0;
+  }
+}
+
+// ReplaySystem - 统一管理
+const ReplaySystem = {
+  recorder: null,
+  player: null,
+  currentRunId: null,
+  savedReplays: [],
+
+  // 初始化
+  init() {
+    this.loadSavedReplays();
+    this.bindEvents();
+  },
+
+  // 加载已保存的回放列表
+  loadSavedReplays() {
+    try {
+      const data = localStorage.getItem('replay_list');
+      this.savedReplays = data ? JSON.parse(data) : [];
+    } catch (e) {
+      this.savedReplays = [];
+    }
+  },
+
+  // 保存回放列表
+  saveReplayList() {
+    try {
+      localStorage.setItem('replay_list', JSON.stringify(this.savedReplays));
+    } catch (e) {
+      console.warn('Failed to save replay list');
+    }
+  },
+
+  // 开始新记录
+  startRecording(runId) {
+    this.currentRunId = runId;
+    this.recorder = new ReplayRecorder(runId);
+    this.player = null;
+    this.hideReplayPanel();
+  },
+
+  // 记录战斗开始
+  recordBattleStart(enemy) {
+    if (this.recorder) {
+      this.recorder.record('battle_start', {
+        enemyName: enemy.name,
+        enemyHp: enemy.hp,
+        floor: gameState.currentFloor
+      });
+    }
+  },
+
+  // 记录卡牌使用
+  recordCardPlay(card, target) {
+    if (this.recorder) {
+      this.recorder.record('card_play', {
+        cardName: card.name,
+        cardType: card.type,
+        cost: card.cost,
+        target: target
+      });
+    }
+  },
+
+  // 记录伤害
+  recordDamage(damage, target, isCritical) {
+    if (this.recorder) {
+      this.recorder.record('deal_damage', {
+        damage: damage,
+        target: target,
+        isCritical: isCritical
+      });
+    }
+  },
+
+  // 记录敌人死亡
+  recordEnemyDeath() {
+    if (this.recorder) {
+      this.recorder.record('enemy_death', {
+        finalHit: true
+      });
+    }
+  },
+
+  // 记录玩家受伤
+  recordPlayerDamage(damage) {
+    if (this.recorder) {
+      this.recorder.record('player_damage', {
+        damage: damage
+      });
+    }
+  },
+
+  // 记录回合结束
+  recordTurnEnd() {
+    if (this.recorder) {
+      this.recorder.record('turn_end', {
+        turn: gameState.turn
+      });
+    }
+  },
+
+  // 记录buff/debuff
+  recordBuff(type, target, stacks) {
+    if (this.recorder) {
+      this.recorder.record('buff', {
+        type: type,
+        target: target,
+        stacks: stacks
+      });
+    }
+  },
+
+  // 结束战斗时保存回放
+  finishBattle(victory) {
+    if (!this.recorder) return null;
+    
+    this.recorder.record('battle_end', { victory: victory });
+    
+    const replay = this.recorder.getReplay();
+    const key = `replay_${this.currentRunId}_${replay.battleIndex}`;
+    
+    try {
+      localStorage.setItem(key, JSON.stringify(replay));
+      this.savedReplays.push({
+        key: key,
+        runId: this.currentRunId,
+        battleIndex: replay.battleIndex,
+        timestamp: Date.now(),
+        duration: replay.duration,
+        frameCount: replay.frames.length,
+        keyFrames: replay.keyFrames
+      });
+      this.saveReplayList();
+    } catch (e) {
+      console.warn('Failed to save replay:', e);
+    }
+    
+    return replay;
+  },
+
+  // 开始新战斗（重置recorder）
+  startNewBattle() {
+    if (this.recorder) {
+      this.recorder.resetForNewBattle();
+    }
+  },
+
+  // 获取回放
+  getReplay(runId, battleIndex) {
+    const key = `replay_${runId}_${battleIndex}`;
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      return null;
+    }
+  },
+
+  // 获取回放列表
+  getReplayList() {
+    return this.savedReplays;
+  },
+
+  // 删除回放
+  deleteReplay(key) {
+    try {
+      localStorage.removeItem(key);
+      this.savedReplays = this.savedReplays.filter(r => r.key !== key);
+      this.saveReplayList();
+    } catch (e) {
+      console.warn('Failed to delete replay');
+    }
+  },
+
+  // 开始回放指定replay
+  playReplay(replayData) {
+    if (this.player) {
+      this.player.pause();
+    }
+    this.player = new ReplayPlayer(replayData);
+    this.showReplayPanel();
+    
+    const self = this;
+    this.player.onFrameUpdate = (frame, current, total) => {
+      self.updateReplayUI(current, total, frame);
+    };
+    this.player.onEnd = () => {
+      self.updatePlayButton(false);
+    };
+  },
+
+  // 绑定UI事件
+  bindEvents() {
+    const playBtn = document.getElementById('replay-play-btn');
+    const speedBtn = document.getElementById('replay-speed-btn');
+    const closeBtn = document.getElementById('replay-close-btn');
+    const progressContainer = document.getElementById('replay-progress-container');
+    
+    if (playBtn) {
+      playBtn.onclick = () => this.togglePlay();
+    }
+    if (speedBtn) {
+      speedBtn.onclick = () => this.cycleSpeed();
+    }
+    if (closeBtn) {
+      closeBtn.onclick = () => this.closeReplay();
+    }
+    if (progressContainer) {
+      progressContainer.onclick = (e) => this.seekToPosition(e);
+    }
+  },
+
+  // 更新回放UI
+  updateReplayUI(current, total, frame) {
+    const progressBar = document.getElementById('replay-progress-bar');
+    const timeDisplay = document.getElementById('replay-time');
+    
+    if (progressBar) {
+      progressBar.style.width = `${(current / total) * 100}%`;
+    }
+    if (timeDisplay && this.player) {
+      const currentTime = Math.floor(this.player.getCurrentTime() / 1000);
+      const totalTime = Math.floor(this.player.getTotalTime() / 1000);
+      timeDisplay.textContent = `${currentTime}s / ${totalTime}s`;
+    }
+    this.updatePlayButton(true);
+  },
+
+  // 更新播放按钮状态
+  updatePlayButton(isPlaying) {
+    const playBtn = document.getElementById('replay-play-btn');
+    if (playBtn) {
+      playBtn.textContent = isPlaying ? '⏸️' : '▶️';
+      playBtn.classList.toggle('active', isPlaying);
+    }
+  },
+
+  // 显示回放面板
+  showReplayPanel() {
+    const panel = document.getElementById('replay-panel');
+    if (panel) {
+      panel.classList.add('show');
+      this.renderKeyFrames();
+    }
+  },
+
+  // 隐藏回放面板
+  hideReplayPanel() {
+    const panel = document.getElementById('replay-panel');
+    if (panel) {
+      panel.classList.remove('show');
+    }
+  },
+
+  // 渲染关键帧标记
+  renderKeyFrames() {
+    if (!this.player || !this.player.data.keyFrames) return;
+    
+    const container = document.getElementById('replay-keyframes');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    const totalFrames = this.player.data.frames.length;
+    
+    this.player.data.keyFrames.forEach(kf => {
+      const marker = document.createElement('div');
+      marker.className = `replay-kf-marker replay-${kf.type}`;
+      marker.style.left = `${(kf.index / totalFrames) * 100}%`;
+      marker.title = kf.summary;
+      marker.onclick = (e) => {
+        e.stopPropagation();
+        this.player.seek(kf.index);
+      };
+      container.appendChild(marker);
+    });
+  },
+
+  // 切换播放/暂停
+  togglePlay() {
+    if (!this.player) return;
+    if (this.player.isPlaying) {
+      this.player.pause();
+      this.updatePlayButton(false);
+    } else {
+      this.player.play();
+      this.updatePlayButton(true);
+    }
+  },
+
+  // 循环速度
+  cycleSpeed() {
+    if (!this.player) return;
+    const speeds = [0.5, 1, 2, 4];
+    const currentIndex = speeds.indexOf(this.player.speed);
+    const nextIndex = (currentIndex + 1) % speeds.length;
+    this.player.setSpeed(speeds[nextIndex]);
+    
+    const speedBtn = document.getElementById('replay-speed-btn');
+    if (speedBtn) {
+      speedBtn.textContent = `${speeds[nextIndex]}x`;
+    }
+  },
+
+  // 关闭回放
+  closeReplay() {
+    if (this.player) {
+      this.player.pause();
+      this.player = null;
+    }
+    this.hideReplayPanel();
+  },
+
+  // 点击进度条跳转
+  seekToPosition(e) {
+    if (!this.player) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    const frameIndex = Math.floor(percent * this.player.data.frames.length);
+    this.player.seek(frameIndex);
+  }
+};
 
 // ===== V12 音效与特效系统 =====
 
@@ -12612,6 +13168,9 @@ function playCard(card, index) {
 
   const effect = card.effect || card;
 
+  // V53: Record card play
+  ReplaySystem.recordCardPlay(card, 'enemy');
+
   // V32 流派效果: 在卡牌效果结算前触发，允许流派修改卡牌效果
   applyArchetypeEffects('cardPlay', { card, effect });
 
@@ -13212,6 +13771,8 @@ function dealDamageToEnemy(damage) {
       addLog(`💥 暴击！伤害翻倍！`, 'damage');
     }
     gameState.enemyHp -= actualDamage;
+    // V53: Record damage dealt
+    ReplaySystem.recordDamage(actualDamage, 'enemy', isCritical);
     // V28 统计：记录伤害
     if (gameState.statistics) {
       gameState.statistics.totalDamage += actualDamage;
@@ -14090,6 +14651,9 @@ function checkEnemyDeath() {
     // 战斗胜利
     addLog(`${gameState.enemy.name} 被击败！`, 'info');
     audioManager.play('enemyDeath');
+    
+    // V53: Record enemy death for replay
+    ReplaySystem.recordEnemyDeath();
     
     // V33 章节战斗追踪：非Boss战胜利后计数
     chapterState.currentBattleInChapter++;
@@ -16684,11 +17248,13 @@ document.getElementById('confirm-yes-btn').onclick = confirmRemoveCard;
 document.getElementById('confirm-no-btn').onclick = closeConfirmDialog;
 
 // 初始化移动端支持
-document.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('load', () => {
   initMobileSupport();
   registerServiceWorker();
   // V43 加载进度数据
   loadProgress();
+  // V53 初始化Replay系统
+  ReplaySystem.init();
 });
 
 // Service Worker 注册
@@ -16791,6 +17357,21 @@ window.addEventListener('offline', updateOnlineStatus);
 
 <!-- Toast通知容器 -->
 <div id="toast-container"></div>
+
+<!-- Replay System UI -->
+<div id="replay-panel">
+  <div id="replay-title">🔄 回放模式</div>
+  <div id="replay-controls">
+    <button class="replay-btn" id="replay-play-btn">▶️</button>
+    <div id="replay-progress-container">
+      <div id="replay-progress-bar" style="width: 0%"></div>
+      <div id="replay-keyframes"></div>
+    </div>
+    <span id="replay-time">0 / 0</span>
+    <button class="replay-btn" id="replay-speed-btn">1x</button>
+    <button class="replay-btn" id="replay-close-btn">✕</button>
+  </div>
+</div>
 
 </body>
 </html>
