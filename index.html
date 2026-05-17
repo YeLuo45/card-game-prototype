@@ -1868,7 +1868,7 @@
     #quick-save-btn:hover { transform: scale(1.05); }
     #skip-upgrade-btn:hover { background: #666; }
 
-    /* 成就系统 V9 */
+    /* 成就系统 V9 + V10增强 */
     #achievements-overlay {
       display: none;
       position: fixed;
@@ -1876,19 +1876,39 @@
       background: rgba(0,0,0,0.92);
       z-index: 150;
       justify-content: center;
-      align-items: center;
+      align-items: flex-start;
       flex-direction: column;
       overflow-y: auto;
+      padding: 20px;
     }
     #achievements-overlay.show { display: flex; }
-    #achievements-title { font-size: 32px; color: #ffd700; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
-    #achievements-subtitle { color: #aaa; margin-bottom: 25px; font-size: 14px; }
+    #achievements-title { font-size: 32px; color: #ffd700; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+    #achievements-subtitle { color: #aaa; margin-bottom: 15px; font-size: 14px; }
+    /* 成就分类筛选标签 */
+    #achievements-filters {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .achievement-filter-btn {
+      padding: 8px 16px;
+      background: rgba(60,60,80,0.8);
+      border: 2px solid #555;
+      border-radius: 20px;
+      color: #aaa;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .achievement-filter-btn:hover { border-color: #888; color: #fff; }
+    .achievement-filter-btn.active { background: rgba(155,89,182,0.4); border-color: #9b59b6; color: #fff; }
     #achievements-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 15px;
       max-width: 900px;
-      width: 90%;
+      width: 100%;
       padding: 10px;
     }
     .achievement-card {
@@ -1896,13 +1916,25 @@
       border-radius: 12px;
       padding: 15px;
       border: 2px solid #444;
-      transition: transform 0.2s, border-color 0.3s;
+      transition: transform 0.2s, border-color 0.3s, box-shadow 0.3s;
       display: flex;
       gap: 12px;
       align-items: center;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
     }
-    .achievement-card.unlocked { border-color: #ffd700; background: rgba(50,45,30,0.95); }
+    .achievement-card:hover { transform: scale(1.03); border-color: #666; }
+    .achievement-card.unlocked { 
+      border-color: #ffd700; 
+      background: linear-gradient(145deg, rgba(50,45,30,0.95), rgba(40,35,20,0.95));
+      box-shadow: 0 0 15px rgba(255,215,0,0.3), inset 0 0 20px rgba(255,215,0,0.05);
+    }
+    .achievement-card.unlocked:hover {
+      box-shadow: 0 0 25px rgba(255,215,0,0.5), inset 0 0 30px rgba(255,215,0,0.1);
+    }
     .achievement-card.locked { opacity: 0.6; }
+    .achievement-card.locked:hover { opacity: 0.8; }
     .achievement-icon {
       width: 50px;
       height: 50px;
@@ -1918,12 +1950,81 @@
     .achievement-card.unlocked .achievement-icon {
       background: linear-gradient(145deg, #b8860b, #daa520);
       border-color: #ffd700;
+      box-shadow: 0 0 10px rgba(255,215,0,0.4);
     }
-    .achievement-info { flex: 1; }
+    .achievement-info { flex: 1; min-width: 0; }
     .achievement-name { font-size: 15px; color: #fff; font-weight: bold; margin-bottom: 4px; }
-    .achievement-desc { font-size: 12px; color: #aaa; }
+    .achievement-desc { font-size: 12px; color: #aaa; margin-bottom: 6px; }
     .achievement-card.unlocked .achievement-name { color: #ffd700; }
     .achievement-unlock-time { font-size: 10px; color: #888; margin-top: 4px; }
+    /* 成就进度条 */
+    .achievement-progress {
+      width: 100%;
+      height: 6px;
+      background: rgba(60,60,80,0.8);
+      border-radius: 3px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .achievement-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #9b59b6, #8e44ad);
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+    .achievement-card.unlocked .achievement-progress-fill {
+      background: linear-gradient(90deg, #f39c12, #ffd700);
+    }
+    .achievement-progress-text {
+      font-size: 10px;
+      color: #888;
+      margin-top: 3px;
+      display: flex;
+      justify-content: space-between;
+    }
+    /* 成就详情弹窗 */
+    #achievement-detail-popup {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(145deg, #1a1a2e, #16213e);
+      border: 3px solid #ffd700;
+      border-radius: 16px;
+      padding: 25px;
+      min-width: 320px;
+      max-width: 90%;
+      z-index: 200;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(255,215,0,0.3);
+    }
+    #achievement-detail-popup.show { display: block; }
+    #achievement-detail-icon { font-size: 60px; margin-bottom: 15px; }
+    #achievement-detail-name { font-size: 24px; color: #ffd700; font-weight: bold; margin-bottom: 10px; }
+    #achievement-detail-desc { font-size: 14px; color: #ccc; margin-bottom: 15px; }
+    #achievement-detail-category { font-size: 12px; color: #9b59b6; margin-bottom: 10px; }
+    #achievement-detail-status { font-size: 14px; margin-bottom: 15px; }
+    #achievement-detail-status.unlocked { color: #4ecdc4; }
+    #achievement-detail-status.locked { color: #888; }
+    #achievement-detail-progress { margin-bottom: 15px; }
+    #achievement-detail-progress-bar {
+      width: 100%;
+      height: 12px;
+      background: rgba(60,60,80,0.8);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    #achievement-detail-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #9b59b6, #8e44ad);
+      border-radius: 6px;
+      transition: width 0.3s;
+    }
+    #achievement-detail-progress-fill.unlocked {
+      background: linear-gradient(90deg, #f39c12, #ffd700);
+    }
     #close-achievements-btn {
       margin-top: 20px;
       padding: 12px 40px;
@@ -3088,12 +3189,35 @@
   <button id="skip-upgrade-btn">跳过升级</button>
 </div>
 
-<!-- 成就系统遮罩 V9 -->
+<!-- 成就系统遮罩 V9 + V10增强 -->
 <div id="achievements-overlay">
   <div id="achievements-title">🏆 成就系统</div>
-  <div id="achievements-subtitle">已解锁: <span id="achievements-unlocked-count">0</span> / <span id="achievements-total-count">0</span></div>
+  <div id="achievements-subtitle">已解锁: <span id="achievements-unlocked-count">0</span> / <span id="achievements-total-count">0</span> (<span id="achievements-percentage">0</span>%)</div>
+  <div id="achievements-filters">
+    <button class="achievement-filter-btn active" data-filter="all">全部</button>
+    <button class="achievement-filter-btn" data-filter="battle">⚔️ 战斗</button>
+    <button class="achievement-filter-btn" data-filter="progression">📈 进度</button>
+    <button class="achievement-filter-btn" data-filter="collection">🃏 收藏</button>
+    <button class="achievement-filter-btn" data-filter="economy">💰 经济</button>
+    <button class="achievement-filter-btn" data-filter="special">✨ 特殊</button>
+  </div>
   <div id="achievements-grid"></div>
   <button id="close-achievements-btn">关闭</button>
+</div>
+
+<!-- 成就详情弹窗 V10 -->
+<div id="achievement-detail-popup">
+  <div id="achievement-detail-icon"></div>
+  <div id="achievement-detail-name"></div>
+  <div id="achievement-detail-desc"></div>
+  <div id="achievement-detail-category"></div>
+  <div id="achievement-detail-status"></div>
+  <div id="achievement-detail-progress">
+    <div id="achievement-detail-progress-text"></div>
+    <div id="achievement-detail-progress-bar">
+      <div id="achievement-detail-progress-fill"></div>
+    </div>
+  </div>
 </div>
 
 <!-- V16 卡组预览遮罩 -->
@@ -11067,23 +11191,65 @@ function checkAchievements() {
   }
 }
 
-// 显示成就界面
+// 获取成就当前进度
+function getAchievementProgress(achievement) {
+  const state = gameState;
+  switch(achievement.id) {
+    case 'firstBlood': return { current: state.totalBattlesWon || 0, target: 1 };
+    case 'battleMaster': return { current: state.totalBattlesWon || 0, target: 10 };
+    case 'slayer': return { current: state.totalEnemiesDefeated || 0, target: 100 };
+    case 'bossSlayer': return { current: state.totalBossesDefeated || 0, target: 3 };
+    case 'firstVictory': return { current: state.totalVictories || 0, target: 1 };
+    case 'champion': return { current: state.totalVictories || 0, target: 5 };
+    case 'cardCollector': return { current: state.maxCardsOwned || 0, target: 15 };
+    case 'relicHunter': return { current: state.maxRelicsOwned || 0, target: 5 };
+    case 'wealthy': return { current: state.totalGoldEarned || 0, target: 500 };
+    case 'flawlessVictory': return { current: state.flawlessVictories || 0, target: 1 };
+    case 'noRelicVictory': return { current: state.noRelicVictories || 0, target: 1 };
+    case 'speedrunner': return { current: state.speedruns || 0, target: 1 };
+    case 'eliteHunter': return { current: (state.achievementStats && state.achievementStats.totalElitesDefeated) || 0, target: 10 };
+    case 'chapterMaster': return { current: state.totalChaptersCompleted || 0, target: 3 };
+    case 'megaWealthy': return { current: state.totalGoldEarned || 0, target: 2000 };
+    case 'cardHoarder': return { current: state.maxCardsOwned || 0, target: 30 };
+    case 'relicCollector': return { current: state.maxRelicsOwned || 0, target: 10 };
+    case 'deckBuilder': return { current: (state.achievementStats && state.achievementStats.maxCardsAddedInOneRun) || 0, target: 20 };
+    default: return { current: 0, target: 1 };
+  }
+}
+
+// 显示成就界面 V10
+let currentAchievementFilter = 'all';
+
 function showAchievements() {
   const grid = document.getElementById('achievements-grid');
   const unlockedCount = document.getElementById('achievements-unlocked-count');
   const totalCount = document.getElementById('achievements-total-count');
+  const percentage = document.getElementById('achievements-percentage');
   
   const achievements = Object.values(ACHIEVEMENTS);
-  unlockedCount.textContent = gameState.unlockedAchievements.length;
-  totalCount.textContent = achievements.length;
+  const total = achievements.length;
+  const unlocked = gameState.unlockedAchievements.length;
+  
+  unlockedCount.textContent = unlocked;
+  totalCount.textContent = total;
+  percentage.textContent = total > 0 ? Math.round((unlocked / total) * 100) : 0;
   
   grid.innerHTML = '';
   
+  // 设置筛选按钮事件
+  setupAchievementFilters();
+  
   // 按分类显示
   const categoryOrder = ['battle', 'progression', 'collection', 'economy', 'special'];
+  let hasVisible = false;
+  
   categoryOrder.forEach(category => {
+    if (currentAchievementFilter !== 'all' && currentAchievementFilter !== category) return;
+    
     const categoryAchievements = achievements.filter(a => a.category === category);
     if (categoryAchievements.length === 0) return;
+    
+    hasVisible = true;
     
     // 分类标题
     const header = document.createElement('div');
@@ -11093,9 +11259,9 @@ function showAchievements() {
     
     categoryAchievements.forEach(achievement => {
       const isUnlocked = gameState.unlockedAchievements.includes(achievement.id);
-      const unlockedData = gameState.unlockedAchievements.includes(achievement.id) 
-        ? getAchievementUnlockData(achievement.id) 
-        : null;
+      const unlockedData = isUnlocked ? getAchievementUnlockData(achievement.id) : null;
+      const progress = getAchievementProgress(achievement);
+      const progressPercent = Math.min(100, Math.round((progress.current / progress.target) * 100));
       
       const card = document.createElement('div');
       card.className = `achievement-card ${isUnlocked ? 'unlocked' : 'locked'}`;
@@ -11105,13 +11271,73 @@ function showAchievements() {
           <div class="achievement-name">${achievement.name}</div>
           <div class="achievement-desc">${achievement.description}</div>
           ${isUnlocked && unlockedData ? `<div class="achievement-unlock-time">解锁于: ${unlockedData.date}</div>` : ''}
+          <div class="achievement-progress">
+            <div class="achievement-progress-fill" style="width: ${isUnlocked ? 100 : progressPercent}%"></div>
+          </div>
+          <div class="achievement-progress-text">
+            <span>${isUnlocked ? '已解锁' : progress.current + '/' + progress.target}</span>
+            <span>${isUnlocked ? '100%' : progressPercent + '%'}</span>
+          </div>
         </div>
       `;
+      
+      // 点击显示详情
+      card.addEventListener('click', () => showAchievementDetail(achievement));
+      
       grid.appendChild(card);
     });
   });
   
+  // 如果筛选后没有内容
+  if (!hasVisible) {
+    grid.innerHTML = '<div style="grid-column: 1/-1;text-align:center;color:#888;padding:40px;">该分类暂无成就</div>';
+  }
+  
   document.getElementById('achievements-overlay').classList.add('show');
+}
+
+// 设置成就筛选按钮
+function setupAchievementFilters() {
+  const filters = document.querySelectorAll('.achievement-filter-btn');
+  filters.forEach(btn => {
+    btn.onclick = () => {
+      filters.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentAchievementFilter = btn.dataset.filter;
+      showAchievements();
+    };
+  });
+}
+
+// 显示成就详情弹窗 V10
+function showAchievementDetail(achievement) {
+  const isUnlocked = gameState.unlockedAchievements.includes(achievement.id);
+  const unlockedData = isUnlocked ? getAchievementUnlockData(achievement.id) : null;
+  const progress = getAchievementProgress(achievement);
+  const progressPercent = Math.min(100, Math.round((progress.current / progress.target) * 100));
+  
+  document.getElementById('achievement-detail-icon').textContent = achievement.icon;
+  document.getElementById('achievement-detail-name').textContent = achievement.name;
+  document.getElementById('achievement-detail-desc').textContent = achievement.description;
+  document.getElementById('achievement-detail-category').textContent = '分类: ' + (ACHIEVEMENT_CATEGORIES[achievement.category] || achievement.category);
+  
+  const statusEl = document.getElementById('achievement-detail-status');
+  if (isUnlocked) {
+    statusEl.textContent = '已解锁' + (unlockedData ? ' - ' + unlockedData.date : '');
+    statusEl.className = 'unlocked';
+  } else {
+    statusEl.textContent = '未解锁';
+    statusEl.className = 'locked';
+  }
+  
+  document.getElementById('achievement-detail-progress-text').textContent = 
+    (isUnlocked ? '已完成' : progress.current + ' / ' + progress.target);
+  
+  const fillEl = document.getElementById('achievement-detail-progress-fill');
+  fillEl.style.width = progressPercent + '%';
+  fillEl.className = isUnlocked ? 'unlocked' : '';
+  
+  document.getElementById('achievement-detail-popup').classList.add('show');
 }
 
 // 获取成就解锁数据
@@ -17665,7 +17891,18 @@ document.getElementById('shop-leave').onclick = leaveShop;
 document.getElementById('achievements-btn').onclick = showAchievements;
 document.getElementById('close-achievements-btn').onclick = () => {
   document.getElementById('achievements-overlay').classList.remove('show');
+  document.getElementById('achievement-detail-popup').classList.remove('show');
 };
+// V10 点击成就详情弹窗外部关闭
+document.getElementById('achievements-overlay').addEventListener('click', (e) => {
+  if (e.target.id === 'achievements-overlay') {
+    document.getElementById('achievements-overlay').classList.remove('show');
+    document.getElementById('achievement-detail-popup').classList.remove('show');
+  }
+});
+document.getElementById('achievement-detail-popup').addEventListener('click', (e) => {
+  e.stopPropagation();
+});
 // V43 进度按钮
 document.getElementById('progress-btn').onclick = openProgressPanel;
 // V29 每日挑战按钮
