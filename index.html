@@ -2951,6 +2951,325 @@
 // ===== 插件化注册表系统 (Registry Pattern) =====
 // 参考 nanobot-design 的 ToolRegistry 模式实现
 
+// ----- PhaseEngine: 阶段工作流引擎 -----
+// 游戏流程重构为Phase流水线模式
+const PhaseEngine = {
+  _phases: new Map(),
+  _currentPhase: null,
+  _phaseStack: [],
+  
+  // 注册阶段
+  register(id, config) {
+    // config: { enter(node?), update(dt), exit(), next(result?) }
+    this._phases.set(id, {
+      id,
+      enter: config.enter || function() {},
+      update: config.update || function(dt) {},
+      exit: config.exit || function() {},
+      next: config.next || function() { return 'MAP_NAVIGATION'; }
+    });
+  },
+  
+  // 切换阶段
+  transition(to, data = null) {
+    const prev = this._currentPhase;
+    if (prev) {
+      const prevConfig = this._phases.get(prev);
+      if (prevConfig) prevConfig.exit();
+    }
+    
+    this._currentPhase = to;
+    const config = this._phases.get(to);
+    if (config) {
+      config.enter(data);
+    }
+  },
+  
+  // 获取当前阶段
+  getCurrentPhase() {
+    return this._currentPhase;
+  },
+  
+  // 更新当前阶段
+  update(dt) {
+    if (!this._currentPhase) return;
+    const config = this._phases.get(this._currentPhase);
+    if (config) {
+      config.update(dt);
+    }
+  },
+  
+  // 请求切换到下一阶段
+  requestNext(result = null) {
+    if (!this._currentPhase) return;
+    const config = this._phases.get(this._currentPhase);
+    if (config) {
+      const nextPhase = config.next(result);
+      this.transition(nextPhase, result);
+    }
+  },
+  
+  // 是否处于指定阶段
+  isIn(phaseId) {
+    return this._currentPhase === phaseId;
+  }
+};
+
+// Phase IDs
+const Phases = {
+  MAP_NAVIGATION: 'MAP_NAVIGATION',
+  COMBAT_PREPARE: 'COMBAT_PREPARE',
+  COMBAT: 'COMBAT',
+  EVENT: 'EVENT',
+  SHOP: 'SHOP',
+  RELIC_CHOICE: 'RELIC_CHOICE',
+  VICTORY: 'VICTORY',
+  DEFEAT: 'DEFEAT'
+};
+
+// 注册所有阶段
+function registerAllPhases() {
+  // MAP_NAVIGATION - 地图导航阶段
+  PhaseEngine.register(Phases.MAP_NAVIGATION, {
+    enter() {
+      gameState.inMap = true;
+      document.getElementById('map-container').style.display = 'block';
+      document.getElementById('battle-container').style.display = 'none';
+      document.getElementById('log-panel').style.display = 'none';
+      renderMap();
+      // 检查游戏结束条件
+      if (gameState.playerHp <= 0) {
+        PhaseEngine.transition(Phases.DEFEAT);
+      }
+    },
+    update(dt) {},
+    exit() {},
+    next() {
+      return Phases.MAP_NAVIGATION; // 保持在地图直到用户选择节点
+    }
+  });
+  
+  // COMBAT_PREPARE - 战斗准备阶段（宠物选择等）
+  PhaseEngine.register(Phases.COMBAT_PREPARE, {
+    enter(node) {
+      gameState.inMap = false;
+      gameState.pendingBattleNode = node;
+      showPetSelect();
+    },
+    update(dt) {},
+    exit() {},
+    next() {
+      return Phases.COMBAT;
+    }
+  });
+  
+  // COMBAT - 战斗阶段
+  PhaseEngine.register(Phases.COMBAT, {
+    enter(node) {
+      document.getElementById('map-container').style.display = 'none';
+      document.getElementById('battle-container').style.display = 'block';
+      document.getElementById('log-panel').style.display = 'block';
+      
+      // 初始化战斗（复用原有逻辑）
+      if (!node) node = gameState.pendingBattleNode;
+      if (!node) return;
+      
+      // 获取敌人类型
+      let enemyType;
+      if (chapterState.currentChapter >= 1 && chapterState.chapterEnemyPool && chapterState.chapterEnemyPool.length > 0) {
+        if (node.type === 'boss') {
+          const config = CHAPTER_CONFIG[chapterState.currentChapter];
+          if (config && config.enemies.boss) {
+            enemyType = config.enemies.boss.id;
+          } else {
+            const bossEnemies = { 1: 'slimeKing', 2: 'darkKnight', 3: 'chronos' };
+            enemyType = bossEnemies[chapterState.currentChapter] || 'slimeKing';
+          }
+        } else {
+          enemyType = chapterState.chapterEnemyPool.splice(
+            Math.floor(Math.random() * chapterState.chapterEnemyPool.length), 1
+          )[0].id;
+        }
+      } else {
+        if (node.type === 'elite') {
+          const eliteEnemies = {
+            1: ['skeleton', 'werewolf'],
+            2: ['fireElf', 'shadowAssassin'],
+            3: ['skeleton', 'werewolf', 'shadowAssassin'],
+            4: ['necromancer', 'voidBeast', 'darkKnight'],
+            5: ['darkKnight', 'minotaur', 'vampireBat'],
+            6: ['shadowKnight', 'deathBringer'],
+            7: ['deathBringer', 'oblivionHound'],
+          };
+          const pool = eliteEnemies[gameState.currentFloor];
+          enemyType = pool[Math.floor(Math.random() * pool.length)];
+        } else if (node.type === 'boss') {
+          audioManager.play('bossAppear');
+          const bossEnemies = { 1: 'slimeKing', 2: 'darkLord', 3: 'ancientDragon', 4: 'voidLord', 5: 'deckMaster', 6: 'abyssLord', 7: 'lordOfNothingness' };
+          enemyType = bossEnemies[gameState.currentFloor];
+        } else {
+          const combatEnemies = { 
+            1: ['slime', 'goblin', 'bat'], 
+            2: ['goblin', 'skeleton', 'bat', 'skeletonArcher'], 
+            3: ['skeleton', 'fireElf', 'darkMage', 'skeletonArcher', 'bat'],
+            4: ['ghost', 'plagueRat', 'stoneGolem', 'voidBeast'],
+            5: ['ghost', 'vampireBat', 'plagueRat', 'minotaur'],
+            6: ['abyssStalker', 'voidWraith', 'nothingPhantom'],
+            7: ['nothingPhantom', 'voidWraith', 'voidTendril'],
+          };
+          const pool = combatEnemies[gameState.currentFloor];
+          enemyType = pool[Math.floor(Math.random() * pool.length)];
+        }
+      }
+      
+      if (node.type === 'boss') {
+        audioManager.play('bossAppear');
+      }
+
+      const enemy = getEnemyByType(enemyType, gameState.currentFloor);
+      gameState.enemy = enemy;
+      gameState.enemyHp = enemy.hp;
+      gameState.enemyMaxHp = enemy.hp;
+      gameState.enemyArmor = enemy.armor || 0;
+      
+      // 重置战斗状态
+      gameState.energy = 3;
+      gameState.turn = 1;
+      gameState.playerShield = 0;
+      gameState.playerDebuffs = [];
+      gameState.enemyDebuffs = [];
+      gameState.thorns = 0;
+      gameState.aoeDamage = 0;
+      gameState.burnChance = 0;
+      gameState.powerCardsPlayedThisCombat = {};
+      gameState.battleLog = [];
+      gameState.gameOver = false;
+      gameState.drawPile = shuffle([...gameState.deck]);
+      gameState.guardianHornUsed = false;
+      gameState.abyssLordPhase = 1;
+      gameState.abyssLordRage = 0;
+      gameState.lordOfNothingnessPhase = 1;
+      gameState.voidDomainActive = false;
+      gameState.shadowMinions = 0;
+      gameState.annihilationCharges = 0;
+      gameState.enemyDodgeNext = false;
+      gameState.enemyNextCrit = false;
+      
+      applyRelicEffect('startOfCombat');
+      applyPetEffect('startOfCombat');
+      gameState.archetypeState = {};
+      gameState.archetypeState.killTriggered = false;
+      applyArchetypeEffects('battleStart');
+      
+      if (checkTutorialTrigger('battleStart')) {
+        showTutorial('t1_battle');
+      }
+
+      addLog(`遭遇 ${enemy.name}！`, 'info');
+      rollEnemyIntent();
+      renderEnemy();
+      renderUI();
+      updateBattleRelicsDisplay();
+      startPlayerTurn();
+    },
+    update(dt) {},
+    exit() {},
+    next(result) {
+      // 战斗结束，根据结果决定下一步
+      // result: { victory: bool, isBoss: bool, isElite: bool }
+      if (result && result.victory) {
+        if (result.isBoss) {
+          return Phases.RELIC_CHOICE; // Boss战后进入遗物选择
+        } else {
+          return Phases.RELIC_CHOICE; // 普通战斗胜利后进入奖励选择
+        }
+      } else {
+        return Phases.DEFEAT; // 战斗失败
+      }
+    }
+  });
+  
+  // EVENT - 随机事件阶段
+  PhaseEngine.register(Phases.EVENT, {
+    enter(node) {
+      gameState.inMap = false;
+      const event = getRandomEvent(node.type);
+      gameState.currentEvent = event;
+      showEvent(event);
+    },
+    update(dt) {},
+    exit() {
+      gameState.currentEvent = null;
+    },
+    next(result) {
+      completeNode(gameState.currentNode);
+      gameState.currentNode = null;
+      return Phases.MAP_NAVIGATION;
+    }
+  });
+  
+  // SHOP - 商店阶段
+  PhaseEngine.register(Phases.SHOP, {
+    enter() {
+      gameState.inMap = false;
+      handleShop();
+    },
+    update(dt) {},
+    exit() {},
+    next() {
+      // 商店结束后检查是否有待执行的后续动作
+      if (gameState.pendingChapterEndAction) {
+        const action = gameState.pendingChapterEndAction;
+        gameState.pendingChapterEndAction = null;
+        if (action.callback) action.callback();
+        return Phases.MAP_NAVIGATION;
+      }
+      if (gameState.pendingBossVictoryAction) {
+        PhaseEngine.transition(Phases.RELIC_CHOICE);
+        return Phases.RELIC_CHOICE;
+      }
+      return Phases.MAP_NAVIGATION;
+    }
+  });
+  
+  // RELIC_CHOICE - 遗物/奖励选择阶段
+  PhaseEngine.register(Phases.RELIC_CHOICE, {
+    enter() {
+      showRewardSelection();
+    },
+    update(dt) {},
+    exit() {},
+    next() {
+      // 奖励选择完成后由 finishRewardSelection 调用 returnToMap 处理
+      return Phases.MAP_NAVIGATION;
+    }
+  });
+  
+  // VICTORY - 胜利结算阶段
+  PhaseEngine.register(Phases.VICTORY, {
+    enter() {
+      showVictory();
+    },
+    update(dt) {},
+    exit() {},
+    next() {
+      return Phases.MAP_NAVIGATION;
+    }
+  });
+  
+  // DEFEAT - 失败结算阶段
+  PhaseEngine.register(Phases.DEFEAT, {
+    enter() {
+      showGameOver();
+    },
+    update(dt) {},
+    exit() {},
+    next() {
+      return Phases.MAP_NAVIGATION;
+    }
+  });
+}
+
 // ----- CardEffectRegistry: 卡牌效果注册表 -----
 const CardEffectRegistry = {
   _effects: {},
@@ -10515,19 +10834,20 @@ function enterNode() {
     case 'combat':
     case 'elite':
     case 'boss':
-      startCombat(node);
+      // 使用PhaseEngine处理战斗流程
+      PhaseEngine.transition(Phases.COMBAT_PREPARE, node);
       break;
     case 'rest':
       handleRest();
       break;
     case 'shop':
-      handleShop();
+      PhaseEngine.transition(Phases.SHOP);
       break;
     // V18 随机事件类型
     case 'treasure':
     case 'mystery':
     case 'campfire':
-      handleRandomEvent(node);
+      PhaseEngine.transition(Phases.EVENT, node);
       break;
   }
 }
@@ -11240,21 +11560,8 @@ function closeCardManagement() {
 }
 
 function returnToMap() {
-  gameState.inMap = true;
-  document.getElementById('map-container').style.display = 'block';
-  document.getElementById('battle-container').style.display = 'none';
-  document.getElementById('log-panel').style.display = 'none';
-
-  // 检查游戏结束条件
-  if (gameState.playerHp <= 0) {
-    showGameOver();
-    return;
-  }
-
-  // V19 自动存档：节点切换时
-  autoSave();
-
-  renderMap();
+  // 使用PhaseEngine切换到地图导航阶段
+  PhaseEngine.transition(Phases.MAP_NAVIGATION);
 }
 
 // ===== 战斗相关 =====
@@ -11275,124 +11582,8 @@ function startCombat(node) {
 
 // V44 继续战斗初始化（宠物选择后调用）
 function battleContinueStartCombat() {
-  const node = gameState.pendingBattleNode;
-  if (!node) return;
-  
-  // V33 多章节递进框架：从章节敌人池获取敌人
-  // 优先使用chapterState的敌人池（3章结构），否则回退到旧楼层系统
-  if (chapterState.currentChapter >= 1 && chapterState.chapterEnemyPool && chapterState.chapterEnemyPool.length > 0) {
-    // V33 从章节敌人池随机选择
-    if (node.type === 'boss') {
-      // Boss战：使用章节配置的Boss
-      const config = CHAPTER_CONFIG[chapterState.currentChapter];
-      if (config && config.enemies.boss) {
-        enemyType = config.enemies.boss.id;
-      } else {
-        // 回退到旧Boss映射
-        const bossEnemies = { 1: 'slimeKing', 2: 'darkKnight', 3: 'chronos' };
-        enemyType = bossEnemies[chapterState.currentChapter] || 'slimeKing';
-      }
-    } else {
-      // 普攻/精英战：从池中随机选一个
-      enemyType = chapterState.chapterEnemyPool.splice(
-        Math.floor(Math.random() * chapterState.chapterEnemyPool.length), 1
-      )[0].id;
-    }
-  } else {
-    // 回退到旧楼层敌人分配系统
-    if (node.type === 'elite') {
-      // 精英敌人根据楼层
-      const eliteEnemies = {
-        1: ['skeleton', 'werewolf'],
-        2: ['fireElf', 'shadowAssassin'],
-        3: ['skeleton', 'werewolf', 'shadowAssassin'],
-        4: ['necromancer', 'voidBeast', 'darkKnight'],
-        5: ['darkKnight', 'minotaur', 'vampireBat'],
-        6: ['shadowKnight', 'deathBringer'],
-        7: ['deathBringer', 'oblivionHound'],
-      };
-      const pool = eliteEnemies[gameState.currentFloor];
-      enemyType = pool[Math.floor(Math.random() * pool.length)];
-    } else if (node.type === 'boss') {
-      audioManager.play('bossAppear');
-      // Boss敌人根据楼层
-      const bossEnemies = { 1: 'slimeKing', 2: 'darkLord', 3: 'ancientDragon', 4: 'voidLord', 5: 'deckMaster', 6: 'abyssLord', 7: 'lordOfNothingness' };
-      enemyType = bossEnemies[gameState.currentFloor];
-    } else {
-      // 普通战斗敌人
-      const combatEnemies = { 
-        1: ['slime', 'goblin', 'bat'], 
-        2: ['goblin', 'skeleton', 'bat', 'skeletonArcher'], 
-        3: ['skeleton', 'fireElf', 'darkMage', 'skeletonArcher', 'bat'],
-        4: ['ghost', 'plagueRat', 'stoneGolem', 'voidBeast'],
-        5: ['ghost', 'vampireBat', 'plagueRat', 'minotaur'],
-        6: ['abyssStalker', 'voidWraith', 'nothingPhantom'],
-        7: ['nothingPhantom', 'voidWraith', 'voidTendril'],
-      };
-      const pool = combatEnemies[gameState.currentFloor];
-      enemyType = pool[Math.floor(Math.random() * pool.length)];
-    }
-  }
-  
-  // V33 Boss出现时播放音效
-  if (node.type === 'boss') {
-    audioManager.play('bossAppear');
-  }
-
-  const enemy = getEnemyByType(enemyType, gameState.currentFloor);
-  gameState.enemy = enemy;
-  gameState.enemyHp = enemy.hp;
-  gameState.enemyMaxHp = enemy.hp;
-  gameState.enemyArmor = enemy.armor || 0;
-  
-  // 重置战斗状态
-  gameState.energy = 3;
-  gameState.turn = 1;
-  gameState.playerShield = 0;
-  gameState.playerDebuffs = [];
-  gameState.enemyDebuffs = [];
-  gameState.thorns = 0;
-  gameState.aoeDamage = 0;
-  gameState.burnChance = 0;
-  gameState.powerCardsPlayedThisCombat = {};
-  gameState.battleLog = [];
-  gameState.gameOver = false;
-  gameState.drawPile = shuffle([...gameState.deck]);
-  // V11 守护者之角重置
-  gameState.guardianHornUsed = false;
-  // V20 Boss阶段重置
-  gameState.abyssLordPhase = 1;
-  gameState.abyssLordRage = 0;
-  gameState.lordOfNothingnessPhase = 1;
-  gameState.voidDomainActive = false;
-  gameState.shadowMinions = 0;
-  gameState.annihilationCharges = 0;
-  gameState.enemyDodgeNext = false;
-  gameState.enemyNextCrit = false;
-  
-  // V6 遗物效果: 战斗开始时
-  applyRelicEffect('startOfCombat');
-  
-  // V25 宠物效果: 战斗开始时
-  applyPetEffect('startOfCombat');
-  
-  // V32 流派效果: 战斗开始
-  gameState.archetypeState = {};
-  gameState.archetypeState.killTriggered = false;
-  applyArchetypeEffects('battleStart');
-
-  // V36 新手教程触发：战斗开始
-  if (checkTutorialTrigger('battleStart')) {
-    showTutorial('t1_battle');
-  }
-
-  addLog(`遭遇 ${enemy.name}！`, 'info');
-  rollEnemyIntent();
-  renderEnemy();
-  renderUI();
-  // V34 更新战斗界面遗物显示
-  updateBattleRelicsDisplay();
-  startPlayerTurn();
+  // 使用PhaseEngine处理战斗阶段转换
+  PhaseEngine.transition(Phases.COMBAT);
 }
 
 // ===== V20 章节切换与楼层推进 =====
@@ -15166,6 +15357,10 @@ function startNewGame() {
 
   initMap();
   renderMap();
+
+  // 注册PhaseEngine所有阶段并启动MAP_NAVIGATION
+  registerAllPhases();
+  PhaseEngine.transition(Phases.MAP_NAVIGATION);
 
   document.getElementById('quick-save-btn').classList.add('show');
 
