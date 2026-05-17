@@ -2927,6 +2927,7 @@
       <div class="landing-cards-count">
         <span id="landing-deck-count">10</span> 张 | 已升级 <span id="landing-upgraded-count">0</span> 张
       </div>
+      <div id="landing-daily-info" style="display:none;"></div>
     </div>
     <button id="landing-enter-map">🗺️ 进入地图</button><br>
     <button id="landing-return-title">🏠 返回首页</button>
@@ -3443,6 +3444,15 @@ function registerAllPhases() {
 
       const enemy = getEnemyByType(enemyType, gameState.currentFloor);
       gameState.enemy = enemy;
+      
+      // V51 应用每日挑战敌人modifier
+      if (gameState.enemyHpMod) {
+        enemy.hp = Math.floor(enemy.hp * gameState.enemyHpMod);
+      }
+      if (gameState.enemyArmorBonus) {
+        enemy.armor = (enemy.armor || 0) + gameState.enemyArmorBonus;
+      }
+      
       gameState.enemyHp = enemy.hp;
       gameState.enemyMaxHp = enemy.hp;
       gameState.enemyArmor = enemy.armor || 0;
@@ -6106,6 +6116,102 @@ function getDailyCountdown() {
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+// ===== V51 每日挑战完整系统 =====
+
+// 每日modifiers池
+const DAILY_MODIFIER_POOLS = {
+  enemy: [
+    { id: 'enemyAtk10', name: '敌人攻击+10%', icon: '⚔️', apply: (s) => { s.enemyAttackMod = 1.1; } },
+    { id: 'enemyAtk20', name: '敌人攻击+20%', icon: '⚔️⚔️', apply: (s) => { s.enemyAttackMod = 1.2; } },
+    { id: 'enemyHp10', name: '敌人生命+10%', icon: '❤️', apply: (s) => { s.enemyHpMod = 1.1; } },
+    { id: 'enemyHp20', name: '敌人生命+20%', icon: '❤️❤️', apply: (s) => { s.enemyHpMod = 1.2; } },
+    { id: 'enemyArmor', name: '敌人护甲+5', icon: '🛡️', apply: (s) => { s.enemyArmorBonus = 5; } },
+    { id: 'enemyCrit', name: '敌人会暴击', icon: '💥', apply: (s) => { s.enemyCanCrit = true; } },
+  ],
+  player: [
+    { id: 'playerHp80', name: '玩家生命-20%', icon: '💔', apply: (s) => { s.playerHpMod = 0.8; } },
+    { id: 'playerHp90', name: '玩家生命-10%', icon: '💔', apply: (s) => { s.playerHpMod = 0.9; } },
+    { id: 'startWeak', name: '开始时虚弱1层', icon: '😵', apply: (s) => { s.startWithWeak = 1; } },
+    { id: 'startVuln', name: '开始时易伤1层', icon: '💢', apply: (s) => { s.startWithVuln = 1; } },
+    { id: 'noShield', name: '无法获得护甲', icon: '🚫', apply: (s) => { s.noShieldAllowed = true; } },
+    { id: 'energy2', name: '每回合能量-1', icon: '⚡', apply: (s) => { s.energyPenalty = 1; } },
+  ],
+  card: [
+    { id: 'limit15', name: '卡牌池限制15张', icon: '🃏', apply: () => {} },
+    { id: 'noUpgrade', name: '无法升级卡牌', icon: '🚫', apply: () => {} },
+    { id: 'noRelic', name: '无法获得遗物', icon: '🚫', apply: () => {} },
+  ]
+};
+
+// 获取每日挑战完整配置
+function getDailyChallenge() {
+  const seed = getDailySeed();
+  const random = new SeededRandom(seed);
+  
+  // 确定性的卡牌池（每天15张）
+  const allCardIds = Object.keys(CARDS);
+  const shuffledCards = random.shuffle(allCardIds);
+  const cardPool = shuffledCards.slice(0, 15);
+  
+  // 敌人池（3个随机敌人）
+  const enemyTypes = Object.keys(ENEMIES).filter(e => !ENEMIES[e].isBoss);
+  const shuffledEnemies = random.shuffle(enemyTypes);
+  const enemyPool = shuffledEnemies.slice(0, 3);
+  
+  // 初始遗物
+  const starterRelic = random.pick(STARTER_RELICS_POOL);
+  
+  // 随机选择modifiers（1-2个敌人modifier，1-2个玩家modifier）
+  const enemyModCount = random.nextInt(1, 2);
+  const playerModCount = random.nextInt(1, 2);
+  
+  const selectedEnemyMods = random.shuffle([...DAILY_MODIFIER_POOLS.enemy]).slice(0, enemyModCount);
+  const selectedPlayerMods = random.shuffle([...DAILY_MODIFIER_POOLS.player]).slice(0, playerModCount);
+  
+  return {
+    seed,
+    cardPool,
+    enemyPool,
+    startingRelic: starterRelic,
+    enemyModifiers: selectedEnemyMods,
+    playerModifiers: selectedPlayerMods,
+    displayName: `每日挑战 #${seed}`,
+  };
+}
+
+// 应用每日挑战modifiers到gameState
+function applyDailyModifiers(gameState, challenge) {
+  // 重置modifier状态
+  gameState.enemyAttackMod = 1;
+  gameState.enemyHpMod = 1;
+  gameState.enemyArmorBonus = 0;
+  gameState.enemyCanCrit = false;
+  gameState.playerHpMod = 1;
+  gameState.startWithWeak = 0;
+  gameState.startWithVuln = 0;
+  gameState.noShieldAllowed = false;
+  gameState.energyPenalty = 0;
+  gameState.dailyCardPool = challenge.cardPool;
+  gameState.dailyNoUpgrade = challenge.playerModifiers.some(m => m.id === 'noUpgrade');
+  gameState.dailyNoRelic = challenge.playerModifiers.some(m => m.id === 'noRelic');
+  gameState.dailyNoShield = challenge.playerModifiers.some(m => m.id === 'noShield');
+  
+  // 应用敌人modifier
+  challenge.enemyModifiers.forEach(mod => mod.apply(gameState));
+  
+  // 应用玩家modifier
+  challenge.playerModifiers.forEach(mod => mod.apply(gameState));
+}
+
+// 获取modifiers描述
+function getDailyModifiersDescription(challenge) {
+  const parts = [];
+  challenge.enemyModifiers.forEach(m => parts.push(m.name));
+  challenge.playerModifiers.forEach(m => parts.push(m.name));
+  if (challenge.cardPool) parts.push(`卡牌池: ${challenge.cardPool.length}张`);
+  return parts.join(' | ');
+}
+
 // ===== V29 随机初始系统 =====
 const STARTER_RELICS_POOL = [
   { id: 'burningBlood', name: '燃烧之血', icon: '🔥', description: '战斗开始时获得2力量', effect: { startOfCombatStrength: 2 } },
@@ -6218,6 +6324,27 @@ function generateRandomInitialDeck(random) {
   for (let i = 0; i < deckSize; i++) {
     const cardType = random.pick(cardTypes);
     deck.push({ ...BASIC_CARDS[cardType], uid: generateUid() });
+  }
+  
+  return deck;
+}
+
+// V51 每日挑战卡牌池生成初始牌组
+function generateRandomInitialDeckWithPool(random, cardPool) {
+  const deck = [];
+  const deckSize = random.nextInt(8, 12);
+  
+  for (let i = 0; i < deckSize; i++) {
+    const cardId = random.pick(cardPool);
+    const cardData = CARDS[cardId];
+    if (cardData) {
+      deck.push({
+        ...cardData,
+        uid: generateUid(),
+        upgradeLevel: 0,
+        maxUpgradeLevel: 3
+      });
+    }
   }
   
   return deck;
@@ -10023,6 +10150,23 @@ function showGameLandingPage() {
   const upgradedCount = gameState.deck ? gameState.deck.filter(c => c.upgradeLevel > 0).length : 0;
   document.getElementById('landing-upgraded-count').textContent = upgradedCount;
   
+  // V51 每日挑战信息显示
+  const dailyInfoEl = document.getElementById('landing-daily-info');
+  if (gameState.isDailyChallenge && gameState.currentDailyChallenge) {
+    const challenge = gameState.currentDailyChallenge;
+    let infoHtml = '<div style="color: #ffd700; font-size: 12px; margin-top: 10px;">🏆 每日挑战</div>';
+    challenge.enemyModifiers.forEach(m => {
+      infoHtml += `<div style="color: #ff6b6b; font-size: 11px;">${m.icon} ${m.name}</div>`;
+    });
+    challenge.playerModifiers.forEach(m => {
+      infoHtml += `<div style="color: #4ecdc4; font-size: 11px;">${m.icon} ${m.name}</div>`;
+    });
+    dailyInfoEl.innerHTML = infoHtml;
+    dailyInfoEl.style.display = 'block';
+  } else {
+    dailyInfoEl.style.display = 'none';
+  }
+  
   // 隐藏地图，显示落地页
   document.getElementById('map-container').style.display = 'none';
   document.getElementById('game-landing-page').classList.add('show');
@@ -10060,26 +10204,33 @@ function returnToTitle() {
   }
 }
 
-// ===== V29 每日挑战系统 =====
+// ===== V51 每日挑战系统 =====
 function startDailyChallenge() {
-  const seed = getDailySeed();
+  const challenge = getDailyChallenge();
+  const seed = challenge.seed;
+  
   gameState.runSeed = seed;
   gameState.dailySeed = seed;
   gameState.isDailyChallenge = true;
   gameState.dailyAttempts++;
+  gameState.currentDailyChallenge = challenge;
+  
+  // 应用每日modifiers
+  applyDailyModifiers(gameState, challenge);
   
   // 使用确定性随机生成开局
   const random = new SeededRandom(seed);
   
-  // 生成随机初始牌组
-  gameState.deck = generateRandomInitialDeck(random);
+  // 生成随机初始牌组（使用每日卡牌池）
+  gameState.deck = generateRandomInitialDeckWithPool(random, challenge.cardPool);
   
-  // 生成随机初始资源
+  // 生成随机初始资源（应用玩家生命modifier）
   const resources = generateRandomStartResources(random);
+  const maxHp = Math.floor(resources.maxHp * gameState.playerHpMod);
   gameState.gold = resources.gold;
-  gameState.playerMaxHp = resources.maxHp;
-  gameState.playerHp = resources.maxHp;
-  gameState.runStartHp = resources.maxHp;
+  gameState.playerMaxHp = maxHp;
+  gameState.playerHp = maxHp;
+  gameState.runStartHp = maxHp;
   
   // 重置其他状态
   gameState.hand = [];
@@ -10118,17 +10269,25 @@ function startDailyChallenge() {
   document.getElementById('daily-overlay').classList.remove('show');
   document.getElementById('start-screen').style.display = 'none';
   document.getElementById('game-container').style.display = 'block';
-  document.getElementById('map-container').style.display = 'none'; // V45: 不直接显示地图
+  document.getElementById('map-container').style.display = 'none';
   
   // V9 加载成就
   loadAchievements();
   
-  // 随机选择初始遗物（每日挑战也是随机的）
-  const starterRelic = random.pick(STARTER_RELICS_POOL);
+  // 使用每日挑战的初始遗物
+  const starterRelic = challenge.startingRelic;
   gameState.relics.push({ ...starterRelic });
   gameState.acquiredRelicIds.push(starterRelic.id);
   if (starterRelic.effect.maxEnergyBonus) {
     gameState.maxEnergy += starterRelic.effect.maxEnergyBonus;
+  }
+  
+  // 应用初始虚弱/易伤
+  if (gameState.startWithWeak > 0) {
+    gameState.playerDebuffs.push({ id: 'weak', name: '虚弱', stacks: gameState.startWithWeak });
+  }
+  if (gameState.startWithVuln > 0) {
+    gameState.playerDebuffs.push({ id: 'vulnerable', name: '易伤', stacks: gameState.startWithVuln });
   }
   
   initMap();
@@ -10141,7 +10300,9 @@ function startDailyChallenge() {
   updateRelicsDisplay();
   document.getElementById('quick-save-btn').classList.add('show');
   
-  addLog(`每日挑战开始！Seed: ${seed}`, 'info');
+  // 显示今日modifier信息
+  const modDesc = getDailyModifiersDescription(challenge);
+  addLog(`🏆 每日挑战开始！${modDesc}`, 'info');
 }
 
 function showDailyChallenge() {
@@ -10150,8 +10311,24 @@ function showDailyChallenge() {
   const todayRecords = board[today] || [];
   const available = isDailyChallengeAvailable();
   
+  // 获取今日挑战配置
+  const challenge = getDailyChallenge();
+  
   let infoHtml = `<div class="daily-stat">状态: <span>${available ? '可挑战' : '今日已完成'}</span></div>`;
   infoHtml += `<div class="daily-stat">今日Seed: <span>${today}</span></div>`;
+  
+  // 显示今日modifiers
+  const modDesc = getDailyModifiersDescription(challenge);
+  infoHtml += `<div class="daily-modifiers" style="margin: 10px 0; padding: 10px; background: rgba(255,215,0,0.1); border-radius: 8px;">`;
+  infoHtml += `<div style="color: #ffd700; font-weight: bold; margin-bottom: 5px;">今日挑战效果：</div>`;
+  challenge.enemyModifiers.forEach(m => {
+    infoHtml += `<div style="color: #ff6b6b;">${m.icon} ${m.name}</div>`;
+  });
+  challenge.playerModifiers.forEach(m => {
+    infoHtml += `<div style="color: #4ecdc4;">${m.icon} ${m.name}</div>`;
+  });
+  infoHtml += `<div style="color: #aaa; margin-top: 5px;">🃏 卡牌池: ${challenge.cardPool.length}张</div>`;
+  infoHtml += `</div>`;
   
   if (gameState.dailyBestTime) {
     infoHtml += `<div class="daily-stat">最佳时间: <span>${formatTime(gameState.dailyBestTime)}</span></div>`;
@@ -10168,9 +10345,9 @@ function showDailyChallenge() {
   };
   
   // 排行榜
-  let leaderboardHtml = '<table><tr><th>#</th><th>时间</th><th>难度</th></tr>';
+  let leaderboardHtml = '<table style="width:100%;border-collapse:collapse;"><tr><th style="padding:8px;border:1px solid #333;">#</th><th style="padding:8px;border:1px solid #333;">时间</th><th style="padding:8px;border:1px solid #333;">难度</th></tr>';
   todayRecords.slice(0, 10).forEach((record, i) => {
-    leaderboardHtml += `<tr><td>${i + 1}</td><td>${formatTime(record.time)}</td><td>${record.difficulty}</td></tr>`;
+    leaderboardHtml += `<tr style="background:${i < 3 ? 'rgba(255,215,0,0.1)' : 'transparent'}"><td style="padding:8px;border:1px solid #333;">${i + 1}</td><td style="padding:8px;border:1px solid #333;">${formatTime(record.time)}</td><td style="padding:8px;border:1px solid #333;">${record.difficulty}</td></tr>`;
   });
   leaderboardHtml += '</table>';
   if (todayRecords.length === 0) {
@@ -15050,6 +15227,11 @@ function dealDamageToPlayer(damage, isEnemyAttack = true) {
     gameState.dodgeNext--;
     addLog('闪避成功！', 'info');
     return;
+  }
+  
+  // V51 每日挑战敌人攻击modifier
+  if (isEnemyAttack && gameState.enemyAttackMod) {
+    damage = Math.floor(damage * gameState.enemyAttackMod);
   }
   
   const hasWeak = gameState.playerDebuffs.find(d => d.type === 'weak');
