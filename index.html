@@ -324,6 +324,11 @@
     .card.fate { background: linear-gradient(145deg, #1b4e4e, #3f6b6b); border: 2px solid #00ffff; }
     .card.special { background: linear-gradient(145deg, #1b4e2d, #3f6b4a); border: 2px solid #00ff7f; }
     .card.status { background: linear-gradient(145deg, #4e4e4e, #6b6b6b); border: 2px solid #a0a0a0; }
+    /* V60 稀有度边框和光晕 */
+    .card.common { border-color: #888; }
+    .card.rare { border-color: #4a9eff; box-shadow: 0 0 8px #4a9eff40; }
+    .card.epic { border-color: #a855f7; box-shadow: 0 0 12px #a855f780; }
+    .card.legendary { border-color: #f59e0b; box-shadow: 0 0 16px #f59e0b80; background: linear-gradient(135deg, #f59e0b20, transparent); }
     .card-cost {
       position: absolute;
       top: -8px;
@@ -367,6 +372,7 @@
     .card-tooltip .tooltip-effect { color: #aaffaa; margin-bottom: 4px; }
     .card-tooltip .tooltip-archetype { color: #ff9944; font-size: 10px; margin-top: 4px; }
     .card-tooltip .tooltip-cost { color: #ffd700; }
+    .card-tooltip .tooltip-rarity { color: #aaa; font-size: 10px; margin-top: 4px; }
     .card.upgraded::after {
       content: '★';
       position: absolute;
@@ -12291,12 +12297,14 @@ function getAllCardsForGuidebook() {
 
 // V57 获取卡牌稀有度
 function getCardRarity(cardId) {
-  // 基于费用判断稀有度
+  // 优先使用卡牌自身的rarity字段
   const card = findCardById(cardId);
   if (!card) return 'common';
+  if (card.rarity) return card.rarity;
+  // 基于费用判断稀有度作为后备
   const cost = card.cost || 0;
   if (cost >= 4) return 'legendary';
-  if (cost >= 3) return 'rare';
+  if (cost >= 3) return 'epic';
   return 'common';
 }
 
@@ -17317,7 +17325,8 @@ function renderHand() {
   
   gameState.hand.forEach((card, index) => {
     const div = document.createElement('div');
-    div.className = `card ${card.type}`;
+    const rarity = getCardRarity(card.id);
+    div.className = `card ${card.type} ${rarity}`;
     // V52: Add card-drawn class to newly drawn cards for animation
     if (gameState.newlyDrawnIndices && gameState.newlyDrawnIndices.includes(index)) {
       div.classList.add('card-drawn');
@@ -17340,6 +17349,7 @@ function renderHand() {
         <div class="tooltip-cost">费用: ${card.cost} | ${getCardTypeName(card.type)}</div>
         <div class="tooltip-effect">${generateCardDescription(card)}</div>
         ${card.archetype ? `<div class="tooltip-archetype">流派: ${Array.isArray(card.archetype) ? card.archetype.join(', ') : card.archetype}</div>` : ''}
+        <div class="tooltip-rarity">稀有度: ${rarity === 'common' ? '普通' : rarity === 'rare' ? '稀有' : rarity === 'epic' ? '史诗' : '传说'}</div>
       </div>
     `;
     
