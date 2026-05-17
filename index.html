@@ -551,6 +551,60 @@
     .archetype-icon { font-size: 18px; }
     .archetype-name { font-weight: bold; color: #fff; }
     .archetype-desc { font-size: 10px; color: #aaa; }
+    .archetype-progress {
+      width: 100%;
+      height: 6px;
+      background: rgba(50,50,50,0.8);
+      border-radius: 3px;
+      margin-top: 4px;
+      position: relative;
+      overflow: visible;
+    }
+    .archetype-progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+      min-width: 2px;
+    }
+    .archetype-thresholds {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 2px;
+      font-size: 8px;
+      color: #666;
+    }
+    .archetype-threshold { text-align: center; }
+    .archetype-threshold.reached { color: #4ecdc4; }
+    .archetype-threshold.active { color: #ffd700; }
+    /* V59 流派tooltip */
+    .archetype-tooltip {
+      display: none;
+      position: absolute;
+      right: 190px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,0,0,0.95);
+      border: 1px solid #ffd700;
+      border-radius: 8px;
+      padding: 10px 12px;
+      min-width: 180px;
+      font-size: 11px;
+      color: #fff;
+      z-index: 300;
+      text-align: left;
+      line-height: 1.5;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+    }
+    .archetype-item:hover .archetype-tooltip { display: block; }
+    .archetype-tooltip .tooltip-title { color: #ffd700; font-weight: bold; margin-bottom: 6px; font-size: 12px; }
+    .archetype-tooltip .tooltip-level { color: #aaa; margin-bottom: 4px; padding-left: 8px; }
+    .archetype-tooltip .tooltip-level.unlocked { color: #4ecdc4; }
+    .archetype-tooltip .tooltip-level.locked { color: #666; }
+    .archetype-tooltip .tooltip-effect { color: #aaffaa; }
+    .archetype-tooltip .tooltip-count { color: #888; font-size: 10px; margin-top: 4px; }
+    .archetype-item.inactive { opacity: 0.6; background: rgba(60,60,60,0.3); }
+    .archetype-item.inactive .archetype-progress-fill { background: #555; }
+    .archetype-item.active .archetype-progress-fill { background: linear-gradient(90deg, #4ecdc4, #ffd700); }
 
     /* V31 奖励类型切换按钮 */
     #reward-types {
@@ -8556,6 +8610,8 @@ function addCardToDeck(card) {
     gameState.achievementStats.maxCardsOwned = gameState.deck.length;
   }
   addLog(`获得卡牌: ${card.name}`, 'card');
+  // V59: 流派面板实时更新
+  renderArchetypePanel();
 }
 
 // V53: 显示卡牌替换界面（当牌组已满时）
@@ -8639,7 +8695,7 @@ function showDeckReplaceChoice(newCard) {
 function confirmReplace(oldCard) {
   if (!pendingReplaceCard) return;
   
-  // 从牌组移除旧卡
+// 移除旧卡
   const idx = gameState.deck.findIndex(c => c.uid === oldCard.uid);
   if (idx !== -1) {
     gameState.deck.splice(idx, 1);
@@ -8647,6 +8703,8 @@ function confirmReplace(oldCard) {
   
   // 添加新卡
   gameState.deck.push(pendingReplaceCard);
+  
+  renderArchetypePanel();
   
   // V24 跟踪本局添加的卡牌数
   gameState.achievementStats.maxCardsAddedInOneRun = (gameState.achievementStats.maxCardsAddedInOneRun || 0) + 1;
@@ -10675,6 +10733,7 @@ function confirmRemoveCard() {
     const removedCard = gameState.deck.splice(idx, 1)[0];
     addLog(`已移除卡牌: ${removedCard.name}`, 'info');
     updateDeckCountDisplay();
+    renderArchetypePanel();
   }
 
   closeConfirmDialog();
@@ -12302,6 +12361,7 @@ function sellCard(deckIndex, sellPrice) {
 
   gameState.gold += sellPrice;
   gameState.deck.splice(deckIndex, 1);
+  renderArchetypePanel();
 
   addLog(`出售卡牌: ${card.name}，获得 ${sellPrice} 金币`, 'info');
   document.getElementById('shop-current-gold').textContent = gameState.gold;
@@ -15075,6 +15135,7 @@ function sellCardFromReward(card) {
 
   addLog(`出售卡牌: ${soldCard.name}，获得 ${sellPrice} 金币`, 'info');
   showToast(`${soldCard.name} 已出售，获得 ${sellPrice}💰`);
+  renderArchetypePanel();
 
   // 更新金币显示
   updateGoldDisplayInReward();
@@ -15091,7 +15152,7 @@ function updateGoldDisplayInReward() {
   }
 }
 
-// V33 渲染流派状态面板
+// V33 渲染流派状态面板 (V59: 增强进度条和tooltip)
 function renderArchetypePanel() {
   const panel = document.getElementById('archetype-panel');
   const list = document.getElementById('archetype-list');
@@ -15105,32 +15166,43 @@ function renderArchetypePanel() {
   Object.entries(ARCHETYPES).forEach(([id, archetype]) => {
     const isActive = activeArchetypes.includes(id);
     const count = getArchetypeCount(id);
-    const nextThreshold = getNextArchetypeThreshold(id);
+    const thresholds = archetype.levels.map(l => l.count); // e.g. [3, 5, 8]
+    const maxThreshold = Math.max(...thresholds);
+    const progressPercent = Math.min((count / maxThreshold) * 100, 100);
     
     const div = document.createElement('div');
     div.className = `archetype-item ${isActive ? 'active' : 'inactive'}`;
+    div.style.position = 'relative';
     
-    if (isActive) {
-      // 已激活流派显示图标、名称和效果
-      const bonuses = getArchetypeBonuses(id);
-      const activeEffects = getActiveEffectDescriptions(bonuses);
-      div.innerHTML = `
-        <span class="archetype-icon">${archetype.icon}</span>
-        <div>
-          <div class="archetype-name">${archetype.name}</div>
-          <div class="archetype-desc">${activeEffects}</div>
+    // 构建tooltip内容
+    const tooltipLevels = archetype.levels.map(level => {
+      const unlocked = count >= level.count;
+      return `<div class="tooltip-level ${unlocked ? 'unlocked' : 'locked'}">
+        ${unlocked ? '✓' : '○'} ${level.name} (${level.count}张): ${level.desc}
+      </div>`;
+    }).join('');
+    
+    const bonuses = isActive ? getArchetypeBonuses(id) : {};
+    const activeEffects = getActiveEffectDescriptions(bonuses);
+    
+    div.innerHTML = `
+      <span class="archetype-icon">${archetype.icon}</span>
+      <div style="flex:1;min-width:0;">
+        <div class="archetype-name">${archetype.name}</div>
+        <div class="archetype-desc" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${isActive ? activeEffects : `需${thresholds[0]}张（${count}/${thresholds[0]}）`}</div>
+        <div class="archetype-progress">
+          <div class="archetype-progress-fill" style="width:${progressPercent}%"></div>
+          <div class="archetype-thresholds">
+            ${thresholds.map(t => `<span class="archetype-threshold ${count >= t ? 'reached' : (t === Math.min(...thresholds.filter(x => x > count)) ? 'active' : '')}">${t}</span>`).join('')}
+          </div>
         </div>
-      `;
-    } else {
-      // 未激活流派灰显但显示激活条件
-      div.innerHTML = `
-        <span class="archetype-icon">${archetype.icon}</span>
-        <div>
-          <div class="archetype-name">${archetype.name}</div>
-          <div class="archetype-desc">需${nextThreshold}张（当前${count}张）</div>
-        </div>
-      `;
-    }
+      </div>
+      <div class="archetype-tooltip">
+        <div class="tooltip-title">${archetype.icon} ${archetype.name}</div>
+        ${tooltipLevels}
+        <div class="tooltip-count">当前: ${count}张 | 2件套: ${count >= thresholds[0] ? '✓' : thresholds[0] + '张'} | 4件套: ${thresholds[1] ? (count >= thresholds[1] ? '✓' : thresholds[1] + '张') : '无'}</div>
+      </div>
+    `;
     
     list.appendChild(div);
   });
