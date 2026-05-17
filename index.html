@@ -704,6 +704,128 @@
       color: #666;
     }
 
+    /* 敌人图鉴 */
+    #enemy-compendium {
+      display: none;
+      background: rgba(0,0,0,0.9);
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 200;
+      flex-direction: column;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    #enemy-compendium.show { display: flex; }
+    #enemy-compendium .compendium-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    #enemy-compendium .compendium-header h2 { color: #ffd700; margin: 0; }
+    #enemy-compendium .compendium-stats { color: #aaa; font-size: 14px; }
+    #enemy-compendium .compendium-close {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 28px;
+      cursor: pointer;
+      padding: 5px 10px;
+    }
+    #enemy-compendium .compendium-close:hover { color: #ffd700; }
+    #enemy-compendium .compendium-filter {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    #enemy-compendium .compendium-filter button {
+      padding: 8px 20px;
+      font-size: 14px;
+      background: rgba(255,255,255,0.1);
+      border: 2px solid transparent;
+      border-radius: 20px;
+      color: #aaa;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #enemy-compendium .compendium-filter button:hover { background: rgba(255,255,255,0.2); color: #fff; }
+    #enemy-compendium .compendium-filter button.active {
+      background: rgba(255,215,0,0.2);
+      border-color: #ffd700;
+      color: #ffd700;
+    }
+    #enemy-compendium .compendium-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 15px;
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .enemy-card {
+      padding: 15px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .enemy-card:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(255,215,0,0.3); }
+    .enemy-card.discovered { border: 3px solid #ffd700; }
+    .enemy-card.undiscovered { border: 3px solid #555; background: rgba(50,50,50,0.6) !important; }
+    .enemy-card.elite { background: linear-gradient(145deg, #4a0080, #8000ff); }
+    .enemy-card.boss { background: linear-gradient(145deg, #8b0000, #ff4500); }
+    .enemy-card.normal { background: linear-gradient(145deg, #2d2d2d, #4a4a4a); }
+    .enemy-card .enemy-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    .enemy-card.discovered .enemy-icon { background: rgba(0,0,0,0.3); }
+    .enemy-card.undiscovered .enemy-icon { background: #333; }
+    .enemy-card .enemy-name { font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+    .enemy-card .enemy-type { font-size: 10px; opacity: 0.8; }
+    .enemy-card .enemy-hp { font-size: 10px; color: #ff6b6b; margin-top: 4px; }
+    .enemy-card .enemy-intents { font-size: 9px; color: #aaa; margin-top: 3px; }
+    .enemy-card.undiscovered .enemy-name { color: #666; }
+    .enemy-card.undiscovered .enemy-type,
+    .enemy-card.undiscovered .enemy-hp,
+    .enemy-card.undiscovered .enemy-intents { display: none; }
+    .enemy-card .undiscovered-icon {
+      font-size: 30px;
+      color: #666;
+    }
+    .enemy-card .elite-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: linear-gradient(145deg, #9b59b6, #8e44ad);
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-size: 8px;
+      font-weight: bold;
+    }
+    .enemy-card .boss-badge {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: linear-gradient(145deg, #e74c3c, #c0392b);
+      color: #fff;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-size: 8px;
+      font-weight: bold;
+    }
+
     /* 卡牌详情弹窗 */
     #compendium-detail {
       display: none;
@@ -3449,6 +3571,7 @@
       <span id="pets-header" style="color:#4ecdc4;font-size:14px;cursor:pointer;" onclick="showPetsShop()">🐾 宠物: <span id="pets-count">0</span></span>
       <span id="achievements-header" style="color:#9b59b6;font-size:14px;cursor:pointer;" onclick="showAchievements()">🏆 成就: <span id="achievements-count">0</span></span>
       <span id="guidebook-header" style="color:#3498db;font-size:14px;cursor:pointer;" onclick="showCardGuidebook()">📖 图鉴: <span id="guidebook-count">0</span></span>
+      <span id="enemy-comp-header" style="color:#ff6b6b;font-size:14px;cursor:pointer;" onclick="openEnemyCompendium()">👹 敌人: <span id="enemy-comp-count">0</span></span>
     </div>
     <canvas id="map-canvas" width="800" height="400"></canvas>
     <div id="node-preview">
@@ -3946,6 +4069,9 @@ function registerAllPhases() {
 
       const enemy = getEnemyByType(enemyType, gameState.currentFloor);
       gameState.enemy = enemy;
+      
+      // 敌人图鉴：记录已遇见的敌人
+      discoverEnemy(enemy.id);
       
       // V51 应用每日挑战敌人modifier
       if (gameState.enemyHpMod) {
@@ -13166,6 +13292,7 @@ function renderMap() {
   document.getElementById('map-max-hp').textContent = gameState.playerMaxHp;
   document.getElementById('map-gold').textContent = gameState.gold;
   document.getElementById('relics-count').textContent = gameState.relics.length;
+  document.getElementById('enemy-comp-count').textContent = encounteredEnemies.length;
   document.getElementById('achievements-count').textContent = gameState.unlockedAchievements.length;
   renderRelicsPanel();
 }
@@ -19059,6 +19186,135 @@ document.addEventListener('click', (e) => {
     renderRelicCompendium();
   }
 });
+
+// ===== 敌人图鉴功能 =====
+let enemyCompendiumFilter = 'all';
+let encounteredEnemies = JSON.parse(localStorage.getItem('encounteredEnemies') || '[]');
+
+// 打开敌人图鉴
+function openEnemyCompendium() {
+  document.getElementById('enemy-compendium').classList.add('show');
+  renderEnemyCompendium();
+}
+
+// 关闭敌人图鉴
+function closeEnemyCompendium() {
+  document.getElementById('enemy-compendium').classList.remove('show');
+}
+
+// 渲染敌人图鉴
+function renderEnemyCompendium() {
+  const grid = document.getElementById('enemy-compendium-grid');
+  const totalEnemies = Object.keys(ENEMIES).length;
+  let discovered = 0;
+
+  // 计算已遇见敌人
+  Object.keys(ENEMIES).forEach(id => {
+    if (encounteredEnemies.includes(id)) discovered++;
+  });
+
+  document.getElementById('enemy-compendium-discovered').textContent = discovered;
+  document.getElementById('enemy-compendium-total').textContent = totalEnemies;
+
+  // 筛选敌人
+  const filteredEnemies = Object.entries(ENEMIES).filter(([id, enemy]) => {
+    if (enemyCompendiumFilter === 'all') return true;
+    if (enemyCompendiumFilter === 'boss') return enemy.isBoss;
+    if (enemyCompendiumFilter === 'elite') return enemy.isElite && !enemy.isBoss;
+    return !enemy.isBoss && !enemy.isElite;
+  });
+
+  grid.innerHTML = '';
+  filteredEnemies.forEach(([id, enemy]) => {
+    const isDiscovered = encounteredEnemies.includes(id);
+    const cardEl = document.createElement('div');
+    let typeClass = 'normal';
+    if (enemy.isBoss) typeClass = 'boss';
+    else if (enemy.isElite) typeClass = 'elite';
+    cardEl.className = `enemy-card ${typeClass} ${isDiscovered ? 'discovered' : 'undiscovered'}`;
+
+    if (isDiscovered) {
+      const intentText = (enemy.intents || []).slice(0, 3).map(i => getIntentName(i)).join(', ');
+      cardEl.innerHTML = `
+        ${enemy.isBoss ? '<div class="boss-badge">Boss</div>' : ''}
+        ${enemy.isElite ? '<div class="elite-badge">精英</div>' : ''}
+        <div class="enemy-icon">${getEnemyIcon(id)}</div>
+        <div class="enemy-name">${enemy.name}</div>
+        <div class="enemy-type">${enemy.isBoss ? 'Boss' : enemy.isElite ? '精英' : '小怪'}</div>
+        <div class="enemy-hp">HP: ${enemy.hp}${enemy.armor ? ' ⚡' + enemy.armor : ''}</div>
+        <div class="enemy-intents">意图: ${intentText}</div>
+      `;
+    } else {
+      cardEl.innerHTML = `
+        <div class="enemy-icon"><span class="undiscovered-icon">❓</span></div>
+        <div class="enemy-name">未遇见</div>
+      `;
+    }
+
+    grid.appendChild(cardEl);
+  });
+}
+
+// 获取敌人图标
+function getEnemyIcon(enemyId) {
+  const icons = {
+    slime: '🟢', slimeKing: '👑🟢', goblin: '👺', skeleton: '💀', skeletonArcher: '🏹💀',
+    fireElf: '🔥🧝', bat: '🦇', werewolf: '🐺', shadowAssassin: '🗡️',
+    ancientDragon: '🐉', darkLord: '👿', ghost: '👻', necromancer: '🧙‍♂️',
+    voidBeast: '🐾', minotaur: '🐂', vampireBat: '🩸🦇', plagueRat: '🐀',
+    stoneGolem: '🪨', darkKnight: '⚔️', shadowKnight: '🌑⚔️',
+    abyssStalker: '👾', voidWraith: '💫', deathBringer: '💀', nothingPhantom: '👻',
+    voidTendril: '🐙', oblivionHound: '🐕‍🦺', celestialGuardian: '👼', lightElemental: '✨',
+    holyKnight: '⚜️', demonSoldier: '😈', hellHound: '🐺🔥', soulHarvester: '🌑',
+    pitFiend: '👹', voidSpawn: '👽', chaosWraith: '🌀', realityBreaker: '💥',
+    archangel: '😇', azmodan: '🔥', chaosGod: '🌀', timeWraith: '⏰',
+    spaceFiend: '🌌', voidAngel: '😈', chronos: '⏳', entropy: '♾️',
+    golem: '🗿', darkMage: '🖤'
+  };
+  return icons[enemyId] || '👹';
+}
+
+// 获取意图名称
+function getIntentName(intent) {
+  const names = {
+    attack: '攻击', defend: '防御', buff: '强化', debuff: 'debuff',
+    heavy: '重击', multi: '连击', special: '特殊', heal: '治疗',
+    curse: '诅咒', summon: '召唤', poisonAttack: '毒攻', weakAttack: '弱化',
+    counter: '反击', counterattack: '反击', berserk: '狂暴', dragonScale: '龙鳞',
+    drain: '吸血', voidBlast: '虚空爆炸', charge: '冲锋', crushingBlow: '粉碎',
+    lifesteal: '吸血', darkAura: '暗光环', soulSiphon: '灵魂虹吸', abyssalStrike: '深渊打击',
+    shadowSummon: '暗影召唤', voidDomain: '虚空领域', annihilation: '湮灭',
+    evade: '闪避', phaseShift: '相位转移', constrict: '束缚', packHunt: '围猎',
+    divineShield: '神圣护盾', radiant: '光芒', holyStrike: '神圣打击',
+    demonFire: '恶魔火', inferno: '地狱火', soulDrain: '灵魂吸取',
+    chaosBolt: '混沌箭', realityDistort: '现实扭曲', annihilate: '湮灭',
+    divineJudgment: '神圣审判', celestialBlitz: '天体闪电', holyNova: '神圣新星',
+    hellfire: '地狱火', soulHarvest: '灵魂收割', annihilatingFist: '毁灭之拳',
+    chaosPulse: '混沌脉冲', realitySwap: '虚实交换', entropy: '熵增',
+    timeSlow: '时间减速', timeRewind: '时间回溯', timeFreeze: '时间冻结',
+    timeAccelerate: '时间加速', timeCollapse: '时间崩坏', entropyBlast: '熵之爆炸',
+    voidConsume: '虚空吞噬', absoluteZero: '绝对零度', giveCurse: '赐福'
+  };
+  return names[intent] || intent;
+}
+
+// 敌人被发现时调用
+function discoverEnemy(enemyId) {
+  if (!encounteredEnemies.includes(enemyId)) {
+    encounteredEnemies.push(enemyId);
+    localStorage.setItem('encounteredEnemies', JSON.stringify(encounteredEnemies));
+  }
+}
+
+// 切换敌人图鉴筛选
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('enemy-filter-btn')) {
+    enemyCompendiumFilter = e.target.dataset.type;
+    document.querySelectorAll('.enemy-filter-btn').forEach(btn => btn.classList.remove('active'));
+    e.target.classList.add('active');
+    renderEnemyCompendium();
+  }
+});
 </script>
 
 <!-- V42 扭蛋抽卡模态框 -->
@@ -19170,6 +19426,22 @@ document.addEventListener('click', (e) => {
     <button data-rarity="legendary" class="relic-filter-btn">传说</button>
   </div>
   <div class="compendium-grid" id="relic-compendium-grid"></div>
+</div>
+
+<!-- 敌人图鉴 -->
+<div id="enemy-compendium">
+  <div class="compendium-header">
+    <h2>👹 敌人图鉴</h2>
+    <div class="compendium-stats">已遇见: <span id="enemy-compendium-discovered">0</span>/<span id="enemy-compendium-total">0</span></div>
+    <button class="compendium-close" onclick="closeEnemyCompendium()">✕</button>
+  </div>
+  <div class="compendium-filter">
+    <button data-type="all" class="enemy-filter-btn active">全部</button>
+    <button data-type="normal" class="enemy-filter-btn">小怪</button>
+    <button data-type="elite" class="enemy-filter-btn">精英</button>
+    <button data-type="boss" class="enemy-filter-btn">Boss</button>
+  </div>
+  <div class="compendium-grid" id="enemy-compendium-grid"></div>
 </div>
 
 <!-- Replay System UI -->
