@@ -31,6 +31,43 @@
     }
     h1 { color: #ffd700; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
 
+    /* 战斗速度控制 */
+    :root {
+      --anim-duration: 1s;
+    }
+    .speed-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .speed-controls span {
+      font-size: 12px;
+      color: #aaa;
+      margin-right: 5px;
+    }
+    .speed-btn {
+      padding: 6px 12px;
+      font-size: 13px;
+      background: rgba(255,255,255,0.1);
+      border: 2px solid transparent;
+      border-radius: 15px;
+      color: #888;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    .speed-btn:hover {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+    }
+    .speed-btn.active {
+      background: rgba(255,215,0,0.3);
+      border-color: #ffd700;
+      color: #ffd700;
+    }
+    .speed-btn[data-speed="1"] { font-size: 12px; padding: 6px 10px; }
+    .speed-btn[data-speed="8"] { font-size: 12px; padding: 6px 10px; }
+
     /* 横屏提示 */
     #landscape-warning {
       display: none;
@@ -2768,7 +2805,7 @@
     
     /* 敌人受击闪烁 */
     .enemy-hit {
-      animation: enemyHitFlash 0.2s ease-out;
+      animation: enemyHitFlash calc(var(--anim-duration) * 0.2);
     }
     
     @keyframes enemyHitFlash {
@@ -2778,7 +2815,7 @@
     
     /* 玩家受击闪烁 */
     .player-hit {
-      animation: playerHitFlash 0.3s ease-out;
+      animation: playerHitFlash calc(var(--anim-duration) * 0.3);
     }
     
     @keyframes playerHitFlash {
@@ -2788,7 +2825,7 @@
     
     /* 卡牌使用成功动画 */
     .card-success {
-      animation: cardSuccessAnim 0.3s ease-out;
+      animation: cardSuccessAnim calc(var(--anim-duration) * 0.3);
     }
     
     @keyframes cardSuccessAnim {
@@ -2799,7 +2836,7 @@
     
     /* 护甲获得动画 */
     .shield-gain {
-      animation: shieldGain 0.5s ease-out;
+      animation: shieldGain calc(var(--anim-duration) * 0.5);
     }
     
     @keyframes shieldGain {
@@ -2810,7 +2847,7 @@
     
     /* Buff图标出现 */
     .buff-appear {
-      animation: buffAppear 0.4s ease-out;
+      animation: buffAppear calc(var(--anim-duration) * 0.4);
     }
     
     @keyframes buffAppear {
@@ -2821,7 +2858,7 @@
     
     /* 能量消耗动画 */
     .energy-spend {
-      animation: energySpend 0.3s ease-out;
+      animation: energySpend calc(var(--anim-duration) * 0.3);
     }
     
     @keyframes energySpend {
@@ -2832,7 +2869,7 @@
     
     /* 抽牌动画 */
     .draw-card-anim {
-      animation: drawCard 0.4s ease-out;
+      animation: drawCard calc(var(--anim-duration) * 0.4);
     }
     
     @keyframes drawCard {
@@ -2846,14 +2883,14 @@
       60% { opacity: 1; }
       100% { transform: translateX(0) translateY(0) rotate(0deg); opacity: 1; }
     }
-    .card-drawn { animation: cardDraw 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+    .card-drawn { animation: cardDraw calc(var(--anim-duration) * 0.35); }
     
     /* V52 弃牌动画 */
     @keyframes cardDiscard {
       0% { transform: translateY(0) rotate(0deg); opacity: 1; }
       100% { transform: translateY(80px) rotate(20deg); opacity: 0; }
     }
-    .card-discard { animation: cardDiscard 0.3s ease-in forwards; }
+    .card-discard { animation: cardDiscard calc(var(--anim-duration) * 0.3); }
     
     /* V52 挥砍特效 */
     @keyframes slashEffect {
@@ -2866,7 +2903,7 @@
       width: 100%;
       height: 100%;
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
-      animation: slashEffect 0.25s ease-out forwards;
+      animation: slashEffect calc(var(--anim-duration) * 0.25);
       pointer-events: none;
     }
     
@@ -2876,15 +2913,15 @@
       25% { filter: brightness(2.5) saturate(1.5) hue-rotate(-10deg); }
       50% { filter: brightness(1.5) saturate(1.2); }
     }
-    .critical-hit { animation: criticalFlash 0.4s ease-out; }
+    .critical-hit { animation: criticalFlash calc(var(--anim-duration) * 0.4); }
     
     /* V52 护盾获得光晕 */
-    @keyframes shieldGain {
+    @keyframes shieldGainV2 {
       0% { transform: scale(1); filter: brightness(1); }
       30% { transform: scale(1.15); filter: brightness(1.5) drop-shadow(0 0 15px rgba(100,149,237,0.9)); }
       100% { transform: scale(1); filter: brightness(1); }
     }
-    .shield-gain { animation: shieldGain 0.5s ease-out; }
+    .shield-gain { animation: shieldGainV2 calc(var(--anim-duration) * 0.5); }
     
     /* V52 Buff图标脉冲 */
     @keyframes buffPulse {
@@ -3367,6 +3404,13 @@
 
     <!-- 控制区 -->
     <div id="controls">
+      <div class="speed-controls">
+        <span>速度:</span>
+        <button class="speed-btn active" data-speed="1">1x</button>
+        <button class="speed-btn" data-speed="2">2x</button>
+        <button class="speed-btn" data-speed="4">4x</button>
+        <button class="speed-btn" data-speed="8">8x</button>
+      </div>
       <span id="deck-info">牌组: <span id="deck-count">13</span> | 弃牌堆: <span id="discard-count">0</span></span>
       <button id="deck-preview-btn" style="padding:8px 16px;font-size:14px;background:linear-gradient(145deg,#3498db,#2980b9);border:none;border-radius:15px;color:#fff;cursor:pointer;font-weight:bold;">🃏 牌组</button>
       <button id="compendium-btn" style="padding:8px 16px;font-size:14px;background:linear-gradient(145deg,#9b59b6,#8e44ad);border:none;border-radius:15px;color:#fff;cursor:pointer;font-weight:bold;">📖 图鉴</button>
@@ -3660,6 +3704,43 @@ const Phases = {
   VICTORY: 'VICTORY',
   DEFEAT: 'DEFEAT'
 };
+
+// ===== 战斗速度控制 =====
+const BATTLE_SPEEDS = [1, 2, 4, 8];
+let battleSpeed = 1;
+
+function getAnimDelay(baseDelay) {
+  if (battleSpeed >= 8) return 0; // 8x skip animations
+  return baseDelay / battleSpeed;
+}
+
+function updateBattleSpeed(speed) {
+  battleSpeed = speed;
+  document.documentElement.style.setProperty('--anim-duration', `${1/speed}s`);
+  
+  // Update button states
+  document.querySelectorAll('.speed-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.speed) === speed);
+  });
+  
+  // Save to localStorage
+  localStorage.setItem('battleSpeed', speed);
+}
+
+function initBattleSpeed() {
+  // Load from localStorage or default to 1
+  const savedSpeed = localStorage.getItem('battleSpeed');
+  const speed = savedSpeed ? parseInt(savedSpeed) : 1;
+  updateBattleSpeed(BATTLE_SPEEDS.includes(speed) ? speed : 1);
+  
+  // Add click handlers
+  document.querySelectorAll('.speed-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const speed = parseInt(btn.dataset.speed);
+      updateBattleSpeed(speed);
+    });
+  });
+}
 
 // 注册所有阶段
 function registerAllPhases() {
@@ -6381,7 +6462,7 @@ function screenShake() {
   const container = document.getElementById('game-container');
   if (container) {
     container.classList.add('screen-shake');
-    setTimeout(() => container.classList.remove('screen-shake'), 300);
+    setTimeout(() => container.classList.remove('screen-shake'), getAnimDelay(300));
   }
 }
 
@@ -6390,7 +6471,7 @@ function flashEnemy() {
   const enemyArea = document.getElementById('enemy-area');
   if (enemyArea) {
     enemyArea.classList.add('enemy-hit');
-    setTimeout(() => enemyArea.classList.remove('enemy-hit'), 200);
+    setTimeout(() => enemyArea.classList.remove('enemy-hit'), getAnimDelay(200));
   }
 }
 
@@ -6399,7 +6480,7 @@ function flashPlayer() {
   const playerArea = document.getElementById('player-area');
   if (playerArea) {
     playerArea.classList.add('player-hit');
-    setTimeout(() => playerArea.classList.remove('player-hit'), 300);
+    setTimeout(() => playerArea.classList.remove('player-hit'), getAnimDelay(300));
   }
 }
 
@@ -6432,7 +6513,7 @@ function animateEnergySpend() {
   const energyEl = document.getElementById('energy');
   if (energyEl) {
     energyEl.classList.add('energy-spend');
-    setTimeout(() => energyEl.classList.remove('energy-spend'), 300);
+    setTimeout(() => energyEl.classList.remove('energy-spend'), getAnimDelay(300));
   }
 }
 
@@ -6441,7 +6522,7 @@ function animateShieldGain() {
   const shieldEl = document.getElementById('player-shield');
   if (shieldEl) {
     shieldEl.classList.add('shield-gain');
-    setTimeout(() => shieldEl.classList.remove('shield-gain'), 500);
+    setTimeout(() => shieldEl.classList.remove('shield-gain'), getAnimDelay(500));
   }
 }
 
@@ -6449,7 +6530,7 @@ function animateShieldGain() {
 function animateDrawCard(cardEl) {
   if (cardEl) {
     cardEl.classList.add('draw-card-anim');
-    setTimeout(() => cardEl.classList.remove('draw-card-anim'), 400);
+    setTimeout(() => cardEl.classList.remove('draw-card-anim'), getAnimDelay(400));
   }
 }
 
@@ -8044,6 +8125,9 @@ function closePetEvolutionTree() {
 
 // 初始化宠物进化树按钮事件
 document.addEventListener('DOMContentLoaded', () => {
+  // 初始化战斗速度控制
+  initBattleSpeed();
+  
   const viewTreeBtn = document.getElementById('view-evolution-tree-btn');
   if (viewTreeBtn) {
     viewTreeBtn.addEventListener('click', () => {
