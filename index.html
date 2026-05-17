@@ -6957,6 +6957,331 @@ const INTENT_WEIGHTS = {
   // aoe: 对玩家全体攻击
 };
 
+// ===== V50 Bull/Bear/Judge 真·辩论AI敌人决策系统 =====
+// 敌人类型对应的辩论权重
+const DEBATER_WEIGHTS = {
+  aggressive: { bull: 0.6, bear: 0.2, judge: 0.2 },  // 激进型敌人
+  defensive: { bull: 0.2, bear: 0.6, judge: 0.2 },   // 防御型敌人
+  balanced: { bull: 0.4, bear: 0.4, judge: 0.2 },     // 平衡型敌人
+  boss: { bull: 0.5, bear: 0.3, judge: 0.2 },         // Boss敌人
+  elite: { bull: 0.45, bear: 0.35, judge: 0.2 },     // 精英敌人
+  normal: { bull: 0.35, bear: 0.45, judge: 0.2 },    // 普通敌人
+};
+
+// 获取敌人类型
+function getEnemyBehaviorType(enemy) {
+  if (enemy.isBoss) return 'boss';
+  if (enemy.isElite) return 'elite';
+  const weights = INTENT_WEIGHTS[enemy.id] || { attack: 50, defend: 30 };
+  const attackWeight = (weights.attack || 0) + (weights.heavy || 0);
+  const defendWeight = weights.defend || 30;
+  if (attackWeight > 60) return 'aggressive';
+  if (defendWeight > 40) return 'defensive';
+  return 'balanced';
+}
+
+// Base Debater class
+class Debater {
+  constructor(role, personality) {
+    this.role = role;
+    this.personality = personality;
+  }
+
+  argue(context) { return []; }
+  debate(proposals, context) { return proposals[0] || null; }
+}
+
+// Bull（激进派）- 倾向ATTACK/MULTI_ATTACK，高风险高回报
+class BullDebater extends Debater {
+  constructor() {
+    super('bull', 'aggressive');
+  }
+
+  argue(context) {
+    const proposals = [];
+    const { enemy, player, turn } = context;
+    
+    // 激进派：倾向于攻击
+    // 玩家HP低时，倾向重击/多次攻击
+    if (player.hp < player.maxHp * 0.4) {
+      proposals.push({
+        action: 'heavy',
+        weight: 0.9,
+        reasoning: '玩家血量低，一击制胜！'
+      });
+      proposals.push({
+        action: 'multi_attack',
+        weight: 0.85,
+        reasoning: '玩家血量告急，连续攻击确保击杀'
+      });
+    }
+    
+    // 敌人HP低时，倾向高风险高回报攻击
+    if (enemy.hp < enemy.maxHp * 0.3) {
+      proposals.push({
+        action: 'heavy',
+        weight: 0.95,
+        reasoning: '背水一战，全力攻击！'
+      });
+    }
+    
+    // 玩家无护甲时，倾向攻击
+    if (player.shield === 0) {
+      proposals.push({
+        action: 'attack',
+        weight: 0.8,
+        reasoning: '玩家无护甲，直接攻击'
+      });
+      proposals.push({
+        action: 'multi_attack',
+        weight: 0.75,
+        reasoning: '玩家无护甲保护，连续攻击'
+      });
+    }
+    
+    // 玩家有易伤debuff时，倾向攻击
+    const hasVulnerable = player.debuffs?.some(d => d.type === 'vulnerable');
+    if (hasVulnerable) {
+      proposals.push({
+        action: 'heavy',
+        weight: 0.9,
+        reasoning: '玩家已易伤，给予重击！'
+      });
+    }
+    
+    // 战斗初期，激进策略
+    if (turn <= 2) {
+      proposals.push({
+        action: 'attack',
+        weight: 0.7,
+        reasoning: '开局抢攻压制'
+      });
+    }
+    
+    // 敌人有护甲时仍倾向攻击（破甲）
+    if (enemy.armor > 0) {
+      proposals.push({
+        action: 'attack',
+        weight: 0.6,
+        reasoning: '突破护甲进行攻击'
+      });
+    }
+    
+    return proposals;
+  }
+}
+
+// Bear（保守派）- 倾向DEFEND/BUFF，低风险低回报
+class BearDebater extends Debater {
+  constructor() {
+    super('bear', 'defensive');
+  }
+
+  argue(context) {
+    const proposals = [];
+    const { enemy, player, turn } = context;
+    
+    // 保守派：倾向于防御和增益
+    // 敌人HP低时，倾向防御自保
+    if (enemy.hp < enemy.maxHp * 0.4) {
+      proposals.push({
+        action: 'defend',
+        weight: 0.85,
+        reasoning: '血量告急，先护盾自保'
+      });
+      proposals.push({
+        action: 'buff',
+        weight: 0.75,
+        reasoning: '积累防御准备持久战'
+      });
+    }
+    
+    // 敌人无护甲时，倾向叠盾
+    if (enemy.armor < 5) {
+      proposals.push({
+        action: 'defend',
+        weight: 0.8,
+        reasoning: '护甲不足，叠加护盾'
+      });
+    }
+    
+    // 玩家攻击高时，倾向防御
+    const playerAttack = player.attackDamageMod || 1;
+    if (playerAttack > 1.2) {
+      proposals.push({
+        action: 'defend',
+        weight: 0.75,
+        reasoning: '玩家攻击力增强，先防御'
+      });
+    }
+    
+    // 玩家有荆棘时，倾向增益而非攻击
+    if (enemy.thorns > 0 || player.thorns > 0) {
+      proposals.push({
+        action: 'buff',
+        weight: 0.8,
+        reasoning: '荆棘active，避免硬碰硬'
+      });
+      proposals.push({
+        action: 'defend',
+        weight: 0.7,
+        reasoning: '积累护甲降低反弹伤害'
+      });
+    }
+    
+    // 战斗后期，倾向稳健
+    if (turn >= 5) {
+      proposals.push({
+        action: 'defend',
+        weight: 0.7,
+        reasoning: '后期稳健，防守反击'
+      });
+      proposals.push({
+        action: 'buff',
+        weight: 0.65,
+        reasoning: '长期作战，积累buff'
+      });
+    }
+    
+    // 敌人HP高时，可以慢慢磨
+    if (enemy.hp > enemy.maxHp * 0.7) {
+      proposals.push({
+        action: 'defend',
+        weight: 0.6,
+        reasoning: '血量充足，稳扎稳打'
+      });
+    }
+    
+    return proposals;
+  }
+}
+
+// Judge（裁判）- 权衡双方输出最终决策
+class JudgeDebater extends Debater {
+  constructor() {
+    super('judge', 'balanced');
+  }
+
+  evaluateProposal(proposal, context) {
+    let score = proposal.weight || 0.5;
+    
+    // 基础分数基于原始权重
+    score *= 0.5;
+    
+    // 攻击类行动：玩家血量越低价值越高
+    if (proposal.action === 'attack' || proposal.action === 'heavy' || proposal.action === 'multi_attack') {
+      const hpRatio = context.player.hp / context.player.maxHp;
+      if (hpRatio < 0.3) score += 0.35;
+      else if (hpRatio < 0.5) score += 0.25;
+      else if (hpRatio < 0.7) score += 0.15;
+      else score += 0.05;
+      
+      // 敌人血量低时慎用攻击
+      if (context.enemy.hp < context.enemy.maxHp * 0.3) {
+        score -= 0.2;
+      }
+    }
+    
+    // 防御类行动：敌人血量越低价值越高（拖延战术）
+    if (proposal.action === 'defend' || proposal.action === 'buff') {
+      const enemyHpRatio = context.enemy.hp / context.enemy.maxHp;
+      if (enemyHpRatio < 0.3) score += 0.35; // 敌人快死了，拖延
+      else if (enemyHpRatio < 0.5) score += 0.25;
+      else score += 0.1;
+      
+      // 敌人有护甲时防御价值降低
+      if (context.enemy.armor > 10) score -= 0.15;
+    }
+    
+    // 特殊行动考虑
+    if (proposal.action === 'multi_attack') {
+      // 多次攻击在玩家无护甲时更有价值
+      if (context.player.shield === 0) score += 0.15;
+      // 玩家有反击时价值降低
+      if (context.enemy.thorns > 0) score -= 0.1;
+    }
+    
+    return Math.max(0, Math.min(1, score));
+  }
+
+  debate(proposals, context) {
+    if (!proposals || proposals.length === 0) {
+      return { action: 'attack', weight: 0.5 };
+    }
+
+    const scored = proposals.map(p => ({
+      proposal: p,
+      score: this.evaluateProposal(p, context),
+      originalWeight: p.weight
+    }));
+
+    scored.sort((a, b) => b.score - a.score);
+
+    let finalChoice = scored[0].proposal;
+    let finalScore = scored[0].score;
+
+    // 处理接近的选项，加入随机性
+    for (let i = 1; i < scored.length; i++) {
+      if (Math.abs(scored[i].score - finalScore) < 0.08) {
+        if (Math.random() > 0.5) {
+          finalChoice = scored[i].proposal;
+          finalScore = scored[i].score;
+        }
+      }
+    }
+
+    return finalChoice;
+  }
+}
+
+// 辩论系统主类
+class EnemyDebateSystem {
+  constructor() {
+    this.bull = new BullDebater();
+    this.bear = new BearDebater();
+    this.judge = new JudgeDebater();
+  }
+
+  decide(enemyType, context) {
+    const weights = DEBATER_WEIGHTS[enemyType] || DEBATER_WEIGHTS.balanced;
+
+    // 收集各方提议
+    let bullProposals = this.bull.argue(context);
+    let bearProposals = this.bear.argue(context);
+
+    // 加权处理提议
+    bullProposals = bullProposals.map(p => ({
+      ...p,
+      weight: p.weight * weights.bull
+    }));
+    bearProposals = bearProposals.map(p => ({
+      ...p,
+      weight: p.weight * weights.bear
+    }));
+
+    // 合并提议
+    const allProposals = [...bullProposals, ...bearProposals];
+
+    // Judge裁决
+    let finalDecision = this.judge.debate(allProposals, context);
+
+    // 如果没有任何提议，使用默认策略
+    if (!finalDecision) {
+      finalDecision = { action: 'attack', weight: 0.5 };
+    }
+
+    // 验证最终决策有效
+    if (!finalDecision || !finalDecision.action) {
+      finalDecision = { action: 'attack', weight: 0.5 };
+    }
+
+    return finalDecision;
+  }
+}
+
+// 全局辩论系统实例
+const debateSystem = new EnemyDebateSystem();
+
 // ===== 地图数据 =====
 const FLOORS = [
   {
@@ -11907,6 +12232,44 @@ function rollEnemyIntent() {
   }
 
   const intent = weightedRandom(weights);
+
+  // V50 辩论系统干预：让Bull/Bear/Judge辩论后决定最终意图
+  const enemyBehaviorType = getEnemyBehaviorType(enemy);
+  const debateContext = {
+    enemy: {
+      hp: gameState.enemyHp,
+      maxHp: gameState.enemyMaxHp,
+      armor: gameState.enemyArmor,
+      thorns: gameState.enemyThorns,
+      id: enemy.id,
+      isBoss: enemy.isBoss,
+      isElite: enemy.isElite
+    },
+    player: {
+      hp: gameState.playerHp,
+      maxHp: gameState.playerMaxHp,
+      shield: gameState.playerShield,
+      thorns: gameState.thorns,
+      debuffs: gameState.playerDebuffs,
+      attackDamageMod: gameState.attackDamageMod
+    },
+    turn: gameState.turn
+  };
+  
+  const debateDecision = debateSystem.decide(enemyBehaviorType, debateContext);
+  
+  // 如果辩论系统返回了建议，有机会采纳
+  if (debateDecision && debateDecision.action) {
+    const validActions = ['attack', 'defend', 'buff', 'debuff', 'heavy', 'multi_attack', 'aoe', 'drain', 'lifesteal'];
+    if (validActions.includes(debateDecision.action)) {
+      // 有30%几率接受辩论系统建议来调整意图
+      if (Math.random() < 0.3) {
+        const oldIntent = intent;
+        intent = debateDecision.action;
+        console.log(`[辩论AI] ${enemy.id} 意图调整: ${oldIntent} -> ${intent} (理由: ${debateDecision.reasoning || '无'})`);
+      }
+    }
+  }
 
   let value = 0;
   switch (intent) {
