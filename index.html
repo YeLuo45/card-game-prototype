@@ -9033,9 +9033,8 @@ function showDailyChallenge() {
   document.getElementById('daily-info').innerHTML = infoHtml;
   
   // 绑定开始按钮
-  document.getElementById('start-daily-btn').onclick = () => {
-    startDailyChallenge();
-  };
+  const startDailyBtn = document.getElementById('start-daily-btn');
+  if (startDailyBtn) startDailyBtn.onclick = () => { startDailyChallenge(); };
   
   // 排行榜
   let leaderboardHtml = '<table><tr><th>#</th><th>时间</th><th>难度</th></tr>';
@@ -9086,9 +9085,8 @@ function showBossRushInfo() {
   overlay.innerHTML = infoHtml;
   document.body.appendChild(overlay);
   
-  document.getElementById('start-boss-rush-btn').onclick = () => {
-    startBossRush();
-  };
+  const startBossRushBtn = document.getElementById('start-boss-rush-btn');
+  if (startBossRushBtn) startBossRushBtn.onclick = () => { startBossRush(); };
   
   // 点击遮罩关闭
   overlay.onclick = (e) => {
@@ -9340,7 +9338,8 @@ function showBossRushReward() {
   `;
   document.body.appendChild(overlay);
   
-  document.getElementById('next-boss-btn').onclick = () => {
+  const nextBossBtn = document.getElementById('next-boss-btn');
+  if (nextBossBtn) nextBossBtn.onclick = () => {
     overlay.remove();
     // 重置战斗状态但保留玩家状态
     gameState.hand = [];
@@ -9407,12 +9406,10 @@ function showBossRushVictory() {
   `;
   document.body.appendChild(overlay);
   
-  document.getElementById('br-retry-btn').onclick = () => {
-    overlay.remove();
-    startBossRush();
-  };
-  
-  document.getElementById('br-menu-btn').onclick = () => {
+  const brRetryBtn = document.getElementById('br-retry-btn');
+  if (brRetryBtn) brRetryBtn.onclick = () => { overlay.remove(); startBossRush(); };
+  const brMenuBtn = document.getElementById('br-menu-btn');
+  if (brMenuBtn) brMenuBtn.onclick = () => {
     overlay.remove();
     document.getElementById('game-container').style.display = 'none';
     document.getElementById('battle-container').style.display = 'none';
@@ -9447,12 +9444,10 @@ function showBossRushGameOver() {
   `;
   document.body.appendChild(overlay);
   
-  document.getElementById('br-retry-btn').onclick = () => {
-    overlay.remove();
-    startBossRush();
-  };
-  
-  document.getElementById('br-menu-btn').onclick = () => {
+  const brRetryBtn2 = document.getElementById('br-retry-btn');
+  if (brRetryBtn2) brRetryBtn2.onclick = () => { overlay.remove(); startBossRush(); };
+  const brMenuBtn2 = document.getElementById('br-menu-btn');
+  if (brMenuBtn2) brMenuBtn2.onclick = () => {
     overlay.remove();
     document.getElementById('game-container').style.display = 'none';
     document.getElementById('battle-container').style.display = 'none';
@@ -11977,7 +11972,8 @@ function showChapterTransition(chapter, callback) {
         ">继续前进</button>
       `;
       
-      document.getElementById('chapter-continue-btn').onclick = () => {
+      const chapterContinueBtn = document.getElementById('chapter-continue-btn');
+      if (chapterContinueBtn) chapterContinueBtn.onclick = () => {
         overlay.style.background = 'rgba(0,0,0,0.85)';
         overlay.classList.remove('show');
         if (rewardTypes) rewardTypes.style.display = 'flex';
