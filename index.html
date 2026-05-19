@@ -15825,7 +15825,9 @@ function startNewGame() {
   window.gameStateDifficulty = diff;
 
   // 初始化音效系统
-  audioManager.init();
+  if (typeof audioManager !== 'undefined' && audioManager) {
+    audioManager.init();
+  }
 
   // V33 初始化章节状态
   initChapterEnemyPool(1);
