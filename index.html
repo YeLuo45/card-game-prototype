@@ -6791,7 +6791,7 @@ const AVAILABLE_RELICS = [
 ];
 
 // ===== V9 成就系统 =====
-const ACHIEVEMENTS = {
+const GAME_ACHIEVEMENTS = {
   // 战斗成就
   firstBlood: {
     id: 'firstBlood',
@@ -9514,7 +9514,7 @@ function updateBattleRelicsDisplay() {
 function unlockAchievement(achievementId) {
   if (gameState.unlockedAchievements.includes(achievementId)) return false;
   
-  const achievement = ACHIEVEMENTS[achievementId];
+  const achievement = GAME_ACHIEVEMENTS[achievementId];
   if (!achievement) return false;
   
   gameState.unlockedAchievements.push(achievementId);
@@ -9917,7 +9917,7 @@ function updateDeckCountDisplay() {
 
 // 检查成就
 function checkAchievements() {
-  for (const [id, achievement] of Object.entries(ACHIEVEMENTS)) {
+  for (const [id, achievement] of Object.entries(GAME_ACHIEVEMENTS)) {
     if (!gameState.unlockedAchievements.includes(id)) {
       if (achievement.condition(gameState)) {
         unlockAchievement(id);
@@ -9932,7 +9932,7 @@ function showAchievements() {
   const unlockedCount = document.getElementById('achievements-unlocked-count');
   const totalCount = document.getElementById('achievements-total-count');
   
-  const achievements = Object.values(ACHIEVEMENTS);
+  const achievements = Object.values(GAME_ACHIEVEMENTS);
   unlockedCount.textContent = gameState.unlockedAchievements.length;
   totalCount.textContent = achievements.length;
   
