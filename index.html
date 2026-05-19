@@ -16990,7 +16990,7 @@ document.getElementById('end-turn').onclick = () => { console.log('[CLICK] end-t
 document.getElementById('mute-btn').onclick = () => { console.log('[CLICK] mute-btn → toggleMute'); toggleMute(); };
 document.getElementById('landing-enter-map').onclick = () => { console.log('[CLICK] landing-enter-map → enterMapFromLanding'); enterMapFromLanding(); };
 document.getElementById('landing-return-title').onclick = () => { console.log('[CLICK] landing-return-title → returnToTitle'); returnToTitle(); };
-document.getElementById('map-canvas').onclick = () => { console.log('[CLICK] map-canvas → handleMapClick'); handleMapClick(); };
+document.getElementById('map-canvas').onclick = (e) => { console.log('[CLICK] map-canvas → handleMapClick'); handleMapClick(e); };
 document.getElementById('node-preview-btn').onclick = () => { console.log('[CLICK] node-preview-btn → enterNode'); enterNode(); };
 document.getElementById('shop-leave').onclick = () => { console.log('[CLICK] shop-leave → leaveShop'); leaveShop(); };
 // V9 成就按钮
@@ -17015,8 +17015,8 @@ document.getElementById('close-daily-btn').onclick = () => {
   console.log('[CLICK] close-daily-btn');
   document.getElementById('daily-overlay').classList.remove('show');
 };
-// V29 排行榜按钮
-document.getElementById('leaderboard-btn').onclick = () => { console.log('[CLICK] leaderboard-btn → showLeaderboard'); showLeaderboard(); };
+// V29 排行榜按钮（元素不存在，暂注释）
+// document.getElementById('leaderboard-btn').onclick = () => { console.log('[CLICK] leaderboard-btn → showLeaderboard'); showLeaderboard(); };
 // V28 终局结算按钮
 document.getElementById('ngplus-btn').onclick = () => { console.log('[CLICK] ngplus-btn → startNGPlus'); startNGPlus(); };
 document.getElementById('difficulty-btn').onclick = () => { console.log('[CLICK] difficulty-btn → showDifficultySelection'); showDifficultySelection(); };
