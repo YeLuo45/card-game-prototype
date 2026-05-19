@@ -3902,6 +3902,10 @@
 
 <script>
 // ===== V61 卡包市场 - 远程加载 =====
+// V68 Fix: CARDS 必须在 async IIFE 外声明，否则 NEW_CARDS_POOL 等全局 const
+// 在解析时立即引用 CARDS，导致 "CARDS is not defined"
+let CARDS = {};
+
 (async function() {
   // 页面加载时自动重新加载远程卡包
   if (typeof RemoteCardPackLoader !== 'undefined') {
@@ -3912,10 +3916,6 @@
       console.warn('Failed to reload remote packs:', e);
     }
   }
-
-  // CARDS 将通过 refreshCardsFromRegistry() 从 CardPackRegistry 获取
-  // 卡牌数据现在在 card-packs/ 目录下的插件中定义
-  let CARDS = {};
 
   // V61: 从卡包注册表刷新卡牌数据
   if (typeof refreshCardsFromRegistry === 'function') {

@@ -177,14 +177,14 @@
 
   // 刷新CARDS从注册表
   function refreshCardsFromRegistry() {
-    if (typeof CARDS !== 'undefined') {
-      const cardsList = CardPackRegistry.getCards();
-      CARDS = {};
-      for (const card of cardsList) {
-        CARDS[card.id] = card;
-      }
-      console.log(`Cards refreshed from registry: ${Object.keys(CARDS).length} cards`);
+    // V68 Fix: 移除 typeof CARDS !== 'undefined' 检查，因为 CARDS 现在在 index.html 中同步声明
+    // 不再有 TDZ 问题，可以直接使用
+    const cardsList = CardPackRegistry.getCards();
+    CARDS = {};
+    for (const card of cardsList) {
+      CARDS[card.id] = card;
     }
+    console.log(`Cards refreshed from registry: ${Object.keys(CARDS).length} cards`);
   }
 
   // 刷新RELICS从注册表
