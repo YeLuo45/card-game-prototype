@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V66 — 视觉与音效系统</title>
+  <title>DBG卡牌游戏 V69 — 插件系统 v2</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -3435,8 +3435,11 @@
     .difficulty-label { font-weight: bold; }
     .difficulty-lock { font-size: 12px; }
   </style>
-<!-- V61 卡包市场 -->
+<!-- V69 插件系统 v2 -->
+<script src="plugin-api.js"></script>
 <script src="plugin-loader.js"></script>
+<script src="plugins/example-plugin.js"></script>
+<script src="plugins/starter-kit.js"></script>
 <script src="market-loader.js"></script>
 <!-- V62 Roguelike: 遗物系统核心 -->
 <script src="relics-loader.js"></script>
@@ -3711,9 +3714,30 @@
       </button>
     </div>
 
+    <div class="settings-section">
+      <h3>🔌 插件管理</h3>
+      <button onclick="openPluginManager()" style="
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(145deg, #9b59b6, #8e44ad);
+        border: none;
+        border-radius: 10px;
+        color: #fff;
+        font-weight: bold;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      ">
+        🔌 管理插件
+      </button>
+    </div>
+
     <div class="settings-section" style="text-align:center;color:#666;font-size:12px;">
-      <p>DBG卡牌游戏 V61</p>
-      <p>版本 2026.05.13</p>
+      <p>DBG卡牌游戏 V69</p>
+      <p>版本 2026.05.21</p>
     </div>
   </div>
 </div>
@@ -16325,6 +16349,159 @@ function closeSettings() {
   overlay.style.display = 'none';
   overlay.classList.remove('show');
 }
+
+// V69 插件管理
+function openPluginManager() {
+  const existing = document.getElementById('plugin-manager-container');
+  if (existing) { existing.remove(); }
+
+  const container = document.createElement('div');
+  container.id = 'plugin-manager-container';
+
+  const plugins = (window.PluginRegistry && window.PluginRegistry.getPlugins) ? window.PluginRegistry.getPlugins() : [];
+  const enabledPlugins = plugins.filter(p => p.enabled !== false);
+
+  let html = `
+    <div style="
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85); z-index: 10001;
+      display: flex; align-items: center; justify-content: center;
+    ">
+      <div style="
+        background: #1a1a2e; border: 2px solid #9b59b6; border-radius: 15px;
+        padding: 20px; max-width: 500px; width: 90%; max-height: 80vh;
+        overflow-y: auto;
+      ">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+          <h2 style="color:#9b59b6;margin:0;">🔌 插件管理</h2>
+          <button onclick="closePluginManager()" style="
+            background:none;border:none;color:#fff;font-size:24px;cursor:pointer;
+          ">✕</button>
+        </div>
+  `;
+
+  if (plugins.length === 0) {
+    html += `<p style="color:#888;text-align:center;">暂无已加载的插件</p>`;
+  } else {
+    html += `<div style="margin-bottom:15px;">`;
+    for (const plugin of plugins) {
+      const isEnabled = plugin.enabled !== false;
+      const isBuiltIn = plugin.builtIn === true;
+      html += `
+        <div style="
+          background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;
+          margin-bottom:10px;display:flex;align-items:center;gap:12px;
+        ">
+          <span style="font-size:28px;">🔌</span>
+          <div style="flex:1;">
+            <div style="color:#9b59b6;font-weight:bold;">${plugin.name}</div>
+            <div style="color:#666;font-size:12px;">v${plugin.version} | ${plugin.author || '未知作者'}</div>
+            <div style="color:#888;font-size:11px;">${plugin.description || ''}</div>
+            ${isBuiltIn ? '<span style="color:#f39c12;font-size:10px;">[内置]</span>' : ''}
+          </div>
+          ${!isBuiltIn ? `
+          <label style="position:relative;width:50px;height:26px;cursor:pointer;">
+            <input type="checkbox" id="plugin-toggle-${plugin.id}"
+              ${isEnabled ? 'checked' : ''}
+              onchange="togglePlugin('${plugin.id}')"
+              style="opacity:0;width:0;height:0;position:absolute;">
+            <span style="
+              position:absolute;top:0;left:0;right:0;bottom:0;
+              background:${isEnabled ? '#2ecc71' : '#555'};border-radius:13px;transition:0.3s;
+            ">
+              <span style="
+                position:absolute;left:${isEnabled ? '26px' : '2px'};top:2px;
+                width:22px;height:22px;background:#fff;border-radius:50%;transition:0.3s;
+              "></span>
+            </span>
+          </label>` : `<span style="color:#666;font-size:12px;">不可禁用</span>`}
+        </div>
+      `;
+    }
+    html += `</div>`;
+  }
+
+  html += `
+        <div style="text-align:center;color:#666;font-size:12px;margin-bottom:10px;">
+          共 ${plugins.length} 个插件 | ${enabledPlugins.length} 个已启用
+        </div>
+        <div style="color:#555;font-size:11px;text-align:center;margin-bottom:10px;">
+          插件卡牌将出现在商店和卡池中
+        </div>
+        <button onclick="closePluginManager()" style="
+          width:100%;padding:12px;
+          background:linear-gradient(145deg,#9b59b6,#8e44ad);
+          border:none;border-radius:10px;color:#fff;font-weight:bold;font-size:16px;cursor:pointer;
+        ">关闭</button>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+  document.body.appendChild(container);
+}
+
+function closePluginManager() {
+  const container = document.getElementById('plugin-manager-container');
+  if (container) container.remove();
+}
+
+function togglePlugin(pluginId) {
+  if (window.PluginLoader && window.PluginLoader.toggle) {
+    const newState = window.PluginLoader.toggle(pluginId);
+    // 刷新卡牌数据
+    if (window.refreshCardsFromRegistry) window.refreshCardsFromRegistry();
+    if (window.refreshRelicsFromRegistry) window.refreshRelicsFromRegistry();
+    // 更新开关状态
+    const toggle = document.getElementById('plugin-toggle-' + pluginId);
+    if (toggle) {
+      const span = toggle.nextElementSibling;
+      span.style.background = newState ? '#2ecc71' : '#555';
+      span.querySelector('span').style.left = newState ? '26px' : '2px';
+    }
+    // 更新计数
+    const plugins = (window.PluginRegistry && window.PluginRegistry.getPlugins) ? window.PluginRegistry.getPlugins() : [];
+    const enabledPlugins = plugins.filter(p => p.enabled !== false);
+    const counter = document.querySelector('#plugin-manager-container [style*="text-align:center"]');
+    if (counter) {
+      counter.textContent = `共 ${plugins.length} 个插件 | ${enabledPlugins.length} 个已启用`;
+    }
+  }
+}
+
+// 初始化插件（需要在 DOM 加载后执行）
+document.addEventListener('DOMContentLoaded', function() {
+  if (window.PluginLoader) {
+    window.PluginLoader.loadEnabledState();
+    window.PluginLoader.loadBuiltInPlugins();
+
+    // V69: 将插件卡牌同步到 CardPackRegistry
+    if (window.PluginRegistry && window.CardPackRegistry) {
+      const pluginCards = PluginRegistry.getCards();
+      const pluginRelics = PluginRegistry.getRelics();
+
+      // 为每个插件包注册到 CardPackRegistry
+      if (pluginCards.length > 0) {
+        CardPackRegistry.register({
+          id: 'plugins',
+          name: '🔌 插件卡牌',
+          version: '1.0.0',
+          author: '插件系统',
+          cards: pluginCards,
+          relics: pluginRelics,
+          builtIn: true
+        });
+        CardPackRegistry.activate('plugins');
+        console.log(`[V69] Synced ${pluginCards.length} plugin cards to CardPackRegistry`);
+      }
+    }
+
+    // 刷新以使插件卡生效
+    if (window.refreshCardsFromRegistry) refreshCardsFromRegistry();
+    if (window.refreshRelicsFromRegistry) refreshRelicsFromRegistry();
+    console.log('[V69] Plugin system initialized');
+  }
+});
 
 // 音量控制（设置滑块）
 function initVolumeControl() {
