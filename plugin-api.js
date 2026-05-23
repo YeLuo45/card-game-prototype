@@ -4,6 +4,51 @@
 (function() {
   'use strict';
 
+  // ===== V71 新增：PluginCache =====
+  const PluginCache = {
+    // 获取缓存的插件数据
+    get(pluginId) {
+      try {
+        const cached = localStorage.getItem('plugin_cache_' + pluginId);
+        return cached ? JSON.parse(cached) : null;
+      } catch (e) {
+        console.warn('[PluginCache] Get error:', e);
+        return null;
+      }
+    },
+
+    // 存入缓存
+    set(pluginId, data) {
+      try {
+        localStorage.setItem('plugin_cache_' + pluginId, JSON.stringify(data));
+        console.log(`[PluginCache] Cached: ${pluginId}`);
+      } catch (e) {
+        console.warn('[PluginCache] Set error:', e);
+      }
+    },
+
+    // 删除缓存
+    remove(pluginId) {
+      try {
+        localStorage.removeItem('plugin_cache_' + pluginId);
+        console.log(`[PluginCache] Removed: ${pluginId}`);
+      } catch (e) {
+        console.warn('[PluginCache] Remove error:', e);
+      }
+    },
+
+    // 列出所有缓存插件 ID
+    list() {
+      const keys = Object.keys(localStorage).filter(k => k.startsWith('plugin_cache_'));
+      return keys.map(k => k.replace('plugin_cache_', ''));
+    },
+
+    // 检查插件是否已缓存
+    has(pluginId) {
+      return localStorage.getItem('plugin_cache_' + pluginId) !== null;
+    }
+  };
+
   // ===== V70 新增：EventBus =====
   const EventBus = {
     listeners: new Map(),
@@ -116,7 +161,9 @@
           author: '第三方开发者',
           description: '添加10张强力火系卡牌，包含火球术、烈焰风暴等',
           url: 'https://example.com/plugins/fireball-plugin.js',
-          downloads: 1234
+          rating: 4.5,
+          downloads: 1234,
+          tags: ['攻击', '火系']
         },
         {
           id: 'ice-mage-pack',
@@ -125,7 +172,9 @@
           author: 'IceDev',
           description: '冰系卡牌专包，强化冻结效果',
           url: 'https://example.com/plugins/ice-plugin.js',
-          downloads: 856
+          rating: 4.2,
+          downloads: 856,
+          tags: ['控制', '冰系']
         },
         {
           id: 'lucky-reliquary',
@@ -134,7 +183,9 @@
           author: 'LuckyDev',
           description: '新增15种独特遗物，改变游戏玩法',
           url: 'https://example.com/plugins/lucky-reliquary.js',
-          downloads: 2341
+          rating: 4.8,
+          downloads: 2341,
+          tags: ['遗物', '幸运']
         }
       ];
     }
@@ -500,11 +551,60 @@
   // 导出到全局
   window.PluginRegistry = PluginRegistry;
   window.PluginLoader = PluginLoader;
-  window.sandboxUtils = sandboxUtils;
-  // V70 新增导出
+// V70 新增导出
+  window.PluginCache = PluginCache;
   window.EventBus = EventBus;
   window.RemoteMarket = RemoteMarket;
   window.LifecycleManager = LifecycleManager;
 
-  console.log('[plugin-api.js] Plugin API V70 initialized');
+  // ===== V71 新增：PluginManager.install/uninstall =====
+  const PluginManager = {
+    // 安装插件（注册到 PluginRegistry + 缓存）
+    install(plugin) {
+      if (!plugin || !plugin.id) {
+        console.warn('[PluginManager] Invalid plugin:', plugin);
+        return false;
+      }
+      // 注册到 PluginRegistry
+      PluginRegistry.registerPlugin(plugin);
+      // 调用 Lifecycle onLoad
+      const pluginObj = PluginRegistry.plugins.get(plugin.id);
+      if (pluginObj) {
+        LifecycleManager.onLoad(pluginObj);
+        LifecycleManager.onEnable(pluginObj);
+      }
+      // 缓存插件数据
+      PluginCache.set(plugin.id, plugin);
+      console.log(`[PluginManager] Installed: ${plugin.id}`);
+      return true;
+    },
+
+    // 卸载插件（从 PluginRegistry 移除 + 清理缓存）
+    uninstall(pluginId) {
+      const plugin = PluginRegistry.plugins.get(pluginId);
+      if (plugin) {
+        LifecycleManager.onDisable(plugin);
+        LifecycleManager.onUnload(plugin);
+        PluginRegistry.plugins.delete(pluginId);
+        PluginCache.remove(pluginId);
+        console.log(`[PluginManager] Uninstalled: ${pluginId}`);
+        return true;
+      }
+      return false;
+    },
+
+    // 列出已安装插件
+    listInstalled() {
+      return PluginRegistry.getPlugins();
+    },
+
+    // 检查插件是否已安装
+    isInstalled(pluginId) {
+      return PluginRegistry.plugins.has(pluginId);
+    }
+  };
+
+  window.PluginManager = PluginManager;
+
+  console.log('[plugin-api.js] Plugin API V71 initialized');
 })();

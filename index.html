@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V70 — 插件系统 v3</title>
+  <title>DBG卡牌游戏 V71 — 插件市场生态</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -1345,6 +1345,59 @@
       overflow-y: auto;
     }
     #petshop-overlay.show { display: flex; }
+    #market-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.95);
+      z-index: 500;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    #market-overlay.show { display: flex; }
+    #market-title { font-size: 28px; color: #2ecc71; margin-bottom: 15px; }
+    #market-header { display: flex; gap: 10px; width: 90%; max-width: 700px; margin-bottom: 10px; }
+    #market-tags { width: 90%; max-width: 700px; }
+    .market-tag-btn {
+      padding: 4px 10px;
+      border-radius: 15px;
+      border: 1px solid #444;
+      background: #2a2a2a;
+      color: #aaa;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .market-tag-btn.active { background: #2ecc71; color: #fff; border-color: #2ecc71; }
+    #market-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 15px;
+      width: 90%;
+      max-width: 900px;
+      padding: 10px;
+    }
+    .market-plugin-card {
+      background: rgba(30,30,50,0.9);
+      border-radius: 12px;
+      padding: 15px;
+      border: 2px solid #444;
+      transition: transform 0.2s, border-color 0.3s;
+    }
+    .market-plugin-card:hover { transform: scale(1.02); border-color: #2ecc71; }
+    .market-plugin-name { font-size: 16px; font-weight: bold; color: #fff; margin-bottom: 8px; }
+    .market-plugin-meta { display: flex; gap: 10px; font-size: 12px; color: #aaa; margin-bottom: 8px; flex-wrap: wrap; }
+    .market-plugin-rating { color: #f39c12; }
+    .market-plugin-desc { font-size: 13px; color: #ccc; margin-bottom: 10px; }
+    .market-plugin-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+    .market-tag { padding: 2px 8px; border-radius: 10px; background: #333; color: #aaa; font-size: 11px; }
+    .market-plugin-actions { display: flex; gap: 8px; }
+    .market-install-btn {
+      flex: 1; padding: 8px; border: none; border-radius: 8px;
+      background: linear-gradient(145deg, #2ecc71, #27ae60); color: #fff; font-weight: bold; cursor: pointer;
+    }
+    .market-install-btn.installed { background: #555; cursor: default; }
     #petshop-title { font-size: 28px; color: #ffd700; margin-bottom: 15px; }
     #petshop-gold { font-size: 18px; color: #ffd700; margin-bottom: 20px; }
     #petshop-grid {
@@ -3757,7 +3810,7 @@
     </div>
 
     <div class="settings-section" style="text-align:center;color:#666;font-size:12px;">
-      <p>DBG卡牌游戏 V70</p>
+      <p>DBG卡牌游戏 V71</p>
       <p>版本 2026.05.24</p>
     </div>
   </div>
@@ -3865,6 +3918,22 @@
   <div id="card-management-hint">点击卡牌进行升级（最高3级）<br>升级公式: 金币 = 10 + 当前等级 × 5 | 效果 +15%/级</div>
   <div id="card-management-cards"></div>
   <button id="close-card-management-btn">关闭</button>
+</div>
+
+<!-- V71 插件市场遮罩 -->
+<div id="market-overlay">
+  <div id="market-title">🌐 插件市场</div>
+  <div id="market-header">
+    <input type="text" id="market-search" placeholder="🔍 搜索插件..." oninput="filterMarketPlugins()" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid #444;background:#2a2a2a;color:#fff;font-size:13px;">
+    <select id="market-sort" onchange="filterMarketPlugins()" style="padding:8px;border-radius:8px;border:1px solid #444;background:#2a2a2a;color:#fff;font-size:13px;">
+      <option value="rating">评分排序</option>
+      <option value="downloads">下载量</option>
+      <option value="name">名称</option>
+    </select>
+  </div>
+  <div id="market-tags" style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;"></div>
+  <div id="market-grid"></div>
+  <button id="close-market-btn" style="margin-top:10px;padding:10px;background:#444;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:14px;">关闭市场</button>
 </div>
 
 <!-- 升级遮罩 -->
@@ -17307,6 +17376,114 @@ function updateOnlineStatus() {
 
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
+
+// V71 插件市场
+function openRemoteMarket() {
+  const overlay = document.getElementById('market-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  overlay.classList.add('show');
+  renderMarketTags();
+  filterMarketPlugins();
+}
+
+function closeMarket() {
+  const overlay = document.getElementById('market-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'none';
+  overlay.classList.remove('show');
+}
+
+function renderMarketTags() {
+  const tagsContainer = document.getElementById('market-tags');
+  if (!tagsContainer) return;
+  const mockPlugins = window.RemoteMarket ? window.RemoteMarket.fetchManifest() : [];
+  const allTags = new Set();
+  mockPlugins.forEach(p => (p.tags || []).forEach(t => allTags.add(t)));
+  const tagList = ['全部', ...Array.from(allTags)];
+  tagsContainer.innerHTML = tagList.map(tag => {
+    const isAll = tag === '全部';
+    return `<button onclick=\"filterMarketPlugins('${tag}')\" style="
+      padding:4px 10px;border-radius:12px;border:1px solid #555;
+      background:#333;color:#aaa;font-size:11px;cursor:pointer;
+    ">${tag}</button>`;
+  }).join('');
+}
+
+function filterMarketPlugins(tagFilter) {
+  const grid = document.getElementById('market-grid');
+  if (!grid) return;
+  const searchInput = document.getElementById('market-search');
+  const sortSelect = document.getElementById('market-sort');
+  const keyword = (searchInput ? searchInput.value : '').toLowerCase();
+  const sortBy = sortSelect ? sortSelect.value : 'rating';
+  const activeTag = tagFilter || '全部';
+
+  let plugins = window.RemoteMarket ? window.RemoteMarket.fetchManifest() : [];
+  if (activeTag !== '全部') {
+    plugins = plugins.filter(p => (p.tags || []).includes(activeTag));
+  }
+  if (keyword) {
+    plugins = plugins.filter(p => p.name.toLowerCase().includes(keyword) || (p.description || '').toLowerCase().includes(keyword));
+  }
+  plugins.sort((a, b) => {
+    if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+    if (sortBy === 'downloads') return (b.downloads || 0) - (a.downloads || 0);
+    return a.name.localeCompare(b.name);
+  });
+
+  grid.innerHTML = plugins.map(p => {
+    const installed = window.PluginManager && window.PluginManager.isInstalled && window.PluginManager.isInstalled(p.id);
+    const cache = window.PluginCache && window.PluginCache.get ? window.PluginCache.get(p.id) : null;
+    const canInstall = !installed && !cache;
+    const canUninstall = installed || cache;
+    return `
+      <div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:start;">
+          <div style="font-size:28px;">${p.icon || '📦'}</div>
+          <div style="color:#f1c40f;font-size:13px;">★ ${p.rating || '0'}</div>
+        </div>
+        <div style="color:#9b59b6;font-weight:bold;margin:6px 0;">${p.name}</div>
+        <div style="color:#888;font-size:11px;margin-bottom:6px;">${p.description || ''}</div>
+        <div style="color:#555;font-size:10px;margin-bottom:8px;">标签: ${(p.tags || []).join(', ')} | 下载: ${p.downloads || 0}</div>
+        ${canInstall ? `<button onclick="installMarketPlugin('${p.id}')" style="padding:6px 12px;background:#27ae60;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">安装</button>` : ''}
+        ${canUninstall ? `<button onclick="uninstallMarketPlugin('${p.id}')" style="padding:6px 12px;background:#c0392b;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">卸载</button>` : ''}
+        ${installed || cache ? '<span style="color:#2ecc71;font-size:11px;">已安装</span>' : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function installMarketPlugin(pluginId) {
+  if (!window.RemoteMarket || !window.PluginManager) {
+    showNotification('插件市场未加载', 'error');
+    return;
+  }
+  const manifest = window.RemoteMarket.fetchManifest();
+  const plugin = manifest.find(p => p.id === pluginId);
+  if (!plugin) {
+    showNotification('插件不存在', 'error');
+    return;
+  }
+  window.PluginManager.install(plugin);
+  if (window.PluginCache && window.PluginCache.set) {
+    window.PluginCache.set(pluginId, plugin);
+  }
+  showNotification(`插件 ${plugin.name} 安装成功`, 'success');
+  filterMarketPlugins();
+}
+
+function uninstallMarketPlugin(pluginId) {
+  if (!window.PluginManager) return;
+  window.PluginManager.uninstall(pluginId);
+  if (window.PluginCache && window.PluginCache.remove) {
+    window.PluginCache.remove(pluginId);
+  }
+  showNotification(`插件 ${pluginId} 已卸载`, 'info');
+  filterMarketPlugins();
+}
+
+document.getElementById('close-market-btn').addEventListener('click', closeMarket);
 </script>
 
 <!-- V42 扭蛋抽卡模态框 -->
