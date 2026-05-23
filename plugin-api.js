@@ -1,16 +1,25 @@
-// plugin-api.js - V70 插件系统 API v3
+// plugin-api.js - V72 插件系统 API v4
 // 统一插件接口：Card/Relic/Enemy/Event 注册 + LifecycleManager + EventBus + RemoteMarket
 
 (function() {
   'use strict';
 
-  // ===== V71 新增：PluginCache =====
+  // ===== V72 更新：PluginCache TTL =====
   const PluginCache = {
+    TTL: 5 * 60 * 1000, // 5 minutes
+
     // 获取缓存的插件数据
     get(pluginId) {
       try {
         const cached = localStorage.getItem('plugin_cache_' + pluginId);
-        return cached ? JSON.parse(cached) : null;
+        if (!cached) return null;
+        const entry = JSON.parse(cached);
+        // Check TTL expiry
+        if (Date.now() - entry._ts > this.TTL) {
+          localStorage.removeItem('plugin_cache_' + pluginId);
+          return null;
+        }
+        return entry._data;
       } catch (e) {
         console.warn('[PluginCache] Get error:', e);
         return null;
@@ -20,7 +29,7 @@
     // 存入缓存
     set(pluginId, data) {
       try {
-        localStorage.setItem('plugin_cache_' + pluginId, JSON.stringify(data));
+        localStorage.setItem('plugin_cache_' + pluginId, JSON.stringify({ _data: data, _ts: Date.now() }));
         console.log(`[PluginCache] Cached: ${pluginId}`);
       } catch (e) {
         console.warn('[PluginCache] Set error:', e);
@@ -37,15 +46,30 @@
       }
     },
 
-    // 列出所有缓存插件 ID
+    // 列出所有缓存插件 ID（仅未过期的）
     list() {
       const keys = Object.keys(localStorage).filter(k => k.startsWith('plugin_cache_'));
-      return keys.map(k => k.replace('plugin_cache_', ''));
+      const result = [];
+      for (const k of keys) {
+        const pluginId = k.replace('plugin_cache_', '');
+        const cached = localStorage.getItem(k);
+        if (cached) {
+          try {
+            const entry = JSON.parse(cached);
+            if (Date.now() - entry._ts <= this.TTL) {
+              result.push(pluginId);
+            }
+          } catch (e) {
+            result.push(pluginId); // keep even if corrupt for debugging
+          }
+        }
+      }
+      return result;
     },
 
-    // 检查插件是否已缓存
+    // 检查插件是否已缓存且未过期
     has(pluginId) {
-      return localStorage.getItem('plugin_cache_' + pluginId) !== null;
+      return this.get(pluginId) !== null;
     }
   };
 
@@ -557,7 +581,7 @@
   window.RemoteMarket = RemoteMarket;
   window.LifecycleManager = LifecycleManager;
 
-  // ===== V71 新增：PluginManager.install/uninstall =====
+  // ===== V72 更新：PluginManager.install/uninstall =====
   const PluginManager = {
     // 安装插件（注册到 PluginRegistry + 缓存）
     install(plugin) {
@@ -606,5 +630,5 @@
 
   window.PluginManager = PluginManager;
 
-  console.log('[plugin-api.js] Plugin API V71 initialized');
+  console.log('[plugin-api.js] Plugin API V72 initialized');
 })();
