@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V74 — 插件市场安装流程</title>
+  <title>DBG卡牌游戏 V75 — 插件市场分类过滤增强</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -3810,7 +3810,7 @@
     </div>
 
     <div class="settings-section" style="text-align:center;color:#666;font-size:12px;">
-      <p>DBG卡牌游戏 V74</p>
+      <p>DBG卡牌游戏 V75</p>
       <p>版本 2026.05.24</p>
     </div>
   </div>
@@ -3924,6 +3924,9 @@
 <div id="market-overlay">
   <div id="market-title">🌐 插件市场</div>
   <div id="market-header">
+    <select id="market-category" onchange="filterMarketPlugins()" style="padding:8px;border-radius:8px;border:1px solid #444;background:#2a2a2a;color:#fff;font-size:13px;">
+      <option value="">全部项目</option>
+    </select>
     <input type="text" id="market-search" placeholder="🔍 搜索插件..." oninput="filterMarketPlugins()" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid #444;background:#2a2a2a;color:#fff;font-size:13px;">
     <select id="market-sort" onchange="filterMarketPlugins()" style="padding:8px;border-radius:8px;border:1px solid #444;background:#2a2a2a;color:#fff;font-size:13px;">
       <option value="rating">评分排序</option>
@@ -17396,18 +17399,37 @@ function closeMarket() {
 
 function renderMarketTags() {
   const tagsContainer = document.getElementById('market-tags');
+  const categorySelect = document.getElementById('market-category');
   if (!tagsContainer) return;
-  const mockPlugins = window.RemoteMarket ? window.RemoteMarket.fetchManifest() : [];
-  const allTags = new Set();
-  mockPlugins.forEach(p => (p.tags || []).forEach(t => allTags.add(t)));
-  const tagList = ['全部', ...Array.from(allTags)];
-  tagsContainer.innerHTML = tagList.map(tag => {
-    const isAll = tag === '全部';
-    return `<button onclick=\"filterMarketPlugins('${tag}')\" style="
-      padding:4px 10px;border-radius:12px;border:1px solid #555;
-      background:#333;color:#aaa;font-size:11px;cursor:pointer;
-    ">${tag}</button>`;
-  }).join('');
+  // 异步获取插件列表并渲染标签和分类
+  const loadPlugins = window.RemoteMarket ? window.RemoteMarket.fetchManifest() : [];
+  if (loadPlugins && typeof loadPlugins.then === 'function') {
+    loadPlugins.then(plugins => {
+      const allTags = new Set();
+      const categories = new Set();
+      plugins.forEach(p => {
+        (p.tags || []).forEach(t => allTags.add(t));
+        if (p.tags && p.tags.length > 0) categories.add(p.tags[0]);
+      });
+      const tagList = ['全部', ...Array.from(allTags)];
+      tagsContainer.innerHTML = tagList.map(tag => {
+        const isAll = tag === '全部';
+        return `<button onclick="filterMarketPlugins('${tag}')" style="
+          padding:4px 10px;border-radius:12px;border:1px solid #555;
+          background:#333;color:#aaa;font-size:11px;cursor:pointer;
+        ">${tag}</button>`;
+      }).join('');
+      // 填充分类下拉
+      if (categorySelect) {
+        const catList = ['', ...Array.from(categories)];
+        categorySelect.innerHTML = catList.map(c => `<option value="${c}">${c || '全部项目'}</option>`).join('');
+      }
+    }).catch(() => {
+      tagsContainer.innerHTML = '<button onclick="filterMarketPlugins(\'全部\')" style="padding:4px 10px;border-radius:12px;border:1px solid #555;background:#333;color:#aaa;font-size:11px;cursor:pointer;">全部</button>';
+    });
+  } else {
+    tagsContainer.innerHTML = '<button onclick="filterMarketPlugins(\'全部\')" style="padding:4px 10px;border-radius:12px;border:1px solid #555;background:#333;color:#aaa;font-size:11px;cursor:pointer;">全部</button>';
+  }
 }
 
 function filterMarketPlugins(tagFilter) {
@@ -17415,43 +17437,61 @@ function filterMarketPlugins(tagFilter) {
   if (!grid) return;
   const searchInput = document.getElementById('market-search');
   const sortSelect = document.getElementById('market-sort');
+  const categorySelect = document.getElementById('market-category');
   const keyword = (searchInput ? searchInput.value : '').toLowerCase();
   const sortBy = sortSelect ? sortSelect.value : 'rating';
   const activeTag = tagFilter || '全部';
+  const activeCategory = categorySelect ? categorySelect.value : '';
 
-  let plugins = window.RemoteMarket ? window.RemoteMarket.fetchManifest() : [];
-  if (activeTag !== '全部') {
-    plugins = plugins.filter(p => (p.tags || []).includes(activeTag));
-  }
-  if (keyword) {
-    plugins = plugins.filter(p => p.name.toLowerCase().includes(keyword) || (p.description || '').toLowerCase().includes(keyword));
-  }
-  plugins.sort((a, b) => {
-    if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
-    if (sortBy === 'downloads') return (b.downloads || 0) - (a.downloads || 0);
-    return a.name.localeCompare(b.name);
-  });
+  const loadPlugins = window.RemoteMarket ? window.RemoteMarket.fetchManifest() : [];
+  const resolvePlugins = (plugins) => {
+    let result = plugins || [];
+    if (activeCategory) {
+      result = result.filter(p => (p.tags || []).includes(activeCategory));
+    }
+    if (activeTag !== '全部') {
+      result = result.filter(p => (p.tags || []).includes(activeTag));
+    }
+    if (keyword) {
+      result = result.filter(p =>
+        p.name.toLowerCase().includes(keyword) ||
+        (p.description || '').toLowerCase().includes(keyword) ||
+        (p.author || '').toLowerCase().includes(keyword)
+      );
+    }
+    result.sort((a, b) => {
+      if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
+      if (sortBy === 'downloads') return (b.downloads || 0) - (a.downloads || 0);
+      return a.name.localeCompare(b.name);
+    });
 
-  grid.innerHTML = plugins.map(p => {
-    const installed = window.PluginManager && window.PluginManager.isInstalled && window.PluginManager.isInstalled(p.id);
-    const cache = window.PluginCache && window.PluginCache.get ? window.PluginCache.get(p.id) : null;
-    const canInstall = !installed && !cache;
-    const canUninstall = installed || cache;
-    return `
-      <div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:start;">
-          <div style="font-size:28px;">${p.icon || '📦'}</div>
-          <div style="color:#f1c40f;font-size:13px;">★ ${p.rating || '0'}</div>
+    grid.innerHTML = result.map(p => {
+      const installed = window.PluginManager && window.PluginManager.isInstalled && window.PluginManager.isInstalled(p.id);
+      const cache = window.PluginCache && window.PluginCache.get ? window.PluginCache.get(p.id) : null;
+      const canInstall = !installed && !cache;
+      const canUninstall = installed || cache;
+      return `
+        <div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:start;">
+            <div style="font-size:28px;">${p.icon || '📦'}</div>
+            <div style="color:#f1c40f;font-size:13px;">★ ${p.rating || '0'}</div>
+          </div>
+          <div style="color:#9b59b6;font-weight:bold;margin:6px 0;">${p.name}</div>
+          <div style="color:#888;font-size:11px;margin-bottom:6px;">${p.description || ''}</div>
+          <div style="color:#555;font-size:10px;margin-bottom:8px;">标签: ${(p.tags || []).join(', ')} | 下载: ${p.downloads || 0}</div>
+          ${canInstall ? `<button onclick="installMarketPlugin('${p.id}')" style="padding:6px 12px;background:#27ae60;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">安装</button>` : ''}
+          ${canUninstall ? `<button onclick="uninstallMarketPlugin('${p.id}')" style="padding:6px 12px;background:#c0392b;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">卸载</button>` : ''}
+          ${installed || cache ? '<span style="color:#2ecc71;font-size:11px;">已安装</span>' : ''}
         </div>
-        <div style="color:#9b59b6;font-weight:bold;margin:6px 0;">${p.name}</div>
-        <div style="color:#888;font-size:11px;margin-bottom:6px;">${p.description || ''}</div>
-        <div style="color:#555;font-size:10px;margin-bottom:8px;">标签: ${(p.tags || []).join(', ')} | 下载: ${p.downloads || 0}</div>
-        ${canInstall ? `<button onclick="installMarketPlugin('${p.id}')" style="padding:6px 12px;background:#27ae60;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">安装</button>` : ''}
-        ${canUninstall ? `<button onclick="uninstallMarketPlugin('${p.id}')" style="padding:6px 12px;background:#c0392b;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">卸载</button>` : ''}
-        ${installed || cache ? '<span style="color:#2ecc71;font-size:11px;">已安装</span>' : ''}
-      </div>
-    `;
-  }).join('');
+      `;
+    }).join('');
+  };
+
+  if (loadPlugins && typeof loadPlugins.then === 'function') {
+    loadPlugins.then(resolvePlugins).catch(() => resolvePlugins([]));
+  } else {
+    resolvePlugins(loadPlugins);
+  }
 }
 
 function installMarketPlugin(pluginId) {
