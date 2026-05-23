@@ -1,8 +1,179 @@
-// plugin-api.js - V69 插件系统 API
-// 统一插件接口：Card/Relic/Enemy/Event 注册
+// plugin-api.js - V70 插件系统 API v3
+// 统一插件接口：Card/Relic/Enemy/Event 注册 + LifecycleManager + EventBus + RemoteMarket
 
 (function() {
   'use strict';
+
+  // ===== V70 新增：EventBus =====
+  const EventBus = {
+    listeners: new Map(),
+
+    // 发布事件
+    emit(event, data) {
+      const handlers = this.listeners.get(event) || [];
+      handlers.forEach(handler => {
+        try {
+          handler(data);
+        } catch (e) {
+          console.error(`[EventBus] Handler error for "${event}":`, e);
+        }
+      });
+      // 触发内置事件日志（调试用）
+      if (event !== 'debug:log') {
+        console.log(`[EventBus] emit: ${event}`, data);
+      }
+    },
+
+    // 订阅事件，返回 unsubscribe 函数
+    on(event, handler) {
+      if (!this.listeners.has(event)) {
+        this.listeners.set(event, []);
+      }
+      this.listeners.get(event).push(handler);
+      // 返回取消订阅函数
+      return () => this.off(event, handler);
+    },
+
+    // 取消订阅
+    off(event, handler) {
+      const handlers = this.listeners.get(event) || [];
+      const index = handlers.indexOf(handler);
+      if (index > -1) {
+        handlers.splice(index, 1);
+      }
+    },
+
+    // 清空所有监听
+    clear() {
+      this.listeners.clear();
+    },
+
+    // 内置事件列表
+    builtInEvents: ['game:start', 'game:end', 'card:played', 'card:discarded', 'turn:start', 'turn:end', 'enemy:defeated']
+  };
+
+  // ===== V70 新增：RemoteMarket =====
+  const RemoteMarket = {
+    marketUrl: '',
+
+    setMarketUrl(url) {
+      this.marketUrl = url;
+      console.log(`[RemoteMarket] Market URL set: ${url}`);
+    },
+
+    // 获取 manifest.json 插件列表
+    fetchManifest(url) {
+      return new Promise((resolve, reject) => {
+        const manifestUrl = url || this.marketUrl;
+        if (!manifestUrl) {
+          reject(new Error('No market URL configured'));
+          return;
+        }
+        console.log(`[RemoteMarket] Fetching manifest from: ${manifestUrl}`);
+        // 使用 fetch 获取 manifest
+        fetch(manifestUrl)
+          .then(response => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+          })
+          .then(data => {
+            console.log(`[RemoteMarket] Received ${data.plugins?.length || 0} plugins`);
+            resolve(data.plugins || []);
+          })
+          .catch(err => {
+            console.error('[RemoteMarket] Fetch error:', err);
+            // 网络错误时返回模拟数据
+            resolve(this._getMockPlugins());
+          });
+      });
+    },
+
+    // 下载并安装插件
+    downloadPlugin(pluginId) {
+      return new Promise((resolve, reject) => {
+        console.log(`[RemoteMarket] Downloading plugin: ${pluginId}`);
+        // 模拟下载延迟
+        setTimeout(() => {
+          // 实际实现中应通过 fetch 下载插件 JS 文件
+          // 这里返回模拟的插件对象
+          const mockPlugin = this._getMockPlugins().find(p => p.id === pluginId);
+          if (mockPlugin) {
+            resolve(mockPlugin);
+          } else {
+            reject(new Error(`Plugin not found: ${pluginId}`));
+          }
+        }, 500);
+      });
+    },
+
+    // 模拟插件数据（当网络不可用时）
+    _getMockPlugins() {
+      return [
+        {
+          id: 'fireball-expansion',
+          name: '🔥 火球术扩展包',
+          version: '1.0.0',
+          author: '第三方开发者',
+          description: '添加10张强力火系卡牌，包含火球术、烈焰风暴等',
+          url: 'https://example.com/plugins/fireball-plugin.js',
+          downloads: 1234
+        },
+        {
+          id: 'ice-mage-pack',
+          name: '❄️ 冰霜法师扩展包',
+          version: '1.2.0',
+          author: 'IceDev',
+          description: '冰系卡牌专包，强化冻结效果',
+          url: 'https://example.com/plugins/ice-plugin.js',
+          downloads: 856
+        },
+        {
+          id: 'lucky-reliquary',
+          name: '🍀 幸运遗物宝库',
+          version: '1.0.0',
+          author: 'LuckyDev',
+          description: '新增15种独特遗物，改变游戏玩法',
+          url: 'https://example.com/plugins/lucky-reliquary.js',
+          downloads: 2341
+        }
+      ];
+    }
+  };
+
+  // ===== V70 新增：LifecycleManager =====
+  const LifecycleManager = {
+    // 调用插件生命周期钩子
+    callHook(plugin, hookName, ...args) {
+      if (plugin && typeof plugin[hookName] === 'function') {
+        try {
+          console.log(`[LifecycleManager] ${plugin.id}: ${hookName}`);
+          return plugin[hookName].apply(plugin, args);
+        } catch (e) {
+          console.error(`[LifecycleManager] ${hookName} error in plugin ${plugin.id}:`, e);
+        }
+      }
+    },
+
+    // 触发 onLoad
+    onLoad(plugin) {
+      return this.callHook(plugin, 'onLoad');
+    },
+
+    // 触发 onEnable
+    onEnable(plugin) {
+      return this.callHook(plugin, 'onEnable');
+    },
+
+    // 触发 onDisable
+    onDisable(plugin) {
+      return this.callHook(plugin, 'onDisable');
+    },
+
+    // 触发 onUnload
+    onUnload(plugin) {
+      return this.callHook(plugin, 'onUnload');
+    }
+  };
 
   // 插件注册中心
   const PluginRegistry = {
@@ -231,6 +402,8 @@
           registerEnemies: (enemies) => PluginRegistry.registerEnemies(enemies),
           registerEvent: (event) => PluginRegistry.registerEvent(event),
           registerEvents: (events) => PluginRegistry.registerEvents(events),
+          // V70 新增：EventBus
+          EventBus: EventBus,
           // 工具方法
           log: sandboxUtils.log,
           random: sandboxUtils.random,
@@ -244,16 +417,83 @@
       }
     },
 
-    // 加载内置插件
+    // V70: 加载内置插件（带生命周期）
     loadBuiltInPlugins() {
       // 示例插件
       if (typeof window.ExamplePlugin === 'function') {
-        this.executePlugin(window.ExamplePlugin);
+        const pluginObj = this._createPluginWrapper(window.ExamplePlugin, 'example-plugin');
+        if (pluginObj) {
+          LifecycleManager.onLoad(pluginObj);
+          this.executePlugin(window.ExamplePlugin);
+          LifecycleManager.onEnable(pluginObj);
+        }
       }
       // Starter Kit 插件
       if (typeof window.StarterKitPlugin === 'function') {
-        this.executePlugin(window.StarterKitPlugin);
+        const pluginObj = this._createPluginWrapper(window.StarterKitPlugin, 'starter-kit-plugin');
+        if (pluginObj) {
+          LifecycleManager.onLoad(pluginObj);
+          this.executePlugin(window.StarterKitPlugin);
+          LifecycleManager.onEnable(pluginObj);
+        }
       }
+    },
+
+    // V70: 创建插件包装对象（用于生命周期管理）
+    _createPluginWrapper(pluginFn, fallbackId) {
+      try {
+        // 尝试从插件函数获取元数据
+        let pluginMeta = { id: fallbackId, name: fallbackId, version: '1.0.0' };
+        // 如果插件返回对象，则使用它
+        const result = pluginFn({
+          registerPlugin: (meta) => { pluginMeta = { ...pluginMeta, ...meta }; }
+        });
+        if (result && typeof result === 'object') {
+          pluginMeta = { ...pluginMeta, ...result };
+        }
+        return pluginMeta;
+      } catch (e) {
+        return { id: fallbackId, name: fallbackId, version: '1.0.0' };
+      }
+    },
+
+    // V70: 启用插件（带生命周期）
+    enable(pluginId) {
+      const plugin = PluginRegistry.plugins.get(pluginId);
+      if (plugin) {
+        plugin.enabled = true;
+        this.saveEnabledState();
+        LifecycleManager.onEnable(plugin);
+        console.log(`[PluginLoader] Plugin enabled: ${pluginId}`);
+      }
+    },
+
+    // V70: 禁用插件（带生命周期）
+    disable(pluginId) {
+      const plugin = PluginRegistry.plugins.get(pluginId);
+      if (plugin) {
+        LifecycleManager.onDisable(plugin);
+        plugin.enabled = false;
+        this.saveEnabledState();
+        console.log(`[PluginLoader] Plugin disabled: ${pluginId}`);
+      }
+    },
+
+    // V70: 切换插件状态（带生命周期）
+    toggle(pluginId) {
+      const plugin = PluginRegistry.plugins.get(pluginId);
+      if (plugin) {
+        const wasEnabled = plugin.enabled;
+        plugin.enabled = !plugin.enabled;
+        this.saveEnabledState();
+        if (plugin.enabled && !wasEnabled) {
+          LifecycleManager.onEnable(plugin);
+        } else if (!plugin.enabled && wasEnabled) {
+          LifecycleManager.onDisable(plugin);
+        }
+        return plugin.enabled;
+      }
+      return false;
     }
   };
 
@@ -261,6 +501,10 @@
   window.PluginRegistry = PluginRegistry;
   window.PluginLoader = PluginLoader;
   window.sandboxUtils = sandboxUtils;
+  // V70 新增导出
+  window.EventBus = EventBus;
+  window.RemoteMarket = RemoteMarket;
+  window.LifecycleManager = LifecycleManager;
 
-  console.log('[plugin-api.js] Plugin API initialized');
+  console.log('[plugin-api.js] Plugin API V70 initialized');
 })();
