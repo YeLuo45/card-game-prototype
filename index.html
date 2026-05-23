@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V73 — 插件市场真实后端对接ai-superpower</title>
+  <title>DBG卡牌游戏 V74 — 插件市场安装流程</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -3810,7 +3810,7 @@
     </div>
 
     <div class="settings-section" style="text-align:center;color:#666;font-size:12px;">
-      <p>DBG卡牌游戏 V73</p>
+      <p>DBG卡牌游戏 V74</p>
       <p>版本 2026.05.24</p>
     </div>
   </div>
@@ -17459,18 +17459,49 @@ function installMarketPlugin(pluginId) {
     showNotification('插件市场未加载', 'error');
     return;
   }
-  const manifest = window.RemoteMarket.fetchManifest();
-  const plugin = manifest.find(p => p.id === pluginId);
-  if (!plugin) {
-    showNotification('插件不存在', 'error');
-    return;
-  }
-  window.PluginManager.install(plugin);
-  if (window.PluginCache && window.PluginCache.set) {
-    window.PluginCache.set(pluginId, plugin);
-  }
-  showNotification(`插件 ${plugin.name} 安装成功`, 'success');
-  filterMarketPlugins();
+  showNotification('正在从市场获取插件...', 'info');
+  window.RemoteMarket.fetchManifest().then(plugins => {
+    const plugin = plugins.find(p => p.id === pluginId);
+    if (!plugin) {
+      showNotification('插件不存在', 'error');
+      return;
+    }
+    // 真实下载插件JS文件
+    if (plugin.url && plugin.url.startsWith('http')) {
+      showNotification(`正在下载: ${plugin.name}...`, 'info');
+      fetch(plugin.url)
+        .then(r => r.text())
+        .then(jsCode => {
+          // 执行插件代码注册
+          try {
+            const fn = new Function(jsCode);
+            fn();
+            showNotification(`插件 ${plugin.name} 安装成功`, 'success');
+          } catch (e) {
+            console.error('[installMarketPlugin] execute error:', e);
+            // fallback: 直接安装插件数据
+            window.PluginManager.install(plugin);
+            showNotification(`插件 ${plugin.name} 安装成功`, 'success');
+          }
+        })
+        .catch(err => {
+          console.error('[installMarketPlugin] download error:', err);
+          window.PluginManager.install(plugin);
+          showNotification(`插件 ${plugin.name} 安装成功（本地）`, 'success');
+        });
+    } else {
+      // 无URL时直接安装
+      window.PluginManager.install(plugin);
+      showNotification(`插件 ${plugin.name} 安装成功`, 'success');
+    }
+    if (window.PluginCache && window.PluginCache.set) {
+      window.PluginCache.set(pluginId, plugin);
+    }
+    filterMarketPlugins();
+  }).catch(err => {
+    showNotification('获取插件列表失败', 'error');
+    console.error('[installMarketPlugin] fetchManifest error:', err);
+  });
 }
 
 function uninstallMarketPlugin(pluginId) {

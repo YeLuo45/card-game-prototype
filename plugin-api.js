@@ -1,4 +1,4 @@
-// plugin-api.js - V73 插件系统 API v5
+// plugin-api.js - V74 插件系统 API v6
 // 统一插件接口：Card/Relic/Enemy/Event 注册 + LifecycleManager + EventBus + RemoteMarket
 
 (function() {
@@ -679,5 +679,5 @@
 
   window.PluginManager = PluginManager;
 
-  console.log('[plugin-api.js] Plugin API V73 initialized');
+  console.log('[plugin-api.js] Plugin API V74 initialized');
 })();
