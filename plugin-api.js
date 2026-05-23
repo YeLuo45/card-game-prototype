@@ -1,4 +1,4 @@
-// plugin-api.js - V72 插件系统 API v4
+// plugin-api.js - V73 插件系统 API v5
 // 统一插件接口：Card/Relic/Enemy/Event 注册 + LifecycleManager + EventBus + RemoteMarket
 
 (function() {
@@ -132,27 +132,76 @@
 
     // 获取 manifest.json 插件列表
     fetchManifest(url) {
+      const apiBase = 'http://127.0.0.1:8000';
+      const apiKey = 'sk-aim-';
+
       return new Promise((resolve, reject) => {
         const manifestUrl = url || this.marketUrl;
-        if (!manifestUrl) {
-          reject(new Error('No market URL configured'));
+
+        // 如果有 manifestUrl，先尝试 fetch
+        if (manifestUrl) {
+          console.log(`[RemoteMarket] Fetching manifest from: ${manifestUrl}`);
+          fetch(manifestUrl)
+            .then(response => {
+              if (!response.ok) throw new Error(`HTTP ${response.status}`);
+              return response.json();
+            })
+            .then(data => {
+              console.log(`[RemoteMarket] Received ${data.plugins?.length || 0} plugins`);
+              resolve(data.plugins || []);
+            })
+            .catch(err => {
+              console.error('[RemoteMarket] Fetch error, trying ai-superpower API:', err);
+              // fallback: 尝试 ai-superpower /api/proposals 作为真实数据源
+              this._fetchFromApi(apiBase, apiKey).then(resolve).catch(() => {
+                resolve(this._getMockPlugins());
+              });
+            });
           return;
         }
-        console.log(`[RemoteMarket] Fetching manifest from: ${manifestUrl}`);
-        // 使用 fetch 获取 manifest
-        fetch(manifestUrl)
+
+        // 无 manifestUrl，直接尝试 ai-superpower API
+        console.log('[RemoteMarket] No market URL, fetching from ai-superpower API');
+        this._fetchFromApi(apiBase, apiKey).then(resolve).catch(() => {
+          resolve(this._getMockPlugins());
+        });
+      });
+    },
+
+    // 从 ai-superpower API 获取真实提案数据作为插件市场
+    _fetchFromApi(apiBase, apiKey) {
+      return new Promise((resolve, reject) => {
+        console.log('[RemoteMarket] Fetching proposals from ai-superpower API');
+        fetch(`${apiBase}/api/proposals?page=1&page_size=20`, {
+          headers: { 'X-API-Key': apiKey }
+        })
           .then(response => {
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            if (!response.ok) throw new Error(`API HTTP ${response.status}`);
             return response.json();
           })
           .then(data => {
-            console.log(`[RemoteMarket] Received ${data.plugins?.length || 0} plugins`);
-            resolve(data.plugins || []);
+            console.log(`[RemoteMarket] Received ${data.items?.length || 0} proposals from API`);
+            if (!data.items || data.items.length === 0) {
+              reject(new Error('Empty response'));
+              return;
+            }
+            // 将提案映射为插件格式
+            const plugins = data.items.map(p => ({
+              id: p.id,
+              name: p.title,
+              version: '1.0.0',
+              author: p.owner || '未知',
+              description: `项目: ${p.project_name || '未知'} | 状态: ${p.status}`,
+              url: `https://github.com/${p.project_name || ''}`,
+              rating: 4.0,
+              downloads: 100,
+              tags: [p.project_name || '', p.status || '']
+            }));
+            resolve(plugins);
           })
           .catch(err => {
-            console.error('[RemoteMarket] Fetch error:', err);
-            // 网络错误时返回模拟数据
-            resolve(this._getMockPlugins());
+            console.error('[RemoteMarket] API fetch error:', err);
+            reject(err);
           });
       });
     },
@@ -630,5 +679,5 @@
 
   window.PluginManager = PluginManager;
 
-  console.log('[plugin-api.js] Plugin API V72 initialized');
+  console.log('[plugin-api.js] Plugin API V73 initialized');
 })();
