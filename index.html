@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V75 — 插件市场分类过滤增强</title>
+  <title>DBG卡牌游戏 V76 — 插件评分与排行榜</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -3810,7 +3810,7 @@
     </div>
 
     <div class="settings-section" style="text-align:center;color:#666;font-size:12px;">
-      <p>DBG卡牌游戏 V75</p>
+      <p>DBG卡牌游戏 V76</p>
       <p>版本 2026.05.24</p>
     </div>
   </div>
@@ -3923,6 +3923,10 @@
 <!-- V71 插件市场遮罩 -->
 <div id="market-overlay">
   <div id="market-title">🌐 插件市场</div>
+  <div id="market-tabs" style="display:flex;gap:8px;margin-bottom:10px;">
+    <button onclick="switchMarketTab('browse')" id="tab-browse" style="flex:1;padding:8px;background:#27ae60;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;">📦 市场</button>
+    <button onclick="switchMarketTab('leaderboard')" id="tab-leaderboard" style="flex:1;padding:8px;background:#444;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;">🏆 排行榜</button>
+  </div>
   <div id="market-header">
     <select id="market-category" onchange="filterMarketPlugins()" style="padding:8px;border-radius:8px;border:1px solid #444;background:#2a2a2a;color:#fff;font-size:13px;">
       <option value="">全部项目</option>
@@ -17429,6 +17433,57 @@ function renderMarketTags() {
     });
   } else {
     tagsContainer.innerHTML = '<button onclick="filterMarketPlugins(\'全部\')" style="padding:4px 10px;border-radius:12px;border:1px solid #555;background:#333;color:#aaa;font-size:11px;cursor:pointer;">全部</button>';
+  }
+}
+
+let marketActiveTab = 'browse';
+
+function switchMarketTab(tab) {
+  marketActiveTab = tab;
+  document.getElementById('tab-browse').style.background = tab === 'browse' ? '#27ae60' : '#444';
+  document.getElementById('tab-leaderboard').style.background = tab === 'leaderboard' ? '#27ae60' : '#444';
+  if (tab === 'leaderboard') {
+    renderLeaderboard();
+  } else {
+    filterMarketPlugins();
+  }
+}
+
+function renderLeaderboard() {
+  const grid = document.getElementById('market-grid');
+  if (!grid) return;
+  const loadPlugins = window.RemoteMarket ? window.RemoteMarket.fetchManifest() : [];
+  const resolvePlugins = (plugins) => {
+    const ratings = window.PluginManager ? window.PluginManager.getAllRatings() : {};
+    const installed = window.PluginManager ? window.PluginManager.listInstalled() : [];
+    const installedIds = new Set(installed.map(p => p.id));
+    // Sort by rating desc
+    const sorted = (plugins || []).sort((a, b) => (ratings[b.id] || 0) - (ratings[a.id] || 0));
+    const top10 = sorted.slice(0, 10);
+    grid.innerHTML = top10.map((p, i) => {
+      const rating = ratings[p.id] || 0;
+      const isInstalled = installedIds.has(p.id);
+      return `
+        <div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:start;">
+            <div style="font-size:28px;">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`}</div>
+            <div style="color:#f1c40f;font-size:13px;">★ ${rating || '-'}</div>
+          </div>
+          <div style="color:#9b59b6;font-weight:bold;margin:6px 0;">${p.name}</div>
+          <div style="color:#888;font-size:11px;margin-bottom:6px;">${p.description || ''}</div>
+          <div style="color:#555;font-size:10px;margin-bottom:8px;">标签: ${(p.tags || []).join(', ')} ${isInstalled ? '| ✅已安装' : ''}</div>
+          ${!isInstalled ? `<button onclick="installMarketPlugin('${p.id}')" style="padding:6px 12px;background:#27ae60;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">安装</button>` : '<span style="color:#2ecc71;font-size:11px;">已安装</span>'}
+          <div style="margin-top:6px;">
+            ${[1,2,3,4,5].map(s => `<span onclick="window.PluginManager && window.PluginManager.ratePlugin('${p.id}', ${s})" style="cursor:pointer;color:${rating >= s ? '#f1c40f' : '#555'};font-size:16px;">★</span>`).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+  };
+  if (loadPlugins && typeof loadPlugins.then === 'function') {
+    loadPlugins.then(resolvePlugins).catch(() => resolvePlugins([]));
+  } else {
+    resolvePlugins(loadPlugins);
   }
 }
 

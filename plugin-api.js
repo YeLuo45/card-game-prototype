@@ -1,4 +1,4 @@
-// plugin-api.js - V75 插件系统 API v7
+// plugin-api.js - V76 插件系统 API v8
 // 统一插件接口：Card/Relic/Enemy/Event 注册 + LifecycleManager + EventBus + RemoteMarket
 
 (function() {
@@ -674,10 +674,43 @@
     // 检查插件是否已安装
     isInstalled(pluginId) {
       return PluginRegistry.plugins.has(pluginId);
+    },
+
+    // 评分插件（保存到 localStorage）
+    ratePlugin(pluginId, rating) {
+      try {
+        const ratings = JSON.parse(localStorage.getItem('plugin_ratings') || '{}');
+        ratings[pluginId] = Math.max(1, Math.min(5, rating));
+        localStorage.setItem('plugin_ratings', JSON.stringify(ratings));
+        console.log(`[PluginManager] Rated ${pluginId}: ${rating}★`);
+        return true;
+      } catch (e) {
+        console.error('[PluginManager] ratePlugin error:', e);
+        return false;
+      }
+    },
+
+    // 获取插件评分
+    getPluginRating(pluginId) {
+      try {
+        const ratings = JSON.parse(localStorage.getItem('plugin_ratings') || '{}');
+        return ratings[pluginId] || 0;
+      } catch (e) {
+        return 0;
+      }
+    },
+
+    // 获取所有评分
+    getAllRatings() {
+      try {
+        return JSON.parse(localStorage.getItem('plugin_ratings') || '{}');
+      } catch (e) {
+        return {};
+      }
     }
   };
 
   window.PluginManager = PluginManager;
 
-  console.log('[plugin-api.js] Plugin API V75 initialized');
+  console.log('[plugin-api.js] Plugin API V76 initialized');
 })();
