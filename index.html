@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V82 — IndexedDB持久化与多端同步</title>
+  <title>DBG卡牌游戏 V83 — AI多Agent观战解说系统</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -3564,6 +3564,7 @@
     <button id="stats-btn" class="menu-btn btn-rank" onclick="window.metaManager && window.metaManager.showStatsPanel()"><span class="btn-icon">📊</span>统计</button>
     <button id="battle-log-btn" class="menu-btn btn-full" onclick="openSettings()"><span class="btn-icon">⚙️</span>设置</button>
     <button id="cloud-sync-btn" class="menu-btn" onclick="showCloudSyncPanel()" style="background:linear-gradient(145deg,#8e44ad,#9b59b6);"><span class="btn-icon">☁️</span>云同步</button>
+    <button id="watch-mode-btn" class="menu-btn" onclick="toggleWatchMode()" style="background:linear-gradient(145deg,#2c3e50,#34495e);"><span class="btn-icon">🎙️</span>观战模式</button>
   </div>
   <!-- V63 Difficulty Selector -->
   <div id="difficulty-select-container"></div>
@@ -5797,6 +5798,396 @@ const PluginBus = {
 
 // 手动触发事件
 window.PluginBus = PluginBus;
+
+// ===== V83 AI观战解说系统 (Direction E) =====
+// 3个AI Agent + 1个GameMaster协调
+// PlayByPlayAgent: 出牌即时解说
+// RhythmAgent: 节奏评分
+// AnalystAgent: 胜负预测
+
+// --- 观战解说条UI ---
+const CommentaryBar = {
+  _messages: [],
+  _maxLines: 50,
+
+  init() {
+    // 创建观战解说条DOM（如果不存在）
+    if (!document.getElementById('commentary-bar')) {
+      const bar = document.createElement('div');
+      bar.id = 'commentary-bar';
+      bar.style.cssText = `
+        position: fixed; bottom: 0; left: 0; right: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.95) 80%, transparent);
+        padding: 8px 12px 12px;
+        z-index: 9000;
+        display: none;
+        max-height: 120px;
+        overflow-y: auto;
+        font-size: 13px;
+        line-height: 1.5;
+      `;
+      bar.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="color:#f39c12;font-size:11px;font-weight:bold;">🎙️ 观战解说</span>
+          <span id="commentary-agent-indicator" style="color:#888;font-size:10px;"></span>
+          <button onclick="CommentaryBar.toggleVoice()" id="commentary-voice-btn" style="margin-left:auto;background:#333;border:none;color:#aaa;padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;">🔊</button>
+          <button onclick="CommentaryBar.clear()" style="background:#333;border:none;color:#aaa;padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;">清屏</button>
+          <button onclick="CommentaryBar.close()" style="background:#c0392b;border:none;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;">关闭</button>
+        </div>
+        <div id="commentary-messages" style="color:#e0e0e0;"></div>
+      `;
+      document.body.appendChild(bar);
+    }
+    this._voiceEnabled = localStorage.getItem('commentaryVoice') !== 'off';
+  },
+
+  show() {
+    const bar = document.getElementById('commentary-bar');
+    if (bar) bar.style.display = 'block';
+  },
+
+  close() {
+    const bar = document.getElementById('commentary-bar');
+    if (bar) bar.style.display = 'none';
+    if (window.matchObserver) window.matchObserver.stopObserving();
+  },
+
+  clear() {
+    this._messages = [];
+    const el = document.getElementById('commentary-messages');
+    if (el) el.innerHTML = '';
+  },
+
+  toggleVoice() {
+    this._voiceEnabled = !this._voiceEnabled;
+    localStorage.setItem('commentaryVoice', this._voiceEnabled ? 'on' : 'off');
+    const btn = document.getElementById('commentary-voice-btn');
+    if (btn) btn.textContent = this._voiceEnabled ? '🔊' : '🔇';
+  },
+
+  add(agentId, text, color='#e0e0e0') {
+    const agentEmoji = {
+      'PlayByPlay': '🎯',
+      'Rhythm': '📊',
+      'Analyst': '🧠',
+      'GameMaster': '🎙️'
+    };
+    const emoji = agentEmoji[agentId] || '💬';
+    this._messages.push({ agentId, text, color, time: new Date().toLocaleTimeString() });
+    if (this._messages.length > this._maxLines) this._messages.shift();
+
+    const el = document.getElementById('commentary-messages');
+    if (el) {
+      const html = this._messages.map(m => {
+        // 高亮关键词
+        const t = m.text
+          .replace(/关键牌|局势逆转|致命打击/g, '<b style="color:#f39c12;">$&
+</b>')
+          .replace(/玩家|对手/g, '<b style="color:#3498db;">$&</b>');
+        return `<div style="margin-bottom:3px;"><span style="color:#888;font-size:10px;">${m.time}</span> <span>${emoji}</span> ${t}</div>`;
+      }).join('');
+      el.innerHTML = html;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    // 语音合成
+    if (this._voiceEnabled && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'zh-CN';
+      utter.rate = 1.1;
+      utter.volume = 0.7;
+      window.speechSynthesis.speak(utter);
+    }
+  },
+
+  setAgentIndicator(text) {
+    const el = document.getElementById('commentary-agent-indicator');
+    if (el) el.textContent = text;
+  }
+};
+window.CommentaryBar = CommentaryBar;
+
+// --- PlayByPlayAgent: 出牌即时解说 ---
+const PlayByPlayAgent = {
+  id: 'PlayByPlay',
+  _lastCard: null,
+
+  init() {
+    PluginBus.subscribe('card:played', this.on_card_played.bind(this));
+    PluginBus.subscribe('combat:victory', this.on_combat_end.bind(this));
+    PluginBus.subscribe('combat:defeat', this.on_combat_end.bind(this));
+    CommentaryBar.add(this.id, '🎯 出牌解说已就位，等待对局开始...', '#3498db');
+  },
+
+  on_card_played(ctx) {
+    const card = ctx.card;
+    if (!card) return;
+    this._lastCard = card;
+    let desc = '';
+    const damage = ctx.damage || 0;
+    const healing = ctx.healing || 0;
+    const block = ctx.block || 0;
+
+    if (card.type === 'attack') {
+      if (damage >= 20) {
+        desc = `关键牌！${card.name}造成${damage}点伤害，致命打击！`;
+      } else if (damage >= 10) {
+        desc = `${card.name}打出，对敌人造成${damage}点伤害！`;
+      } else {
+        desc = `出牌：${card.name}，伤害${damage}点。`;
+      }
+    } else if (card.type === 'skill') {
+      if (healing > 0) desc = `${card.name}发动，治疗${healing}点生命！`;
+      else if (block > 0) desc = `${card.name}使用，获得${block}点护盾！`;
+      else desc = `技能牌${card.name}，效果触发！`;
+    } else if (card.type === 'power') {
+      desc = `强大能力！${card.name}上场，局势生变！`;
+    } else {
+      desc = `卡牌${card.name}已使用。`;
+    }
+
+    CommentaryBar.add(this.id, desc, '#2ecc71');
+  },
+
+  on_combat_end(ctx) {
+    if (ctx.winner === 'player') {
+      CommentaryBar.add(this.id, '🏆 胜利！玩家在这次对局中笑到最后！', '#f39c12');
+    } else {
+      CommentaryBar.add(this.id, '💀 失败...但下一局更有机会！', '#e74c3c');
+    }
+  }
+};
+
+// --- RhythmAgent: 节奏评分 ---
+const RhythmAgent = {
+  id: 'Rhythm',
+  _playerScore: 50,
+  _enemyScore: 50,
+  _turnCount: 0,
+  _lastPlayerAdvantage: 0,
+
+  init() {
+    PluginBus.subscribe('player:turn-start', this.on_player_turn.bind(this));
+    PluginBus.subscribe('enemy:turn-start', this.on_enemy_turn.bind(this));
+    PluginBus.subscribe('card:played', this.on_card_played.bind(this));
+    PluginBus.subscribe('combat:victory', this.on_reset.bind(this));
+    PluginBus.subscribe('combat:defeat', this.on_reset.bind(this));
+    CommentaryBar.add(this.id, '📊 节奏分析已就位，关注双方节奏变化...', '#9b59b6');
+  },
+
+  on_player_turn(ctx) {
+    this._turnCount++;
+    const hp = gameState ? gameState.player.hp : 0;
+    const maxHp = gameState ? gameState.player.maxHp : 100;
+    const hpPct = hp / maxHp;
+    const advantage = Math.round(hpPct * 100 - 50);
+    this._lastPlayerAdvantage = advantage;
+
+    if (this._turnCount > 1) {
+      let rhythm = '';
+      if (advantage > 20) {
+        rhythm = `玩家节奏占优(${+advantage > 0 ? '+' : ''}${advantage})，占据主动！`;
+      } else if (advantage < -20) {
+        rhythm = `对手节奏占优(${advantage})，玩家需要稳住局势！`;
+      } else {
+        rhythm = `势均力敌，节奏接近(${+advantage > 0 ? '+' : ''}${advantage})。`;
+      }
+      CommentaryBar.add(this.id, rhythm, '#9b59b6');
+    }
+    this._updateRhythmBar();
+  },
+
+  on_enemy_turn(ctx) {
+    // 敌人回合风险提示
+    const intent = ctx.intent || 'attack';
+    if (intent === 'attack') {
+      CommentaryBar.add(this.id, '⚠️ 对手蓄势待发，准备进攻！', '#e74c3c');
+    } else if (intent === 'defend') {
+      CommentaryBar.add(this.id, '🛡️ 对手正在布防，节奏放缓', '#f39c12');
+    }
+    this._updateRhythmBar();
+  },
+
+  on_card_played(ctx) {
+    if (ctx.owner === 'player') {
+      this._playerScore += 5;
+    } else {
+      this._enemyScore += 5;
+    }
+  },
+
+  _updateRhythmBar() {
+    const total = this._playerScore + this._enemyScore;
+    if (total === 0) return;
+    const playerPct = Math.round((this._playerScore / total) * 100);
+    // 通知UI更新节奏条
+    const bar = document.getElementById('commentary-rhythm-bar');
+    if (bar) {
+      bar.style.width = playerPct + '%';
+      bar.title = `玩家节奏: ${playerPct}%`;
+    }
+  },
+
+  on_reset() {
+    this._playerScore = 50;
+    this._enemyScore = 50;
+    this._turnCount = 0;
+  }
+};
+window.RhythmAgent = RhythmAgent;
+
+// --- AnalystAgent: 胜负预测 ---
+const AnalystAgent = {
+  id: 'Analyst',
+  _winProb: 50,
+  _turnCount: 0,
+
+  init() {
+    PluginBus.subscribe('player:turn-start', this.on_player_turn.bind(this));
+    PluginBus.subscribe('combat:victory', this.on_combat_end.bind(this));
+    PluginBus.subscribe('combat:defeat', this.on_combat_end.bind(this));
+    CommentaryBar.add(this.id, '🧠 胜负预测已就位，分析对局趋势...', '#e67e22');
+  },
+
+  on_player_turn(ctx) {
+    this._turnCount++;
+    if (this._turnCount % 3 === 0) {
+      this._updatePrediction();
+    }
+  },
+
+  _updatePrediction() {
+    if (!gameState) return;
+    const playerHp = gameState.player ? gameState.player.hp : 50;
+    const playerMaxHp = gameState.player ? gameState.player.maxHp : 100;
+    const enemyHp = gameState.enemy ? gameState.enemy.hp : 50;
+    const enemyMaxHp = gameState.enemy ? gameState.enemy.maxHp : 100;
+    const playerHpRatio = playerHp / playerMaxHp;
+    const enemyHpRatio = enemyHp / enemyMaxHp;
+
+    // 简单预测模型
+    let prob = 50 + (playerHpRatio - enemyHpRatio) * 40;
+    prob = Math.max(5, Math.min(95, Math.round(prob)));
+    this._winProb = prob;
+
+    let prediction = '';
+    if (prob >= 70) {
+      prediction = `🧠 AI分析：玩家优势明显，胜率约${prob}%`;
+    } else if (prob >= 55) {
+      prediction = `🧠 AI分析：玩家略占上风，胜率约${prob}%`;
+    } else if (prob <= 30) {
+      prediction = `🧠 AI分析：局势严峻，胜率仅约${prob}%`;
+    } else if (prob <= 45) {
+      prediction = `🧠 AI分析：对手占优，胜率约${prob}%`;
+    } else {
+      prediction = `🧠 AI分析：五五开局面，胜率约${prob}%`;
+    }
+    CommentaryBar.add(this.id, prediction, '#e67e22');
+  },
+
+  on_combat_end(ctx) {
+    this._turnCount = 0;
+    this._winProb = 50;
+  }
+};
+
+// --- MatchObserver: 观战系统核心 ---
+const MatchObserver = {
+  id: 'MatchObserver',
+  _observing: false,
+
+  init() {
+    // 订阅所有关键对局事件
+    PluginBus.subscribe('matchstart', this.on_match_start.bind(this));
+    PluginBus.subscribe('combat:victory', this.on_combat_end.bind(this));
+    PluginBus.subscribe('combat:defeat', this.on_combat_end.bind(this));
+    PluginBus.subscribe('player:turn-start', this.on_turn_start.bind(this));
+    PluginBus.subscribe('enemy:intent-revealed', this.on_enemy_intent.bind(this));
+  },
+
+  startObserving() {
+    this._observing = true;
+    CommentaryBar.init();
+    CommentaryBar.show();
+    CommentaryBar.setAgentIndicator('[观战模式]');
+    CommentaryBar.add('GameMaster', '🎙️ 观战模式已启动，三位解说员就位！', '#f39c12');
+  },
+
+  stopObserving() {
+    this._observing = false;
+    CommentaryBar.setAgentIndicator('');
+    CommentaryBar.add('GameMaster', '🎙️ 观战结束，感谢观看！', '#888');
+  },
+
+  on_match_start(ctx) {
+    if (!this._observing) return;
+    CommentaryBar.add('GameMaster', `🏁 对局开始！玩家 vs ${ctx.enemyName || '敌人'}`, '#f39c12');
+    CommentaryBar.add('Analyst', `🧠 对局分析：双方就位，胜负未分。`, '#e67e22');
+  },
+
+  on_turn_start(ctx) {
+    if (!this._observing) return;
+    CommentaryBar.setAgentIndicator(`[第${ctx.turn || 1}回合]`);
+  },
+
+  on_enemy_intent(ctx) {
+    if (!this._observing) return;
+    const intent = ctx.intent;
+    if (intent === 'attack') {
+      CommentaryBar.add('GameMaster', `⚔️ 敌人意图进攻！`, '#e74c3c');
+    } else if (intent === 'defend') {
+      CommentaryBar.add('GameMaster', `🛡️ 敌人意图防守。`, '#f39c12');
+    } else if (intent === 'skill') {
+      CommentaryBar.add('GameMaster', `✨ 敌人准备使用技能！`, '#9b59b6');
+    }
+  },
+
+  on_combat_end(ctx) {
+    if (!this._observing) return;
+    this._observing = false;
+  }
+};
+window.MatchObserver = MatchObserver;
+window.PlayByPlayAgent = PlayByPlayAgent;
+window.AnalystAgent = AnalystAgent;
+
+// --- 观战模式切换函数 ---
+let watchModeEnabled = false;
+
+function toggleWatchMode() {
+  watchModeEnabled = !watchModeEnabled;
+  const btn = document.getElementById('watch-mode-btn');
+  if (btn) {
+    btn.style.background = watchModeEnabled
+      ? 'linear-gradient(145deg,#e74c3c,#c0392b)'
+      : 'linear-gradient(145deg,#2c3e50,#34495e)';
+    btn.textContent = watchModeEnabled ? '🎙️ 关闭观战' : '🎙️ 观战模式';
+  }
+  if (watchModeEnabled) {
+    MatchObserver.init();
+    MatchObserver.startObserving();
+    PlayByPlayAgent.init();
+    RhythmAgent.init();
+    AnalystAgent.init();
+  } else {
+    CommentaryBar.close();
+  }
+}
+
+// 在对局开始时自动发布matchstart事件
+const _origStartCombat = window.startCombat || function() {};
+window.startCombat = function(enemy) {
+  const result = _origStartCombat.apply(this, arguments);
+  setTimeout(() => {
+    PluginBus.publish('matchstart', {
+      playerDeck: (gameState && gameState.deck) ? gameState.deck.length : 0,
+      enemyName: (enemy && enemy.name) ? enemy.name : '未知敌人',
+      chapter: (gameState && gameState.chapter) ? gameState.chapter : 1
+    });
+  }, 100);
+  return result;
+};
 
 // ===== V80 内置插件: IronStreakRelic =====
 const IronStreakRelic = {
