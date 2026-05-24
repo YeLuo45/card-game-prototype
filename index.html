@@ -3435,13 +3435,18 @@
     .difficulty-label { font-weight: bold; }
     .difficulty-lock { font-size: 12px; }
   </style>
-<!-- V61 卡包市场 -->
+<!-- V69 插件系统 v2 -->
+<script src="plugin-api.js"></script>
 <script src="plugin-loader.js"></script>
+<script src="plugin-manager.js"></script>
+<!-- V61 卡包市场 -->
 <script src="market-loader.js"></script>
 <!-- V62 Roguelike: 遗物系统核心 -->
 <script src="relics-loader.js"></script>
 <!-- V65 Enemy AI Behavior System -->
 <script src="enemy-ai.js"></script>
+<!-- V79 AI Memory System -->
+<script src="ai-memory.js"></script>
 <!-- V62 Roguelike: 精英与Boss系统 -->
 <script src="elite-loader.js"></script>
 <!-- V63 Meta Progress System -->
@@ -3691,6 +3696,27 @@
     </div>
 
     <div class="settings-section">
+      <h3>🔌 插件管理</h3>
+      <button onclick="openPluginManager()" style="
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(145deg, #9b59b6, #8e44ad);
+        border: none;
+        border-radius: 10px;
+        color: #fff;
+        font-weight: bold;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      ">
+        🔌 管理插件
+      </button>
+    </div>
+
+    <div class="settings-section">
       <h3>🃏 卡包管理</h3>
       <button onclick="openCardPackManager()" style="
         width: 100%;
@@ -3712,8 +3738,8 @@
     </div>
 
     <div class="settings-section" style="text-align:center;color:#666;font-size:12px;">
-      <p>DBG卡牌游戏 V61</p>
-      <p>版本 2026.05.13</p>
+      <p>DBG卡牌游戏 V69</p>
+      <p>版本 2026.05.21</p>
     </div>
   </div>
 </div>
@@ -10476,6 +10502,32 @@ function addLog(message, type = 'info') {
   renderLog();
 }
 
+// V79 AI Memory: 获取对局结果数据
+function getGameResult(win) {
+  // 从battleLog计算数据
+  let damageDealt = 0, damageTaken = 0, cardsPlayed = 0;
+  if (gameState.battleLog) {
+    for (const entry of gameState.battleLog) {
+      const dmgMatch = entry.message.match(/造成\s*(\d+)\s*伤害/);
+      if (dmgMatch) damageDealt += parseInt(dmgMatch[1]);
+      const takenMatch = entry.message.match(/受到\s*(\d+)\s*伤害/);
+      if (takenMatch) damageTaken += parseInt(takenMatch[1]);
+      if (entry.message.includes('使用') || entry.message.includes('打出')) cardsPlayed++;
+    }
+  }
+  return {
+    win,
+    playerDeck: gameState.deck ? gameState.deck.map(c => c.id) : [],
+    enemyId: gameState.enemy ? gameState.enemy.id : 'unknown',
+    enemyType: gameState.enemyAI ? gameState.enemyAI.type : 'unknown',
+    turns: gameState.turn || 0,
+    damageDealt,
+    damageTaken,
+    cardsPlayed,
+    maxCombo: 0
+  };
+}
+
 function getEnemyByType(type, floor = 1) {
   const base = ENEMIES[type];
   if (!base) return null;
@@ -14173,6 +14225,8 @@ function checkEnemyDeath() {
       // V63 Meta: Boss击杀追踪
       try { window.metaManager && window.metaManager.onBossKill(gameState.enemy.id); } catch(e) {}
       try { window.metaManager && window.metaManager.onBattleEnd(true, window.gameStateDifficulty || 'normal'); } catch(e) {}
+      // V79 AI Memory: 记忆对局结果
+      try { if (window.aiMemory) window.aiMemory.archiveSession(getGameResult(true)); } catch(e) {}
       completeNode(gameState.currentNode);
       gameState.totalBattlesWon++;
       gameState.achievementStats.totalBossesDefeated++;
@@ -14246,6 +14300,8 @@ function checkEnemyDeath() {
     
     // V63 Meta: 非Boss战斗胜利
     try { window.metaManager && window.metaManager.onBattleEnd(true, window.gameStateDifficulty || 'normal'); } catch(e) {}
+    // V79 AI Memory: 记忆对局结果
+    try { if (window.aiMemory) window.aiMemory.archiveSession(getGameResult(true)); } catch(e) {}
     
     completeNode(gameState.currentNode);
     gameState.totalBattlesWon++;
@@ -14302,6 +14358,8 @@ function checkPlayerDeath() {
     addLog('你被击败了...', 'info');
     // V63 Meta: 战斗失败
     try { window.metaManager && window.metaManager.onBattleEnd(false, window.gameStateDifficulty || 'normal'); } catch(e) {}
+    // V79 AI Memory: 记忆对局结果（失败时）
+    try { if (window.aiMemory) window.aiMemory.archiveSession(getGameResult(false)); } catch(e) {}
     // V39 BossRush: 如果是BossRush模式，显示失败界面
     if (gameState.isBossRush) {
       setTimeout(() => showBossRushGameOver(), 500);
@@ -15815,6 +15873,10 @@ function updatePetsDisplay() {
 function startNewGame() {
   // V63 Meta: 重置当前统计数据
   try { window.metaManager && window.metaManager.onGameStart(); } catch(e) {}
+  // V79 AI Memory: 初始化AI记忆系统
+  if (!window.aiMemory) {
+    window.aiMemory = new AIMemory();
+  }
 
   // V63 Meta: 设置难度
   const diff = window.selectedDifficulty || 'normal';
