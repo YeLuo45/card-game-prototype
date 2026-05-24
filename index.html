@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V78 — AI卡牌生成器</title>
+  <title>DBG卡牌游戏 V66 — 视觉与音效系统</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -1345,59 +1345,6 @@
       overflow-y: auto;
     }
     #petshop-overlay.show { display: flex; }
-    #market-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.95);
-      z-index: 500;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-      overflow-y: auto;
-    }
-    #market-overlay.show { display: flex; }
-    #market-title { font-size: 28px; color: #2ecc71; margin-bottom: 15px; }
-    #market-header { display: flex; gap: 10px; width: 90%; max-width: 700px; margin-bottom: 10px; }
-    #market-tags { width: 90%; max-width: 700px; }
-    .market-tag-btn {
-      padding: 4px 10px;
-      border-radius: 15px;
-      border: 1px solid #444;
-      background: #2a2a2a;
-      color: #aaa;
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .market-tag-btn.active { background: #2ecc71; color: #fff; border-color: #2ecc71; }
-    #market-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 15px;
-      width: 90%;
-      max-width: 900px;
-      padding: 10px;
-    }
-    .market-plugin-card {
-      background: rgba(30,30,50,0.9);
-      border-radius: 12px;
-      padding: 15px;
-      border: 2px solid #444;
-      transition: transform 0.2s, border-color 0.3s;
-    }
-    .market-plugin-card:hover { transform: scale(1.02); border-color: #2ecc71; }
-    .market-plugin-name { font-size: 16px; font-weight: bold; color: #fff; margin-bottom: 8px; }
-    .market-plugin-meta { display: flex; gap: 10px; font-size: 12px; color: #aaa; margin-bottom: 8px; flex-wrap: wrap; }
-    .market-plugin-rating { color: #f39c12; }
-    .market-plugin-desc { font-size: 13px; color: #ccc; margin-bottom: 10px; }
-    .market-plugin-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
-    .market-tag { padding: 2px 8px; border-radius: 10px; background: #333; color: #aaa; font-size: 11px; }
-    .market-plugin-actions { display: flex; gap: 8px; }
-    .market-install-btn {
-      flex: 1; padding: 8px; border: none; border-radius: 8px;
-      background: linear-gradient(145deg, #2ecc71, #27ae60); color: #fff; font-weight: bold; cursor: pointer;
-    }
-    .market-install-btn.installed { background: #555; cursor: default; }
     #petshop-title { font-size: 28px; color: #ffd700; margin-bottom: 15px; }
     #petshop-gold { font-size: 18px; color: #ffd700; margin-bottom: 20px; }
     #petshop-grid {
@@ -3488,16 +3435,18 @@
     .difficulty-label { font-weight: bold; }
     .difficulty-lock { font-size: 12px; }
   </style>
-<!-- V70 插件系统 v3 -->
+<!-- V69 插件系统 v2 -->
 <script src="plugin-api.js"></script>
 <script src="plugin-loader.js"></script>
-<script src="plugins/example-plugin.js"></script>
-<script src="plugins/starter-kit.js"></script>
+<script src="plugin-manager.js"></script>
+<!-- V61 卡包市场 -->
 <script src="market-loader.js"></script>
 <!-- V62 Roguelike: 遗物系统核心 -->
 <script src="relics-loader.js"></script>
 <!-- V65 Enemy AI Behavior System -->
 <script src="enemy-ai.js"></script>
+<!-- V79 AI Memory System -->
+<script src="ai-memory.js"></script>
 <!-- V62 Roguelike: 精英与Boss系统 -->
 <script src="elite-loader.js"></script>
 <!-- V63 Meta Progress System -->
@@ -3747,27 +3696,6 @@
     </div>
 
     <div class="settings-section">
-      <h3>🃏 卡包管理</h3>
-      <button onclick="openCardPackManager()" style="
-        width: 100%;
-        padding: 12px;
-        background: linear-gradient(145deg, #3498db, #2980b9);
-        border: none;
-        border-radius: 10px;
-        color: #fff;
-        font-weight: bold;
-        font-size: 14px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-      ">
-        🃏 管理卡包
-      </button>
-    </div>
-
-    <div class="settings-section">
       <h3>🔌 插件管理</h3>
       <button onclick="openPluginManager()" style="
         width: 100%;
@@ -3789,11 +3717,11 @@
     </div>
 
     <div class="settings-section">
-      <h3>🌐 远程市场</h3>
-      <button onclick="openRemoteMarket()" style="
+      <h3>🃏 卡包管理</h3>
+      <button onclick="openCardPackManager()" style="
         width: 100%;
         padding: 12px;
-        background: linear-gradient(145deg, #2ecc71, #27ae60);
+        background: linear-gradient(145deg, #3498db, #2980b9);
         border: none;
         border-radius: 10px;
         color: #fff;
@@ -3805,13 +3733,13 @@
         justify-content: center;
         gap: 8px;
       ">
-        🌐 浏览插件市场
+        🃏 管理卡包
       </button>
     </div>
 
     <div class="settings-section" style="text-align:center;color:#666;font-size:12px;">
-      <p>DBG卡牌游戏 V77</p>
-      <p>版本 2026.05.24</p>
+      <p>DBG卡牌游戏 V69</p>
+      <p>版本 2026.05.21</p>
     </div>
   </div>
 </div>
@@ -3920,105 +3848,6 @@
   <button id="close-card-management-btn">关闭</button>
 </div>
 
-<!-- V71 插件市场遮罩 -->
-<div id="market-overlay">
-  <div id="market-title">🌐 插件市场</div>
-  <div id="market-tabs" style="display:flex;gap:8px;margin-bottom:10px;">
-    <button onclick="switchMarketTab('browse')" id="tab-browse" style="flex:1;padding:8px;background:#27ae60;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;">📦 市场</button>
-    <button onclick="switchMarketTab('leaderboard')" id="tab-leaderboard" style="flex:1;padding:8px;background:#444;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;">🏆 排行榜</button>
-    <button onclick="switchMarketTab('aicard')" id="tab-aicard" style="flex:1;padding:8px;background:#444;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;">⚡ AI卡牌</button>
-    <button onclick="switchMarketTab('publisher')" id="tab-publisher" style="flex:1;padding:8px;background:#444;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;">📤 发布</button>
-  </div>
-  <div id="publisher-panel" style="display:none;width:90%;max-width:700px;">
-    <div style="background:linear-gradient(135deg,rgba(155,89,182,0.2),rgba(52,152,219,0.2));border:2px solid #9b59b6;border-radius:12px;padding:16px;margin-bottom:12px;">
-      <div style="color:#9b59b6;font-size:16px;font-weight:bold;margin-bottom:10px;">📤 插件发布者</div>
-      <div id="publisher-login" style="display:block;">
-        <input type="text" id="publisher-github" placeholder="GitHub 用户名" style="width:100%;padding:10px;margin-bottom:8px;background:#1a1a2e;border:1px solid #444;border-radius:8px;color:#fff;font-size:13px;">
-        <input type="password" id="publisher-token" placeholder="GitHub Token (或任意字符串)" style="width:100%;padding:10px;margin-bottom:8px;background:#1a1a2e;border:1px solid #444;border-radius:8px;color:#fff;font-size:13px;">
-        <button onclick="bindPublisherGitHub()" style="width:100%;padding:10px;background:#9b59b6;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;font-weight:bold;">🔗 绑定 GitHub</button>
-      </div>
-      <div id="publisher-profile" style="display:none;">
-        <div style="color:#2ecc71;font-size:14px;margin-bottom:8px;">✓ 已绑定: <span id="publisher-username"></span></div>
-        <button onclick="logoutPublisher()" style="width:100%;padding:8px;background:#c0392b;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:12px;">登出</button>
-      </div>
-    </div>
-    <div id="plugin-submit-section" style="display:none;">
-      <div style="background:rgba(39,174,96,0.2);border:2px solid #27ae60;border-radius:12px;padding:16px;margin-bottom:12px;">
-        <div style="color:#27ae60;font-size:14px;font-weight:bold;margin-bottom:10px;">📦 提交插件到审核队列</div>
-        <div style="margin-bottom:8px;">
-          <label style="color:#aaa;font-size:12px;">插件名称:</label>
-          <input type="text" id="plugin-submit-name" placeholder="my-awesome-plugin" style="width:100%;padding:8px;background:#1a1a2e;border:1px solid #444;border-radius:8px;color:#fff;font-size:13px;">
-        </div>
-        <div style="margin-bottom:8px;">
-          <label style="color:#aaa;font-size:12px;">版本:</label>
-          <input type="text" id="plugin-submit-version" value="1.0.0" placeholder="1.0.0" style="width:100%;padding:8px;background:#1a1a2e;border:1px solid #444;border-radius:8px;color:#fff;font-size:13px;">
-        </div>
-        <div style="margin-bottom:8px;">
-          <label style="color:#aaa;font-size:12px;">描述:</label>
-          <textarea id="plugin-submit-desc" placeholder="插件描述..." style="width:100%;height:50px;padding:8px;background:#1a1a2e;border:1px solid #444;border-radius:8px;color:#fff;font-size:12px;resize:none;"></textarea>
-        </div>
-        <button onclick="submitPluginToReview()" style="width:100%;padding:10px;background:#27ae60;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;font-weight:bold;">🚀 提交审核</button>
-      </div>
-      <div id="plugin-submit-result" style="display:none;padding:10px;background:rgba(0,0,0,0.3);border-radius:8px;color:#4ecdc4;font-size:13px;"></div>
-    </div>
-    <div style="margin-top:10px;">
-      <div style="color:#888;font-size:12px;margin-bottom:6px;">待审核插件:</div>
-      <div id="pending-review-list" style="max-height:200px;overflow-y:auto;"></div>
-    </div>
-  </div>
-  <div id="review-queue-panel" style="display:none;width:90%;max-width:700px;">
-    <div style="background:linear-gradient(135deg,rgba(231,76,60,0.2),rgba(241,196,15,0.2));border:2px solid #e74c3c;border-radius:12px;padding:16px;margin-bottom:12px;">
-      <div style="color:#e74c3c;font-size:14px;font-weight:bold;margin-bottom:10px;">🔍 审核队列</div>
-      <div id="review-list" style="max-height:300px;overflow-y:auto;"></div>
-    </div>
-  </div>
-  <div id="market-header">
-    <select id="market-category" onchange="filterMarketPlugins()" style="padding:8px;border-radius:8px;border:1px solid #444;background:#2a2a2a;color:#fff;font-size:13px;">
-      <option value="">全部项目</option>
-    </select>
-    <input type="text" id="market-search" placeholder="🔍 搜索插件..." oninput="filterMarketPlugins()" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid #444;background:#2a2a2a;color:#fff;font-size:13px;">
-    <select id="market-sort" onchange="filterMarketPlugins()" style="padding:8px;border-radius:8px;border:1px solid #444;background:#2a2a2a;color:#fff;font-size:13px;">
-      <option value="rating">评分排序</option>
-      <option value="downloads">下载量</option>
-      <option value="name">名称</option>
-    </select>
-  </div>
-  <div id="market-tags" style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;"></div>
-  <div id="ai-card-panel" style="display:none;width:90%;max-width:700px;">
-    <div style="background:linear-gradient(135deg,rgba(155,89,182,0.2),rgba(52,152,219,0.2));border:2px solid #9b59b6;border-radius:12px;padding:16px;margin-bottom:12px;">
-      <div style="color:#9b59b6;font-size:16px;font-weight:bold;margin-bottom:10px;">⚡ AI 卡牌生成器</div>
-      <textarea id="ai-card-prompt" placeholder="描述你想要的卡牌，例如：造成3点伤害并抽一张牌" style="width:100%;height:60px;background:#1a1a2e;border:1px solid #444;border-radius:8px;color:#fff;font-size:13px;resize:none;padding:8px;"></textarea>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button onclick="generateAICard()" id="ai-gen-btn" style="flex:1;padding:10px;background:#9b59b6;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;font-weight:bold;">⚡ AI 生成卡牌</button>
-        <button onclick="cancelAICard()" id="ai-cancel-btn" style="display:none;flex:1;padding:10px;background:#c0392b;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;">取消</button>
-      </div>
-    </div>
-    <div id="ai-card-result" style="display:none;background:rgba(255,255,255,0.05);border-radius:12px;padding:16px;margin-bottom:12px;">
-      <div style="color:#f39c12;font-size:14px;font-weight:bold;margin-bottom:10px;">生成的卡牌预览</div>
-      <div id="ai-card-preview" style="background:linear-gradient(135deg,rgba(155,89,182,0.3),rgba(52,152,219,0.3));border:2px solid #9b59b6;border-radius:10px;padding:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <div id="ai-card-name" contenteditable="true" style="color:#ffd700;font-size:16px;font-weight:bold;min-width:100px;">卡牌名称</div>
-          <div style="display:flex;gap:12px;color:#aaa;font-size:13px;">
-            <span>⚡ <span id="ai-card-cost" contenteditable="true">3</span></span>
-            <span>⚔ <span id="ai-card-attack" contenteditable="true">4</span></span>
-            <span>❤ <span id="ai-card-health" contenteditable="true">2</span></span>
-          </div>
-        </div>
-        <div id="ai-card-skill" contenteditable="true" style="color:#ecf0f1;font-size:13px;background:rgba(0,0,0,0.2);border-radius:6px;padding:8px;min-height:40px;">技能描述</div>
-        <div style="margin-top:8px;">
-          <span style="background:#9b59b6;color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;">⚡ AI生成</span>
-          <span id="ai-card-tags" style="color:#888;font-size:11px;margin-left:6px;"></span>
-        </div>
-      </div>
-      <button onclick="installAICard()" style="margin-top:10px;width:100%;padding:10px;background:#27ae60;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;font-weight:bold;">✅ 安装到卡组</button>
-    </div>
-    <div id="ai-card-error" style="display:none;background:rgba(192,57,43,0.2);border:1px solid #c0392b;border-radius:8px;padding:12px;color:#e74c3c;font-size:13px;margin-bottom:12px;"></div>
-    <div id="ai-card-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-  </div>
-  <div id="market-grid"></div>
-  <button id="close-market-btn" style="margin-top:10px;padding:10px;background:#444;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:14px;">关闭市场</button>
-</div>
-
 <!-- 升级遮罩 -->
 <div id="upgrade-overlay">
   <div id="upgrade-title">⬆️ 卡牌升级</div>
@@ -4099,10 +3928,6 @@
 
 <script>
 // ===== V61 卡包市场 - 远程加载 =====
-// V68 Fix: CARDS 必须在 async IIFE 外声明，否则 NEW_CARDS_POOL 等全局 const
-// 在解析时立即引用 CARDS，导致 "CARDS is not defined"
-let CARDS = {};
-
 (async function() {
   // 页面加载时自动重新加载远程卡包
   if (typeof RemoteCardPackLoader !== 'undefined') {
@@ -4113,6 +3938,10 @@ let CARDS = {};
       console.warn('Failed to reload remote packs:', e);
     }
   }
+
+  // CARDS 将通过 refreshCardsFromRegistry() 从 CardPackRegistry 获取
+  // 卡牌数据现在在 card-packs/ 目录下的插件中定义
+  let CARDS = {};
 
   // V61: 从卡包注册表刷新卡牌数据
   if (typeof refreshCardsFromRegistry === 'function') {
@@ -6988,7 +6817,7 @@ const AVAILABLE_RELICS = [
 ];
 
 // ===== V9 成就系统 =====
-const GAME_ACHIEVEMENTS = {
+const ACHIEVEMENTS = {
   // 战斗成就
   firstBlood: {
     id: 'firstBlood',
@@ -9230,8 +9059,9 @@ function showDailyChallenge() {
   document.getElementById('daily-info').innerHTML = infoHtml;
   
   // 绑定开始按钮
-  const startDailyBtn = document.getElementById('start-daily-btn');
-  if (startDailyBtn) startDailyBtn.onclick = () => { startDailyChallenge(); };
+  document.getElementById('start-daily-btn').onclick = () => {
+    startDailyChallenge();
+  };
   
   // 排行榜
   let leaderboardHtml = '<table><tr><th>#</th><th>时间</th><th>难度</th></tr>';
@@ -9282,8 +9112,9 @@ function showBossRushInfo() {
   overlay.innerHTML = infoHtml;
   document.body.appendChild(overlay);
   
-  const startBossRushBtn = document.getElementById('start-boss-rush-btn');
-  if (startBossRushBtn) startBossRushBtn.onclick = () => { startBossRush(); };
+  document.getElementById('start-boss-rush-btn').onclick = () => {
+    startBossRush();
+  };
   
   // 点击遮罩关闭
   overlay.onclick = (e) => {
@@ -9535,8 +9366,7 @@ function showBossRushReward() {
   `;
   document.body.appendChild(overlay);
   
-  const nextBossBtn = document.getElementById('next-boss-btn');
-  if (nextBossBtn) nextBossBtn.onclick = () => {
+  document.getElementById('next-boss-btn').onclick = () => {
     overlay.remove();
     // 重置战斗状态但保留玩家状态
     gameState.hand = [];
@@ -9603,10 +9433,12 @@ function showBossRushVictory() {
   `;
   document.body.appendChild(overlay);
   
-  const brRetryBtn = document.getElementById('br-retry-btn');
-  if (brRetryBtn) brRetryBtn.onclick = () => { overlay.remove(); startBossRush(); };
-  const brMenuBtn = document.getElementById('br-menu-btn');
-  if (brMenuBtn) brMenuBtn.onclick = () => {
+  document.getElementById('br-retry-btn').onclick = () => {
+    overlay.remove();
+    startBossRush();
+  };
+  
+  document.getElementById('br-menu-btn').onclick = () => {
     overlay.remove();
     document.getElementById('game-container').style.display = 'none';
     document.getElementById('battle-container').style.display = 'none';
@@ -9641,10 +9473,12 @@ function showBossRushGameOver() {
   `;
   document.body.appendChild(overlay);
   
-  const brRetryBtn2 = document.getElementById('br-retry-btn');
-  if (brRetryBtn2) brRetryBtn2.onclick = () => { overlay.remove(); startBossRush(); };
-  const brMenuBtn2 = document.getElementById('br-menu-btn');
-  if (brMenuBtn2) brMenuBtn2.onclick = () => {
+  document.getElementById('br-retry-btn').onclick = () => {
+    overlay.remove();
+    startBossRush();
+  };
+  
+  document.getElementById('br-menu-btn').onclick = () => {
     overlay.remove();
     document.getElementById('game-container').style.display = 'none';
     document.getElementById('battle-container').style.display = 'none';
@@ -9706,7 +9540,7 @@ function updateBattleRelicsDisplay() {
 function unlockAchievement(achievementId) {
   if (gameState.unlockedAchievements.includes(achievementId)) return false;
   
-  const achievement = GAME_ACHIEVEMENTS[achievementId];
+  const achievement = ACHIEVEMENTS[achievementId];
   if (!achievement) return false;
   
   gameState.unlockedAchievements.push(achievementId);
@@ -10109,7 +9943,7 @@ function updateDeckCountDisplay() {
 
 // 检查成就
 function checkAchievements() {
-  for (const [id, achievement] of Object.entries(GAME_ACHIEVEMENTS)) {
+  for (const [id, achievement] of Object.entries(ACHIEVEMENTS)) {
     if (!gameState.unlockedAchievements.includes(id)) {
       if (achievement.condition(gameState)) {
         unlockAchievement(id);
@@ -10124,7 +9958,7 @@ function showAchievements() {
   const unlockedCount = document.getElementById('achievements-unlocked-count');
   const totalCount = document.getElementById('achievements-total-count');
   
-  const achievements = Object.values(GAME_ACHIEVEMENTS);
+  const achievements = Object.values(ACHIEVEMENTS);
   unlockedCount.textContent = gameState.unlockedAchievements.length;
   totalCount.textContent = achievements.length;
   
@@ -10671,6 +10505,32 @@ function addLog(message, type = 'info') {
   gameState.battleLog.unshift({ message, type, turn: gameState.turn });
   if (gameState.battleLog.length > 5) gameState.battleLog.pop();
   renderLog();
+}
+
+// V79 AI Memory: 获取对局结果数据
+function getGameResult(win) {
+  // 从battleLog计算数据
+  let damageDealt = 0, damageTaken = 0, cardsPlayed = 0;
+  if (gameState.battleLog) {
+    for (const entry of gameState.battleLog) {
+      const dmgMatch = entry.message.match(/造成\s*(\d+)\s*伤害/);
+      if (dmgMatch) damageDealt += parseInt(dmgMatch[1]);
+      const takenMatch = entry.message.match(/受到\s*(\d+)\s*伤害/);
+      if (takenMatch) damageTaken += parseInt(takenMatch[1]);
+      if (entry.message.includes('使用') || entry.message.includes('打出')) cardsPlayed++;
+    }
+  }
+  return {
+    win,
+    playerDeck: gameState.deck ? gameState.deck.map(c => c.id) : [],
+    enemyId: gameState.enemy ? gameState.enemy.id : 'unknown',
+    enemyType: gameState.enemyAI ? gameState.enemyAI.type : 'unknown',
+    turns: gameState.turn || 0,
+    damageDealt,
+    damageTaken,
+    cardsPlayed,
+    maxCombo: 0
+  };
 }
 
 function getEnemyByType(type, floor = 1) {
@@ -12169,8 +12029,7 @@ function showChapterTransition(chapter, callback) {
         ">继续前进</button>
       `;
       
-      const chapterContinueBtn = document.getElementById('chapter-continue-btn');
-      if (chapterContinueBtn) chapterContinueBtn.onclick = () => {
+      document.getElementById('chapter-continue-btn').onclick = () => {
         overlay.style.background = 'rgba(0,0,0,0.85)';
         overlay.classList.remove('show');
         if (rewardTypes) rewardTypes.style.display = 'flex';
@@ -13442,7 +13301,7 @@ function playCard(card, index) {
 function dealDamageToEnemy(damage, card = null) {
   // V67: 处理卡牌关键词缀
   let keywords = card?.keywords || [];
-  let criticalChance = 0.25; // 默认暴击几率
+  let criticalChance = 0.15; // V69: 默认暴击几率15%（原25%）
   let lifestealPercent = 0;
   let piercePercent = 0;
   let burnStacks = 0;
@@ -13452,7 +13311,7 @@ function dealDamageToEnemy(damage, card = null) {
     addLog(`💥 暴击！伤害翻倍！`, 'damage');
   }
   if (keywords.includes('lifesteal')) {
-    lifestealPercent = 0.3; // 默认30%吸血
+    lifestealPercent = 0.25; // V69: 25%吸血（原30%）
   }
   if (keywords.includes('pierce')) {
     piercePercent = 1.0; // 100%无视护甲
@@ -14370,6 +14229,8 @@ function checkEnemyDeath() {
       // V63 Meta: Boss击杀追踪
       try { window.metaManager && window.metaManager.onBossKill(gameState.enemy.id); } catch(e) {}
       try { window.metaManager && window.metaManager.onBattleEnd(true, window.gameStateDifficulty || 'normal'); } catch(e) {}
+      // V79 AI Memory: 记忆对局结果
+      try { if (window.aiMemory) window.aiMemory.archiveSession(getGameResult(true)); } catch(e) {}
       completeNode(gameState.currentNode);
       gameState.totalBattlesWon++;
       gameState.achievementStats.totalBossesDefeated++;
@@ -14443,6 +14304,8 @@ function checkEnemyDeath() {
     
     // V63 Meta: 非Boss战斗胜利
     try { window.metaManager && window.metaManager.onBattleEnd(true, window.gameStateDifficulty || 'normal'); } catch(e) {}
+    // V79 AI Memory: 记忆对局结果
+    try { if (window.aiMemory) window.aiMemory.archiveSession(getGameResult(true)); } catch(e) {}
     
     completeNode(gameState.currentNode);
     gameState.totalBattlesWon++;
@@ -14499,6 +14362,8 @@ function checkPlayerDeath() {
     addLog('你被击败了...', 'info');
     // V63 Meta: 战斗失败
     try { window.metaManager && window.metaManager.onBattleEnd(false, window.gameStateDifficulty || 'normal'); } catch(e) {}
+    // V79 AI Memory: 记忆对局结果（失败时）
+    try { if (window.aiMemory) window.aiMemory.archiveSession(getGameResult(false)); } catch(e) {}
     // V39 BossRush: 如果是BossRush模式，显示失败界面
     if (gameState.isBossRush) {
       setTimeout(() => showBossRushGameOver(), 500);
@@ -16012,15 +15877,17 @@ function updatePetsDisplay() {
 function startNewGame() {
   // V63 Meta: 重置当前统计数据
   try { window.metaManager && window.metaManager.onGameStart(); } catch(e) {}
+  // V79 AI Memory: 初始化AI记忆系统
+  if (!window.aiMemory) {
+    window.aiMemory = new AIMemory();
+  }
 
   // V63 Meta: 设置难度
   const diff = window.selectedDifficulty || 'normal';
   window.gameStateDifficulty = diff;
 
   // 初始化音效系统
-  if (typeof audioManager !== 'undefined' && audioManager) {
-    audioManager.init();
-  }
+  audioManager.init();
 
   // V33 初始化章节状态
   initChapterEnemyPool(1);
@@ -16522,343 +16389,6 @@ function closeSettings() {
   overlay.style.display = 'none';
   overlay.classList.remove('show');
 }
-
-// V69 插件管理, V78 插件更新检测与热更新
-function openPluginManager() {
-  const existing = document.getElementById('plugin-manager-container');
-  if (existing) { existing.remove(); }
-
-  const container = document.createElement('div');
-  container.id = 'plugin-manager-container';
-
-  const plugins = (window.PluginRegistry && window.PluginRegistry.getPlugins) ? window.PluginRegistry.getPlugins() : [];
-  const enabledPlugins = plugins.filter(p => p.enabled !== false);
-
-  let html = `
-    <div style="
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85); z-index: 10001;
-      display: flex; align-items: center; justify-content: center;
-    ">
-      <div style="
-        background: #1a1a2e; border: 2px solid #9b59b6; border-radius: 15px;
-        padding: 20px; max-width: 550px; width: 90%; max-height: 85vh;
-        overflow-y: auto;
-      ">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-          <h2 style="color:#9b59b6;margin:0;">🔌 插件管理</h2>
-          <div style="display:flex;gap:8px;">
-            <button onclick="showUpdateHistory()" style="
-              background:#f39c12;border:none;color:#000;padding:6px 12px;
-              border-radius:8px;font-size:12px;cursor:pointer;font-weight:bold;
-            ">📋 更新日志</button>
-            <button onclick="closePluginManager()" style="
-              background:none;border:none;color:#fff;font-size:24px;cursor:pointer;
-            ">✕</button>
-          </div>
-        </div>
-        <button onclick="checkAndShowUpdates()" style="
-          width:100%;padding:10px;margin-bottom:15px;
-          background:linear-gradient(145deg,#3498db,#2980b9);
-          border:none;border-radius:10px;color:#fff;font-weight:bold;
-          font-size:14px;cursor:pointer;
-        ">🔍 检测插件更新</button>
-        <div id="update-status" style="text-align:center;color:#888;font-size:12px;margin-bottom:10px;min-height:20px;"></div>
-  `;
-
-  if (plugins.length === 0) {
-    html += `<p style="color:#888;text-align:center;">暂无已加载的插件</p>`;
-  } else {
-    html += `<div id="plugin-list" style="margin-bottom:15px;">`;
-    for (const plugin of plugins) {
-      const isEnabled = plugin.enabled !== false;
-      const isBuiltIn = plugin.builtIn === true;
-      html += `
-        <div id="plugin-item-${plugin.id}" style="
-          background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;
-          margin-bottom:10px;display:flex;align-items:center;gap:12px;
-        ">
-          <span style="font-size:28px;">🔌</span>
-          <div style="flex:1;">
-            <div style="color:#9b59b6;font-weight:bold;">
-              ${plugin.name}
-              <span id="update-badge-${plugin.id}" style="display:none;background:#e74c3c;color:#fff;padding:2px 6px;border-radius:8px;font-size:10px;margin-left:6px;">🔔 有新版本</span>
-            </div>
-            <div style="color:#666;font-size:12px;">v<span id="plugin-version-${plugin.id}">${plugin.version || '1.0.0'}</span> | ${plugin.author || '未知作者'}</div>
-            <div style="color:#888;font-size:11px;">${plugin.description || ''}</div>
-            ${isBuiltIn ? '<span style="color:#f39c12;font-size:10px;">[内置]</span>' : ''}
-          </div>
-          <button id="update-btn-${plugin.id}" onclick="updatePlugin('${plugin.id}')" style="
-            display:none;background:#2ecc71;border:none;color:#fff;padding:6px 12px;
-            border-radius:8px;font-size:12px;cursor:pointer;font-weight:bold;
-          ">更新</button>
-          ${!isBuiltIn ? `
-          <label style="position:relative;width:50px;height:26px;cursor:pointer;">
-            <input type="checkbox" id="plugin-toggle-${plugin.id}"
-              ${isEnabled ? 'checked' : ''}
-              onchange="togglePlugin('${plugin.id}')"
-              style="opacity:0;width:0;height:0;position:absolute;">
-            <span style="
-              position:absolute;top:0;left:0;right:0;bottom:0;
-              background:${isEnabled ? '#2ecc71' : '#555'};border-radius:13px;transition:0.3s;
-            ">
-              <span style="
-                position:absolute;left:${isEnabled ? '26px' : '2px'};top:2px;
-                width:22px;height:22px;background:#fff;border-radius:50%;transition:0.3s;
-              "></span>
-            </span>
-          </label>` : `<span style="color:#666;font-size:12px;">不可禁用</span>`}
-        </div>
-      `;
-    }
-    html += `</div>`;
-  }
-
-  html += `
-        <div style="text-align:center;color:#666;font-size:12px;margin-bottom:10px;">
-          共 ${plugins.length} 个插件 | ${enabledPlugins.length} 个已启用
-        </div>
-        <div style="color:#555;font-size:11px;text-align:center;margin-bottom:10px;">
-          插件卡牌将出现在商店和卡池中
-        </div>
-        <button onclick="closePluginManager()" style="
-          width:100%;padding:12px;
-          background:linear-gradient(145deg,#9b59b6,#8e44ad);
-          border:none;border-radius:10px;color:#fff;font-weight:bold;font-size:16px;cursor:pointer;
-        ">关闭</button>
-      </div>
-    </div>
-  `;
-
-  container.innerHTML = html;
-  document.body.appendChild(container);
-
-  // 自动检测更新
-  setTimeout(() => checkAndShowUpdates(), 100);
-}
-
-// V78: 检测并显示插件更新
-async function checkAndShowUpdates() {
-  const statusEl = document.getElementById('update-status');
-  if (!statusEl) return;
-  statusEl.textContent = '正在检测插件更新...';
-  statusEl.style.color = '#3498db';
-
-  try {
-    if (window.RemoteMarket && window.RemoteMarket.checkPluginUpdates) {
-      const results = await window.RemoteMarket.checkPluginUpdates();
-      let updateCount = 0;
-
-      for (const result of results) {
-        const badge = document.getElementById('update-badge-' + result.pluginId);
-        const btn = document.getElementById('update-btn-' + result.pluginId);
-
-        if (result.hasUpdate) {
-          updateCount++;
-          if (badge) {
-            badge.style.display = 'inline';
-            badge.textContent = `🔔 v${result.remoteVersion}`;
-          }
-          if (btn) {
-            btn.style.display = 'block';
-          }
-        } else {
-          if (badge) badge.style.display = 'none';
-          if (btn) btn.style.display = 'none';
-        }
-      }
-
-      if (updateCount > 0) {
-        statusEl.textContent = `发现 ${updateCount} 个插件可更新`;
-        statusEl.style.color = '#e74c3c';
-      } else {
-        statusEl.textContent = '所有插件已是最新版本';
-        statusEl.style.color = '#2ecc71';
-      }
-    } else {
-      statusEl.textContent = '更新检测功能不可用';
-      statusEl.style.color = '#888';
-    }
-  } catch (e) {
-    statusEl.textContent = '检测失败: ' + e.message;
-    statusEl.style.color = '#e74c3c';
-  }
-}
-
-// V78: 更新指定插件
-async function updatePlugin(pluginId) {
-  const statusEl = document.getElementById('update-status');
-  const btn = document.getElementById('update-btn-' + pluginId);
-
-  if (!window.RemoteMarket || !window.RemoteMarket.updateMarketPlugin) {
-    if (statusEl) {
-      statusEl.textContent = '更新功能不可用';
-      statusEl.style.color = '#e74c3c';
-    }
-    return;
-  }
-
-  if (statusEl) {
-    statusEl.textContent = '正在更新插件...';
-    statusEl.style.color = '#3498db';
-  }
-  if (btn) btn.disabled = true;
-  if (btn) btn.textContent = '更新中...';
-
-  try {
-    const result = await window.RemoteMarket.updateMarketPlugin(pluginId);
-    const versionEl = document.getElementById('plugin-version-' + pluginId);
-    if (versionEl && result.plugin) {
-      versionEl.textContent = result.plugin.version;
-    }
-    const badge = document.getElementById('update-badge-' + pluginId);
-    if (badge) badge.style.display = 'none';
-    if (btn) btn.style.display = 'none';
-
-    if (statusEl) {
-      statusEl.textContent = `✓ ${result.plugin.name} 更新成功!`;
-      statusEl.style.color = '#2ecc71';
-    }
-    console.log('[Update] Plugin updated:', result);
-  } catch (e) {
-    if (statusEl) {
-      statusEl.textContent = '更新失败: ' + e.message;
-      statusEl.style.color = '#e74c3c';
-    }
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = '重试';
-    }
-  }
-}
-
-// V78: 显示更新历史面板
-function showUpdateHistory() {
-  const existing = document.getElementById('update-history-container');
-  if (existing) { existing.remove(); }
-
-  const container = document.createElement('div');
-  container.id = 'update-history-container';
-
-  let history = [];
-  if (window.RemoteMarket && window.RemoteMarket.getUpdateHistory) {
-    history = window.RemoteMarket.getUpdateHistory();
-  }
-
-  let historyHtml = '';
-  if (history.length === 0) {
-    historyHtml = '<p style="color:#888;text-align:center;padding:20px;">暂无更新记录</p>';
-  } else {
-    for (const entry of history) {
-      const date = new Date(entry.time).toLocaleString('zh-CN');
-      historyHtml += `
-        <div style="
-          background:rgba(255,255,255,0.05);border-radius:8px;padding:10px;margin-bottom:8px;
-        ">
-          <div style="color:#9b59b6;font-weight:bold;">${entry.name}</div>
-          <div style="color:#666;font-size:12px;">${entry.fromVersion} → ${entry.toVersion}</div>
-          <div style="color:#888;font-size:11px;">${date}</div>
-          <div style="color:#aaa;font-size:11px;margin-top:4px;">${entry.changelog}</div>
-        </div>
-      `;
-    }
-  }
-
-  container.innerHTML = `
-    <div style="
-      position:fixed;top:0;left:0;width:100%;height:100%;
-      background:rgba(0,0,0,0.85);z-index:10002;
-      display:flex;align-items:center;justify-content:center;
-    ">
-      <div style="
-        background:#1a1a2e;border:2px solid #f39c12;border-radius:15px;
-        padding:20px;max-width:450px;width:90%;max-height:70vh;overflow-y:auto;
-      ">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-          <h2 style="color:#f39c12;margin:0;">📋 更新历史</h2>
-          <button onclick="closeUpdateHistory()" style="
-            background:none;border:none;color:#fff;font-size:24px;cursor:pointer;
-          ">✕</button>
-        </div>
-        ${historyHtml}
-        <button onclick="closeUpdateHistory()" style="
-          width:100%;padding:12px;margin-top:10px;
-          background:linear-gradient(145deg,#f39c12,#e67e22);
-          border:none;border-radius:10px;color:#fff;font-weight:bold;font-size:14px;cursor:pointer;
-        ">关闭</button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(container);
-}
-
-function closeUpdateHistory() {
-  const container = document.getElementById('update-history-container');
-  if (container) container.remove();
-}
-
-function closePluginManager() {
-  const container = document.getElementById('plugin-manager-container');
-  if (container) container.remove();
-}
-
-function togglePlugin(pluginId) {
-  if (window.PluginLoader && window.PluginLoader.toggle) {
-    const newState = window.PluginLoader.toggle(pluginId);
-    // 刷新卡牌数据
-    if (window.refreshCardsFromRegistry) window.refreshCardsFromRegistry();
-    if (window.refreshRelicsFromRegistry) window.refreshRelicsFromRegistry();
-    // 更新开关状态
-    const toggle = document.getElementById('plugin-toggle-' + pluginId);
-    if (toggle) {
-      const span = toggle.nextElementSibling;
-      span.style.background = newState ? '#2ecc71' : '#555';
-      span.querySelector('span').style.left = newState ? '26px' : '2px';
-    }
-    // 更新计数
-    const plugins = (window.PluginRegistry && window.PluginRegistry.getPlugins) ? window.PluginRegistry.getPlugins() : [];
-    const enabledPlugins = plugins.filter(p => p.enabled !== false);
-    const counter = document.querySelector('#plugin-manager-container [style*="text-align:center"]');
-    if (counter) {
-      counter.textContent = `共 ${plugins.length} 个插件 | ${enabledPlugins.length} 个已启用`;
-    }
-  }
-}
-
-// 初始化插件（需要在 DOM 加载后执行）
-document.addEventListener('DOMContentLoaded', function() {
-  if (window.PluginLoader) {
-    window.PluginLoader.loadEnabledState();
-    window.PluginLoader.loadBuiltInPlugins();
-
-    // V69: 将插件卡牌同步到 CardPackRegistry
-    if (window.PluginRegistry && window.CardPackRegistry) {
-      const pluginCards = PluginRegistry.getCards();
-      const pluginRelics = PluginRegistry.getRelics();
-
-      // 为每个插件包注册到 CardPackRegistry
-      if (pluginCards.length > 0) {
-        CardPackRegistry.register({
-          id: 'plugins',
-          name: '🔌 插件卡牌',
-          version: '1.0.0',
-          author: '插件系统',
-          cards: pluginCards,
-          relics: pluginRelics,
-          builtIn: true
-        });
-        CardPackRegistry.activate('plugins');
-        console.log(`[V69] Synced ${pluginCards.length} plugin cards to CardPackRegistry`);
-      }
-    }
-
-    // 刷新以使插件卡生效
-    if (window.refreshCardsFromRegistry) refreshCardsFromRegistry();
-    if (window.refreshRelicsFromRegistry) refreshRelicsFromRegistry();
-    console.log('[V69] Plugin system initialized');
-  }
-});
 
 // 音量控制（设置滑块）
 function initVolumeControl() {
@@ -17505,56 +17035,45 @@ function startRandomBattle() {
   addLog(`⚔️ 遭遇 ${enemy.name}！`, 'info');
 }
 
-// ===== 全局点击捕获（V67.1: 兜底日志） =====
-document.addEventListener('click', (e) => {
-  const target = e.target.closest('[id]') || e.target;
-  const id = target.id || target.tagName;
-  if (!id.startsWith('[CLICK]')) {
-    console.log(`[GLOBAL-CLICK] tag=${target.tagName} id=${id} class=${target.className}`);
-  }
-}, true); // capture phase
-
-// ===== 事件绑定 (V67.1: 添加全按钮点击日志) =====
+// ===== 事件绑定 =====
 // V46: 开始游戏按钮打开牌组选择（重新开始）
-document.getElementById('start-btn').onclick = () => { console.log('[CLICK] start-btn → startNewGame'); startNewGame(); };
+document.getElementById('start-btn').onclick = startNewGame;
 // V46: 重玩和下一关直接重新开始（不重新选牌组）
-document.getElementById('start-btn-retry').onclick = () => { console.log('[CLICK] start-btn-retry → initGame'); initGame(); };
-document.getElementById('start-btn-next').onclick = () => { console.log('[CLICK] start-btn-next → initGame'); initGame(); };
-document.getElementById('end-turn').onclick = () => { console.log('[CLICK] end-turn → endTurn'); endTurn(); };
-document.getElementById('mute-btn').onclick = () => { console.log('[CLICK] mute-btn → toggleMute'); toggleMute(); };
-document.getElementById('landing-enter-map').onclick = () => { console.log('[CLICK] landing-enter-map → enterMapFromLanding'); enterMapFromLanding(); };
-document.getElementById('landing-return-title').onclick = () => { console.log('[CLICK] landing-return-title → returnToTitle'); returnToTitle(); };
-document.getElementById('map-canvas').onclick = (e) => { console.log('[CLICK] map-canvas → handleMapClick'); handleMapClick(e); };
-document.getElementById('node-preview-btn').onclick = () => { console.log('[CLICK] node-preview-btn → enterNode'); enterNode(); };
-document.getElementById('shop-leave').onclick = () => { console.log('[CLICK] shop-leave → leaveShop'); leaveShop(); };
+document.getElementById('start-btn-retry').onclick = initGame;
+document.getElementById('start-btn-next').onclick = initGame;
+document.getElementById('end-turn').onclick = endTurn;
+document.getElementById('mute-btn').onclick = toggleMute;
+document.getElementById('landing-enter-map').onclick = enterMapFromLanding;
+document.getElementById('landing-return-title').onclick = returnToTitle;
+document.getElementById('map-canvas').onclick = handleMapClick;
+document.getElementById('node-preview-btn').onclick = enterNode;
+document.getElementById('shop-leave').onclick = leaveShop;
 // V9 成就按钮
-document.getElementById('achievements-btn').onclick = () => { console.log('[CLICK] achievements-btn → showAchievements'); showAchievements(); };
+document.getElementById('achievements-btn').onclick = showAchievements;
 document.getElementById('close-achievements-btn').onclick = () => {
-  console.log('[CLICK] close-achievements-btn');
   document.getElementById('achievements-overlay').classList.remove('show');
 };
 // V43 进度按钮
-document.getElementById('progress-btn').onclick = () => { console.log('[CLICK] progress-btn → openProgressPanel'); openProgressPanel(); };
+document.getElementById('progress-btn').onclick = openProgressPanel;
 // V29 每日挑战按钮
-document.getElementById('daily-btn').onclick = () => { console.log('[CLICK] daily-btn → showDailyChallenge'); showDailyChallenge(); };
+document.getElementById('daily-btn').onclick = showDailyChallenge;
 // BossRush按钮
-document.getElementById('boss-rush-btn').onclick = () => { console.log('[CLICK] boss-rush-btn → showBossRushInfo'); showBossRushInfo(); };
+document.getElementById('boss-rush-btn').onclick = showBossRushInfo;
 // V40 牌组选择按钮
-document.getElementById('select-deck-btn').onclick = () => { console.log('[CLICK] select-deck-btn → openDeckSelectModal'); openDeckSelectModal(); };
-document.getElementById('deck-select-confirm-btn').onclick = () => { console.log('[CLICK] deck-select-confirm-btn → onlySelectDeck'); onlySelectDeck(); };
-document.getElementById('deck-select-start-btn').onclick = () => { console.log('[CLICK] deck-select-start-btn → confirmDeckSelection'); confirmDeckSelection(); };
-document.getElementById('deck-select-cancel-btn').onclick = () => { console.log('[CLICK] deck-select-cancel-btn → closeDeckSelectModal'); closeDeckSelectModal(); };
+document.getElementById('select-deck-btn').onclick = openDeckSelectModal;
+document.getElementById('deck-select-confirm-btn').onclick = onlySelectDeck;
+document.getElementById('deck-select-start-btn').onclick = confirmDeckSelection;
+document.getElementById('deck-select-cancel-btn').onclick = closeDeckSelectModal;
 document.getElementById('deck-select-start-btn').style.display = 'none';
 document.getElementById('close-daily-btn').onclick = () => {
-  console.log('[CLICK] close-daily-btn');
   document.getElementById('daily-overlay').classList.remove('show');
 };
-// V29 排行榜按钮（元素不存在，暂注释）
-// document.getElementById('leaderboard-btn').onclick = () => { console.log('[CLICK] leaderboard-btn → showLeaderboard'); showLeaderboard(); };
+// V29 排行榜按钮
+document.getElementById('leaderboard-btn').onclick = showLeaderboard;
 // V28 终局结算按钮
-document.getElementById('ngplus-btn').onclick = () => { console.log('[CLICK] ngplus-btn → startNGPlus'); startNGPlus(); };
-document.getElementById('difficulty-btn').onclick = () => { console.log('[CLICK] difficulty-btn → showDifficultySelection'); showDifficultySelection(); };
-document.getElementById('stats-btn').onclick = () => { console.log('[CLICK] stats-btn → showStatisticsPanel'); showStatisticsPanel(); };
+document.getElementById('ngplus-btn').onclick = startNGPlus;
+document.getElementById('difficulty-btn').onclick = showDifficultySelection;
+document.getElementById('stats-btn').onclick = showStatisticsPanel;
 document.getElementById('menu-btn').onclick = () => {
   document.getElementById('endgame-screen').classList.remove('show');
   document.getElementById('start-screen').style.display = 'flex';
@@ -17643,419 +17162,6 @@ function updateOnlineStatus() {
 
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
-
-// V71 插件市场
-function openRemoteMarket() {
-  const overlay = document.getElementById('market-overlay');
-  if (!overlay) return;
-  overlay.style.display = 'flex';
-  overlay.classList.add('show');
-  renderMarketTags();
-  filterMarketPlugins();
-}
-
-function closeMarket() {
-  const overlay = document.getElementById('market-overlay');
-  if (!overlay) return;
-  overlay.style.display = 'none';
-  overlay.classList.remove('show');
-}
-
-function renderMarketTags() {
-  const tagsContainer = document.getElementById('market-tags');
-  const categorySelect = document.getElementById('market-category');
-  if (!tagsContainer) return;
-  // 异步获取插件列表并渲染标签和分类
-  const loadPlugins = window.RemoteMarket ? window.RemoteMarket.fetchManifest() : [];
-  if (loadPlugins && typeof loadPlugins.then === 'function') {
-    loadPlugins.then(plugins => {
-      const allTags = new Set();
-      const categories = new Set();
-      plugins.forEach(p => {
-        (p.tags || []).forEach(t => allTags.add(t));
-        if (p.tags && p.tags.length > 0) categories.add(p.tags[0]);
-      });
-      const tagList = ['全部', ...Array.from(allTags)];
-      tagsContainer.innerHTML = tagList.map(tag => {
-        const isAll = tag === '全部';
-        return `<button onclick="filterMarketPlugins('${tag}')" style="
-          padding:4px 10px;border-radius:12px;border:1px solid #555;
-          background:#333;color:#aaa;font-size:11px;cursor:pointer;
-        ">${tag}</button>`;
-      }).join('');
-      // 填充分类下拉
-      if (categorySelect) {
-        const catList = ['', ...Array.from(categories)];
-        categorySelect.innerHTML = catList.map(c => `<option value="${c}">${c || '全部项目'}</option>`).join('');
-      }
-    }).catch(() => {
-      tagsContainer.innerHTML = '<button onclick="filterMarketPlugins(\'全部\')" style="padding:4px 10px;border-radius:12px;border:1px solid #555;background:#333;color:#aaa;font-size:11px;cursor:pointer;">全部</button>';
-    });
-  } else {
-    tagsContainer.innerHTML = '<button onclick="filterMarketPlugins(\'全部\')" style="padding:4px 10px;border-radius:12px;border:1px solid #555;background:#333;color:#aaa;font-size:11px;cursor:pointer;">全部</button>';
-  }
-}
-
-let marketActiveTab = 'browse';
-
-function switchMarketTab(tab) {
-  marketActiveTab = tab;
-  document.getElementById('tab-browse').style.background = tab === 'browse' ? '#27ae60' : '#444';
-  document.getElementById('tab-leaderboard').style.background = tab === 'leaderboard' ? '#27ae60' : '#444';
-  document.getElementById('tab-aicard').style.background = tab === 'aicard' ? '#9b59b6' : '#444';
-  document.getElementById('ai-card-panel').style.display = tab === 'aicard' ? 'block' : 'none';
-  document.getElementById('market-header').style.display = tab === 'aicard' ? 'none' : 'flex';
-  document.getElementById('market-tags').style.display = tab === 'aicard' ? 'none' : 'flex';
-  if (tab === 'leaderboard') {
-    renderLeaderboard();
-  } else if (tab === 'browse') {
-    filterMarketPlugins();
-  } else if (tab === 'aicard') {
-    renderAICardList();
-  } else if (tab === 'publisher') {
-    updatePublisherUI();
-  } else if (tab === 'review') {
-    updateReviewList();
-  }
-}
-
-function renderLeaderboard() {
-  const grid = document.getElementById('market-grid');
-  if (!grid) return;
-  const loadPlugins = window.RemoteMarket ? window.RemoteMarket.fetchManifest() : [];
-  const resolvePlugins = (plugins) => {
-    const ratings = window.PluginManager ? window.PluginManager.getAllRatings() : {};
-    const installed = window.PluginManager ? window.PluginManager.listInstalled() : [];
-    const installedIds = new Set(installed.map(p => p.id));
-    // Sort by rating desc
-    const sorted = (plugins || []).sort((a, b) => (ratings[b.id] || 0) - (ratings[a.id] || 0));
-    const top10 = sorted.slice(0, 10);
-    grid.innerHTML = top10.map((p, i) => {
-      const rating = ratings[p.id] || 0;
-      const isInstalled = installedIds.has(p.id);
-      return `
-        <div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:start;">
-            <div style="font-size:28px;">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`}</div>
-            <div style="color:#f1c40f;font-size:13px;">★ ${rating || '-'}</div>
-          </div>
-          <div style="color:#9b59b6;font-weight:bold;margin:6px 0;">${p.name}</div>
-          <div style="color:#888;font-size:11px;margin-bottom:6px;">${p.description || ''}</div>
-          <div style="color:#555;font-size:10px;margin-bottom:8px;">标签: ${(p.tags || []).join(', ')} ${isInstalled ? '| ✅已安装' : ''}</div>
-          ${!isInstalled ? `<button onclick="installMarketPlugin('${p.id}')" style="padding:6px 12px;background:#27ae60;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">安装</button>` : '<span style="color:#2ecc71;font-size:11px;">已安装</span>'}
-          <div style="margin-top:6px;">
-            ${[1,2,3,4,5].map(s => `<span onclick="window.PluginManager && window.PluginManager.ratePlugin('${p.id}', ${s})" style="cursor:pointer;color:${rating >= s ? '#f1c40f' : '#555'};font-size:16px;">★</span>`).join('')}
-          </div>
-        </div>
-      `;
-    }).join('');
-  };
-  if (loadPlugins && typeof loadPlugins.then === 'function') {
-    loadPlugins.then(resolvePlugins).catch(() => resolvePlugins([]));
-  } else {
-    resolvePlugins(loadPlugins);
-  }
-}
-
-function filterMarketPlugins(tagFilter) {
-  const grid = document.getElementById('market-grid');
-  if (!grid) return;
-  const searchInput = document.getElementById('market-search');
-  const sortSelect = document.getElementById('market-sort');
-  const categorySelect = document.getElementById('market-category');
-  const keyword = (searchInput ? searchInput.value : '').toLowerCase();
-  const sortBy = sortSelect ? sortSelect.value : 'rating';
-  const activeTag = tagFilter || '全部';
-  const activeCategory = categorySelect ? categorySelect.value : '';
-
-  const loadPlugins = window.RemoteMarket ? window.RemoteMarket.fetchManifest() : [];
-  const resolvePlugins = (plugins) => {
-    let result = plugins || [];
-    if (activeCategory) {
-      result = result.filter(p => (p.tags || []).includes(activeCategory));
-    }
-    if (activeTag !== '全部') {
-      result = result.filter(p => (p.tags || []).includes(activeTag));
-    }
-    if (keyword) {
-      result = result.filter(p =>
-        p.name.toLowerCase().includes(keyword) ||
-        (p.description || '').toLowerCase().includes(keyword) ||
-        (p.author || '').toLowerCase().includes(keyword)
-      );
-    }
-    result.sort((a, b) => {
-      if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
-      if (sortBy === 'downloads') return (b.downloads || 0) - (a.downloads || 0);
-      return a.name.localeCompare(b.name);
-    });
-
-    grid.innerHTML = result.map(p => {
-      const installed = window.PluginManager && window.PluginManager.isInstalled && window.PluginManager.isInstalled(p.id);
-      const cache = window.PluginCache && window.PluginCache.get ? window.PluginCache.get(p.id) : null;
-      const canInstall = !installed && !cache;
-      const canUninstall = installed || cache;
-      return `
-        <div style="background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:start;">
-            <div style="font-size:28px;">${p.icon || '📦'}</div>
-            <div style="color:#f1c40f;font-size:13px;">★ ${p.rating || '0'}</div>
-          </div>
-          <div style="color:#9b59b6;font-weight:bold;margin:6px 0;">${p.name}</div>
-          <div style="color:#888;font-size:11px;margin-bottom:6px;">${p.description || ''}</div>
-          <div style="color:#555;font-size:10px;margin-bottom:8px;">标签: ${(p.tags || []).join(', ')} | 下载: ${p.downloads || 0}</div>
-          ${canInstall ? `<button onclick="installMarketPlugin('${p.id}')" style="padding:6px 12px;background:#27ae60;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">安装</button>` : ''}
-          ${canUninstall ? `<button onclick="uninstallMarketPlugin('${p.id}')" style="padding:6px 12px;background:#c0392b;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">卸载</button>` : ''}
-          ${installed || cache ? '<span style="color:#2ecc71;font-size:11px;">已安装</span>' : ''}
-        </div>
-      `;
-    }).join('');
-  };
-
-  if (loadPlugins && typeof loadPlugins.then === 'function') {
-    loadPlugins.then(resolvePlugins).catch(() => resolvePlugins([]));
-  } else {
-    resolvePlugins(loadPlugins);
-  }
-}
-
-function installMarketPlugin(pluginId) {
-  if (!window.RemoteMarket || !window.PluginManager) {
-    showNotification('插件市场未加载', 'error');
-    return;
-  }
-  showNotification('正在从市场获取插件...', 'info');
-  window.RemoteMarket.fetchManifest().then(plugins => {
-    const plugin = plugins.find(p => p.id === pluginId);
-    if (!plugin) {
-      showNotification('插件不存在', 'error');
-      return;
-    }
-    // 真实下载插件JS文件
-    if (plugin.url && plugin.url.startsWith('http')) {
-      showNotification(`正在下载: ${plugin.name}...`, 'info');
-      fetch(plugin.url)
-        .then(r => r.text())
-        .then(jsCode => {
-          // 执行插件代码注册
-          try {
-            const fn = new Function(jsCode);
-            fn();
-            showNotification(`插件 ${plugin.name} 安装成功`, 'success');
-          } catch (e) {
-            console.error('[installMarketPlugin] execute error:', e);
-            // fallback: 直接安装插件数据
-            window.PluginManager.install(plugin);
-            showNotification(`插件 ${plugin.name} 安装成功`, 'success');
-          }
-        })
-        .catch(err => {
-          console.error('[installMarketPlugin] download error:', err);
-          window.PluginManager.install(plugin);
-          showNotification(`插件 ${plugin.name} 安装成功（本地）`, 'success');
-        });
-    } else {
-      // 无URL时直接安装
-      window.PluginManager.install(plugin);
-      showNotification(`插件 ${plugin.name} 安装成功`, 'success');
-    }
-    if (window.PluginCache && window.PluginCache.set) {
-      window.PluginCache.set(pluginId, plugin);
-    }
-    filterMarketPlugins();
-  }).catch(err => {
-    showNotification('获取插件列表失败', 'error');
-    console.error('[installMarketPlugin] fetchManifest error:', err);
-  });
-}
-
-function uninstallMarketPlugin(pluginId) {
-  if (!window.PluginManager) return;
-  window.PluginManager.uninstall(pluginId);
-  if (window.PluginCache && window.PluginCache.remove) {
-    window.PluginCache.remove(pluginId);
-  }
-  showNotification(`插件 ${pluginId} 已卸载`, 'info');
-  filterMarketPlugins();
-}
-
-// V77 AI卡牌生成
-let aiGenController = null;
-
-function generateAICard() {
-  const prompt = document.getElementById('ai-card-prompt').value.trim();
-  if (!prompt) {
-    showAICardError('请输入卡牌描述');
-    return;
-  }
-  document.getElementById('ai-card-result').style.display = 'none';
-  document.getElementById('ai-card-error').style.display = 'none';
-  document.getElementById('ai-gen-btn').disabled = true;
-  document.getElementById('ai-gen-btn').textContent = '⚡ AI思考中...';
-  document.getElementById('ai-cancel-btn').style.display = 'flex';
-
-  const controller = new AbortController();
-  aiGenController = controller;
-
-  const startTime = Date.now();
-  const timeout = setTimeout(() => {
-    if (!controller.signal.aborted) {
-      controller.abort();
-      showAICardError('生成超时(30s)，请重试');
-      resetAIGenBtn();
-    }
-  }, 30000);
-
-  fetch('http://127.0.0.1:8001/api/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-API-Key': 'pem-hs7-a1b2c3d4e5f6' },
-    signal: controller.signal,
-    body: JSON.stringify({
-      model: 'miniweek',
-      messages: [{
-        role: 'user',
-        content: `你是卡牌游戏设计师。请根据用户描述生成一张平衡的卡牌，返回纯JSON格式（无markdown），格式：{"name":"卡牌名","cost":数字,"attack":数字,"health":数字,"skill":"技能描述","tags":["标签1","标签2"]}。用户描述：${prompt}`
-      }],
-      max_tokens: 200,
-      temperature: 0.7
-    })
-  })
-  .then(r => r.json())
-  .then(data => {
-    clearTimeout(timeout);
-    const text = data.choices?.[0]?.message?.content || '';
-    let card = null;
-    try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) card = JSON.parse(jsonMatch[0]);
-    } catch (e) {}
-    if (card) {
-      card.id = `ai_card_${Date.now()}`;
-      card.source = 'llm';
-      card.generated_at = new Date().toISOString();
-      if (!card.tags) card.tags = ['ai-generated'];
-      if (!card.tags.includes('ai-generated')) card.tags.push('ai-generated');
-      showAICardResult(card);
-    } else {
-      showAICardError('AI返回格式异常：' + text.substring(0, 50));
-    }
-    resetAIGenBtn();
-  })
-  .catch(err => {
-    clearTimeout(timeout);
-    if (err.name === 'AbortError') return;
-    console.error('[generateAICard]', err);
-    showAICardError('AI服务暂不可用：' + err.message);
-    resetAIGenBtn();
-  });
-}
-
-function cancelAICard() {
-  if (aiGenController) {
-    aiGenController.abort();
-    aiGenController = null;
-  }
-  resetAIGenBtn();
-  showNotification('已取消生成', 'info');
-}
-
-function resetAIGenBtn() {
-  document.getElementById('ai-gen-btn').disabled = false;
-  document.getElementById('ai-gen-btn').textContent = '⚡ AI 生成卡牌';
-  document.getElementById('ai-cancel-btn').style.display = 'none';
-}
-
-function showAICardResult(card) {
-  document.getElementById('ai-card-name').textContent = card.name || '未知卡牌';
-  document.getElementById('ai-card-cost').textContent = card.cost || 3;
-  document.getElementById('ai-card-attack').textContent = card.attack || 0;
-  document.getElementById('ai-card-health').textContent = card.health || 1;
-  document.getElementById('ai-card-skill').textContent = card.skill || '无技能';
-  document.getElementById('ai-card-tags').textContent = (card.tags || []).join(', ');
-  window._pendingAICard = card;
-  document.getElementById('ai-card-result').style.display = 'block';
-  document.getElementById('ai-card-error').style.display = 'none';
-}
-
-function showAICardError(msg) {
-  document.getElementById('ai-card-error').textContent = msg;
-  document.getElementById('ai-card-error').style.display = 'block';
-  document.getElementById('ai-card-result').style.display = 'none';
-}
-
-function installAICard() {
-  const card = window._pendingAICard;
-  if (!card) return;
-  // Read from editable fields
-  card.name = document.getElementById('ai-card-name').textContent.trim() || card.name;
-  card.cost = parseInt(document.getElementById('ai-card-cost').textContent) || card.cost;
-  card.attack = parseInt(document.getElementById('ai-card-attack').textContent) || card.attack;
-  card.health = parseInt(document.getElementById('ai-card-health').textContent) || card.health;
-  card.skill = document.getElementById('ai-card-skill').textContent.trim() || card.skill;
-
-  // Save to localStorage
-  const stored = JSON.parse(localStorage.getItem('ai_generated_cards') || '[]');
-  const existing = stored.findIndex(c => c.id === card.id);
-  if (existing >= 0) stored[existing] = card;
-  else stored.push(card);
-  localStorage.setItem('ai_generated_cards', JSON.stringify(stored));
-
-  // Register as plugin
-  if (window.PluginManager) {
-    const plugin = {
-      id: card.id,
-      name: card.name,
-      description: card.skill,
-      version: '1.0.0',
-      author: 'AI',
-      tags: card.tags || ['ai-generated'],
-      cost: card.cost,
-      attack: card.attack,
-      health: card.health,
-      skill: card.skill,
-      source: 'llm'
-    };
-    window.PluginManager.install(plugin);
-    showNotification(`AI卡牌「${card.name}」已安装到卡组`, 'success');
-  }
-
-  document.getElementById('ai-card-result').style.display = 'none';
-  document.getElementById('ai-card-prompt').value = '';
-  window._pendingAICard = null;
-  renderAICardList();
-}
-
-function renderAICardList() {
-  const list = document.getElementById('ai-card-list');
-  if (!list) return;
-  const stored = JSON.parse(localStorage.getItem('ai_generated_cards') || '[]');
-  if (stored.length === 0) {
-    list.innerHTML = '<div style="color:#555;font-size:13px;text-align:center;padding:20px;">暂无AI生成的卡牌</div>';
-    return;
-  }
-  list.innerHTML = stored.map(card => `
-    <div style="background:rgba(155,89,182,0.15);border:1px solid #9b59b6;border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:center;">
-      <div>
-        <div style="color:#ffd700;font-weight:bold;">${card.name}</div>
-        <div style="color:#888;font-size:11px;">⚡${card.cost} ⚔${card.attack} ❤${card.health}</div>
-        <div style="color:#aaa;font-size:11px;">${card.skill}</div>
-      </div>
-      <button onclick="uninstallAICard('${card.id}')" style="padding:6px 12px;background:#c0392b;border:none;border-radius:6px;color:#fff;cursor:pointer;font-size:12px;">卸载</button>
-    </div>
-  `).join('');
-}
-
-function uninstallAICard(cardId) {
-  if (!window.PluginManager) return;
-  window.PluginManager.uninstall(cardId);
-  const stored = JSON.parse(localStorage.getItem('ai_generated_cards') || '[]');
-  const filtered = stored.filter(c => c.id !== cardId);
-  localStorage.setItem('ai_generated_cards', JSON.stringify(filtered));
-  showNotification('AI卡牌已卸载', 'info');
-  renderAICardList();
-}
-
-document.getElementById('close-market-btn').addEventListener('click', closeMarket);
 </script>
 
 <!-- V42 扭蛋抽卡模态框 -->
@@ -18252,109 +17358,6 @@ function selectHealReward() {
 function closeBattleRewardModal() {
   const modal = document.getElementById('battle-reward-modal');
   if (modal) modal.remove();
-}
-
-// ===== V79: 插件市场v4 - 发布者+审核队列 UI 函数 =====
-
-function updatePublisherUI() {
-  const loginDiv = document.getElementById('publisher-login');
-  const profileDiv = document.getElementById('publisher-profile');
-  const usernameSpan = document.getElementById('publisher-username');
-  const submitSection = document.getElementById('plugin-submit-section');
-  const pendingList = document.getElementById('pending-review-list');
-  if (!loginDiv) return;
-  const isReg = window.PluginPublisher ? window.PluginPublisher.isRegistered() : false;
-  loginDiv.style.display = isReg ? 'none' : 'block';
-  profileDiv.style.display = isReg ? 'block' : 'none';
-  submitSection.style.display = isReg ? 'block' : 'none';
-  if (isReg && usernameSpan) {
-    const profile = window.PluginPublisher.getProfile();
-    usernameSpan.textContent = profile.github || profile.author || 'Unknown';
-  }
-  if (pendingList) {
-    const pending = window.ReviewQueue ? window.ReviewQueue.getPending() : [];
-    pendingList.innerHTML = pending.length === 0
-      ? '<div style="color:#555;font-size:12px;">暂无待审核插件</div>'
-      : pending.map(p => `<div style="padding:6px;background:rgba(255,255,255,0.05);border-radius:6px;margin-bottom:4px;"><b>${p.name}</b> v${p.version} <span style="color:#888;">by ${p.author}</span></div>`).join('');
-  }
-}
-
-function bindPublisherGitHub() {
-  const githubInput = document.getElementById('publisher-github');
-  const tokenInput = document.getElementById('publisher-token');
-  if (!githubInput || !tokenInput) return;
-  const github = githubInput.value.trim();
-  const token = tokenInput.value.trim();
-  if (!github || !token) { alert('请填写 GitHub 用户名和 Token'); return; }
-  if (window.PluginPublisher) {
-    window.PluginPublisher.bindGitHub(github, token);
-    updatePublisherUI();
-  }
-}
-
-function logoutPublisher() {
-  if (window.PluginPublisher) window.PluginPublisher.logout();
-  updatePublisherUI();
-}
-
-function submitPluginToReview() {
-  const nameInput = document.getElementById('plugin-submit-name');
-  const versionInput = document.getElementById('plugin-submit-version');
-  const descInput = document.getElementById('plugin-submit-desc');
-  const resultDiv = document.getElementById('plugin-submit-result');
-  if (!nameInput || !versionInput) return;
-  const name = nameInput.value.trim();
-  const version = versionInput.value.trim();
-  const description = descInput ? descInput.value.trim() : '';
-  if (!name || !version) { alert('请填写插件名称和版本'); return; }
-  if (!window.PluginPublisher || !window.PluginPublisher.isRegistered()) {
-    alert('请先绑定 GitHub 账号'); return;
-  }
-  const profile = window.PluginPublisher.getProfile();
-  const manifest = window.PluginManifestGenerator
-    ? window.PluginManifestGenerator.create({ name, version, author: profile.github || profile.author, description, cards: [], relics: [], hooks: [], dependencies: {} })
-    : { name, version, author: profile.github, description };
-  if (window.ReviewQueue) {
-    const result = window.ReviewQueue.submit(manifest);
-    if (resultDiv) {
-      resultDiv.style.display = 'block';
-      resultDiv.textContent = result.success ? `✓ 提交成功！插件 "${name}"已进入审核队列` : `✗ 提交失败: ${result.error}`;
-    }
-    if (result.success) {
-      nameInput.value = '';
-      descInput.value = '';
-      versionInput.value = '1.0.0';
-      updatePublisherUI();
-    }
-  }
-}
-
-function updateReviewList() {
-  const reviewList = document.getElementById('review-list');
-  if (!reviewList || !window.ReviewQueue) return;
-  const pending = window.ReviewQueue.getPending() || [];
-  if (pending.length === 0) {
-    reviewList.innerHTML = '<div style="color:#555;font-size:13px;">审核队列为空</div>';
-    return;
-  }
-  reviewList.innerHTML = pending.map(p => `
-    <div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:10px;margin-bottom:8px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <b style="color:#e74c3c;">${p.name}</b>
-        <span style="color:#888;font-size:11px;">v${p.version}</span>
-      </div>
-      <div style="color:#aaa;font-size:12px;margin:4px 0;">by ${p.author || 'unknown'}</div>
-      <div style="color:#555;font-size:11px;margin-bottom:6px;">${p.description || ''}</div>
-      <div style="display:flex;gap:6px;">
-        <button onclick="window.ReviewQueue && window.ReviewQueue.approve('${p.name}') && updateReviewList()" style="flex:1;padding:6px;background:#27ae60;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">✅ 通过</button>
-        <button onclick="window.ReviewQueue && window.ReviewQueue.reject('${p.name}', '内容不符合规范') && updateReviewList()" style="flex:1;padding:6px;background:#e74c3c;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">❌ 拒绝</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function renderPendingReview() {
-  updatePublisherUI();
 }
 </script>
 
