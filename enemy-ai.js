@@ -8,24 +8,56 @@ class EnemyAI {
     this.specialAbility = config.specialAbility || null;
     this.secondPhaseThreshold = config.secondPhaseThreshold || 0.5;
     this._state = { inSecondPhase: false, turnCount: 0, specialUsed: 0 };
+    // V85: 绑定技能结晶器（用于AI决策辅助）
+    this._skillCrystallizer = window.skillCrystallizer || null;
   }
 
-  /** 核心决策：根据AI类型选择最优意图 */
+  /** 核心决策：根据AI类型选择最优意图 + V85技能结晶辅助 */
   chooseIntent(availableIntents, gameState) {
     this._state.turnCount++;
     const hpPercent = gameState.enemyHp / gameState.enemyMaxHp;
+    const playerHpPercent = gameState.playerHp / gameState.playerMaxHp;
     if (this.type === 'boss' && hpPercent <= this.secondPhaseThreshold && !this._state.inSecondPhase) {
       this._state.inSecondPhase = true;
       if (gameState.onBossPhaseChange) gameState.onBossPhaseChange(2);
     }
-    switch (this.type) {
-      case 'random': return this._random(availableIntents);
-      case 'aggressive': return this._aggressive(availableIntents, gameState, hpPercent);
-      case 'defensive': return this._defensive(availableIntents, gameState, hpPercent);
-      case 'control': return this._control(availableIntents, gameState);
-      case 'boss': return this._boss(availableIntents, gameState, hpPercent);
-      default: return this._random(availableIntents);
+
+    // V85: 使用技能结晶辅助决策
+    let skillAdvice = null;
+    if (this._skillCrystallizer) {
+      try {
+        skillAdvice = this._skillCrystallizer.matchSkill({
+          hpRatio: playerHpPercent,
+          enemyHpRatio: hpPercent,
+          enemyType: this.type,
+          turn: this._state.turnCount,
+          energy: gameState.enemyEnergy || 3
+        });
+      } catch(e) { skillAdvice = null; }
     }
+
+    let baseIntent;
+    switch (this.type) {
+      case 'random': baseIntent = this._random(availableIntents); break;
+      case 'aggressive': baseIntent = this._aggressive(availableIntents, gameState, hpPercent); break;
+      case 'defensive': baseIntent = this._defensive(availableIntents, gameState, hpPercent); break;
+      case 'control': baseIntent = this._control(availableIntents, gameState); break;
+      case 'boss': baseIntent = this._boss(availableIntents, gameState, hpPercent); break;
+      default: baseIntent = this._random(availableIntents);
+    }
+
+    // V85: 如果技能结晶提供高置信度建议，优先使用
+    if (skillAdvice && skillAdvice.confidence > 0.75) {
+      const skillAggression = skillAdvice.action?.aggressionLevel || 0.5;
+      if (skillAggression > 0.7 && availableIntents.includes('attack')) baseIntent = 'attack';
+      else if (skillAggression < 0.4 && availableIntents.includes('defend')) baseIntent = 'defend';
+      if (skillAdvice.action?.preferredCards?.length > 0) {
+        // 标记本回合使用技能辅助
+        this._state.skillAssisted = true;
+      }
+    }
+
+    return baseIntent;
   }
 
   _random(intents) { return intents?.length ? intents[Math.floor(Math.random() * intents.length)] : 'attack'; }
