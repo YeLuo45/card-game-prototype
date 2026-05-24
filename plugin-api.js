@@ -712,5 +712,5 @@
 
   window.PluginManager = PluginManager;
 
-  console.log('[plugin-api.js] Plugin API V76 initialized');
+console.log("Plugin API V77 initialized");
 })();
