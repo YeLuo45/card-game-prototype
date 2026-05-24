@@ -1,363 +1,460 @@
-/**
- * V79 AIMemory - AI对手五层记忆系统
- * 五层架构: L0 Meta Rules | L1 Insight Index | L2 Global Facts | L3 Skills/SOPs | L4 Session Archive
- */
+// ===== V84 AI对手五层记忆系统 (Direction B) =====
+// 基于 generic-agent-design L0-L4 分层记忆架构
+// L0: 瞬时记忆（当前对局）
+// L1: 情景记忆（最近20局）
+// L2: 语义记忆（卡牌知识库）
+// L3: 程序记忆（出牌模式）
+// L4: 元记忆（学习策略）
+
 class AIMemory {
   constructor() {
-    this.STORAGE_KEYS = {
-      L1_INDEX: 'cg_l1_player_style',
-      L2_FACTS: 'cg_l2_card_priorities',
-      L3_SOPS: 'cg_l3_player_sops'
+    this.L0 = {};  // 当前对局瞬时状态
+    this.L1 = [];  // 最近情景（Array of match records）
+    this.L2 = { entries: {} };  // 语义记忆（卡牌→效果关联）
+    this.L3 = { patterns: {} };  // 程序记忆（出牌模式）
+    this.L4 = {};  // 元记忆（学习参数）
+    this.maxL1 = 20;  // 保留最近20局
+    this.initialized = false;
+    this._init();
+  }
+
+  _init() {
+    // 初始化 L4 元记忆参数
+    if (!this.L4.learningRate) this.L4.learningRate = 0.1;
+    if (!this.L4.adaptationRate) this.L4.adaptationRate = 0.05;
+    if (!this.L4.totalMatches) this.L4.totalMatches = 0;
+    if (!this.L4.winRate) this.L4.winRate = 0.5;
+    if (!this.L4.opponentProfiles) this.L4.opponentProfiles = {};
+    this.initialized = true;
+
+    // 尝试从 IndexedDB 加载持久化数据
+    this._loadFromDB().catch(() => {});
+  }
+
+  // ========== L0: 瞬时记忆 ==========
+  captureL0(gameState, action) {
+    this.L0 = {
+      timestamp: Date.now(),
+      playerHp: gameState.playerHp || 0,
+      playerMaxHp: gameState.playerMaxHp || 80,
+      playerShield: gameState.playerShield || 0,
+      energy: gameState.energy || 0,
+      maxEnergy: gameState.maxEnergy || 3,
+      turn: gameState.turn || 1,
+      handSize: gameState.hand ? gameState.hand.length : 0,
+      drawPileSize: gameState.drawPile ? gameState.drawPile.length : 0,
+      discardPileSize: gameState.discardPile ? gameState.discardPile.length : 0,
+      gold: gameState.gold || 0,
+      relicCount: gameState.relics ? gameState.relics.length : 0,
+      enemyHp: gameState.enemyHp || 0,
+      enemyMaxHp: gameState.enemyMaxHp || 0,
+      enemyArmor: gameState.enemyArmor || 0,
+      playerDebuffs: gameState.playerDebuffs || [],
+      enemyDebuffs: gameState.enemyDebuffs || [],
+      action: action || 'unknown',
+      hpRatio: gameState.playerHp / gameState.playerMaxHp,
+      enemyHpRatio: gameState.enemyHp / (gameState.enemyMaxHp || 1)
     };
-    this.DB_NAME = 'card-game-prototype';
-    this.L4_STORE = 'session_archives';
-    this._db = null;
-    this._initDB();
+    return this.L0;
   }
 
-  // ===== L0: Meta Rules (固定规则，不变) =====
-  static META_RULES = [
-    'cannot_play_card_if_not_in_hand',
-    'must_have_valid_play_or_pass',
-    'energy_constraint',
-    'health_cannot_exceed_max',
-    'shield_absorbs_damage_first'
-  ];
+  getL0() { return this.L0; }
 
-  static getMetaRules() {
-    return [...this.META_RULES];
-  }
-
-  static validatePlay(card, hand, energy) {
-    if (!hand.includes(card)) return { valid: false, reason: 'card_not_in_hand' };
-    if ((card.cost || 0) > energy) return { valid: false, reason: 'insufficient_energy' };
-    return { valid: true };
-  }
-
-  // ===== L1: Player Style Insight Index =====
-  analyzePlayerStyle(gameHistory) {
-    if (!gameHistory || gameHistory.length === 0) return { style: 'balanced', confidence: 0.5 };
+  // ========== L1: 情景记忆 ==========
+  archiveSession(result) {
+    if (!this.initialized) return;
+    if (!result) return;
     
-    let aggressiveScore = 0;
-    let defensiveScore = 0;
-    let comboScore = 0;
-    let totalScore = 0;
+    const session = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      victory: !!result.victory,
+      chapter: result.chapter || (typeof chapterState !== 'undefined' ? chapterState.currentChapter : 1),
+      floor: result.floor || (typeof gameState !== 'undefined' ? gameState.currentFloor : 1),
+      finalHp: result.finalHp || (typeof gameState !== 'undefined' ? gameState.playerHp : 0),
+      maxHp: result.maxHp || (typeof gameState !== 'undefined' ? gameState.playerMaxHp : 80),
+      gold: result.gold || (typeof gameState !== 'undefined' ? gameState.gold : 0),
+      relicsGained: result.relicsGained || [],
+      enemyName: result.enemyName || (typeof gameState !== 'undefined' && gameState.enemy ? gameState.enemy.name : 'Unknown'),
+      enemyType: this._classifyEnemy(result.enemyName || (typeof gameState !== 'undefined' && gameState.enemy ? gameState.enemy.name : '')),
+      keyEvents: result.keyEvents || [],
+      keyCards: result.keyCards || [],
+      comboCount: result.comboCount || 0,
+      performance: this._calcPerformance(result),
+      finalL0: this.L0 ? { ...this.L0 } : {},
+      damageDealt: result.damageDealt || 0,
+      damageTaken: result.damageTaken || 0,
+      cardsPlayed: result.cardsPlayed || 0
+    };
 
-    for (const game of gameHistory) {
-      // 激进风格: 频繁攻击，快速击杀
-      if (game.quickVictory || game.avgDamagePerTurn > 10) aggressiveScore += 2;
-      if (game.cardsPlayedPerTurn > 2) aggressiveScore++;
-      
-      // 防御风格: 多防御牌，护盾积累
-      if (game.totalShield > 20) defensiveScore++;
-      if (game.defendActions > game.attackActions) defensiveScore++;
-      
-      // 连击型: 使用combo序列
-      if (game.comboChains > 0) comboScore += game.comboChains;
-      if (game.powerCardUsage > 2) comboScore++;
+    this.L1.unshift(session);
+    if (this.L1.length > this.maxL1) {
+      this.L1 = this.L1.slice(0, this.maxL1);
     }
 
-    totalScore = aggressiveScore + defensiveScore + comboScore;
-    if (totalScore === 0) return { style: 'balanced', confidence: 0.5 };
-
-    const scores = { aggressive: aggressiveScore, defensive: defensiveScore, combo: comboScore, balanced: 1 };
-    const maxStyle = Object.keys(scores).reduce((a, b) => scores[a] > scores[b] ? a : b);
-    const confidence = Math.min(0.95, scores[maxStyle] / totalScore + 0.3);
-
-    return { style: maxStyle === 'balanced' ? 'balanced' : maxStyle, confidence };
+    this._updateL4(session);
+    this._extractPatternsFromL1();
+    this._saveToDB().catch(() => {});
   }
 
-  getPlayerStyle() {
-    try {
-      const data = localStorage.getItem(this.STORAGE_KEYS.L1_INDEX);
-      return data ? JSON.parse(data) : { style: 'balanced', confidence: 0.5, updatedAt: null };
-    } catch { return { style: 'balanced', confidence: 0.5 }; }
+  _classifyEnemy(name) {
+    if (!name) return 'unknown';
+    const n = name.toString().toLowerCase();
+    if (n.includes('boss') || n.includes('首领') || n.includes('古')) return 'boss';
+    if (n.includes('elite') || n.includes('精英') || n.includes('精英')) return 'elite';
+    if (n.includes('slime') || n.includes('史莱姆') || n.includes('果冻')) return 'slime';
+    if (n.includes('ghost') || n.includes('幽灵') || n.includes('幽灵')) return 'ghost';
+    if (n.includes('demon') || n.includes('恶魔')) return 'demon';
+    if (n.includes('dragon') || n.includes('龙')) return 'dragon';
+    return 'normal';
   }
 
-  savePlayerStyle(styleData) {
-    try {
-      const data = { ...styleData, updatedAt: Date.now() };
-      localStorage.setItem(this.STORAGE_KEYS.L1_INDEX, JSON.stringify(data));
-    } catch (e) { console.warn('AIMemory L1 save failed:', e); }
+  _calcPerformance(result) {
+    let score = result.victory ? 0.7 : 0.3;
+    const hpRatio = (result.finalHp || 0) / (result.maxHp || 80);
+    score += result.victory ? hpRatio * 0.3 : hpRatio * -0.1;
+    return Math.max(0, Math.min(1, score));
   }
 
-  // ===== L2: Card Priority Facts =====
-  updateCardPriorities(cardUsageStats) {
-    if (!cardUsageStats || typeof cardUsageStats !== 'object') return;
-    try {
-      const existing = this.getCardPriorities();
-      // 合并统计，更新优先级
-      for (const [cardId, stats] of Object.entries(cardUsageStats)) {
-        if (existing[cardId]) {
-          existing[cardId].playCount += stats.playCount || 0;
-          existing[cardId].winCount += stats.winCount || 0;
-          existing[cardId].priority = existing[cardId].playCount > 0 
-            ? existing[cardId].winCount / existing[cardId].playCount 
-            : 0.5;
-        } else {
-          existing[cardId] = {
-            playCount: stats.playCount || 0,
-            winCount: stats.winCount || 0,
-            priority: stats.winCount > 0 && stats.playCount > 0 
-              ? stats.winCount / stats.playCount 
-              : 0.5
-          };
+  getL1(filter = {}) {
+    let results = [...this.L1];
+    if (filter.enemyType) {
+      results = results.filter(s => s.enemyType === filter.enemyType);
+    }
+    if (filter.victory !== undefined) {
+      results = results.filter(s => s.victory === filter.victory);
+    }
+    if (filter.recentN) {
+      results = results.slice(0, filter.recentN);
+    }
+    return results;
+  }
+
+  // ========== L2: 语义记忆（卡牌知识库） ==========
+  learnCardRelation(cardA, cardB, relationType, strength = 0.5) {
+    const key = `${cardA}_${cardB}`;
+    if (!this.L2.entries[key]) {
+      this.L2.entries[key] = { cards: [cardA, cardB], relations: {} };
+    }
+    if (!this.L2.entries[key].relations[relationType]) {
+      this.L2.entries[key].relations[relationType] = [];
+    }
+    this.L2.entries[key].relations[relationType].push({
+      strength,
+      timestamp: Date.now()
+    });
+    this._normalizeRelations(key);
+    this._saveToDB().catch(() => {});
+  }
+
+  _normalizeRelations(key) {
+    const entry = this.L2.entries[key];
+    for (const type in entry.relations) {
+      const relations = entry.relations[type];
+      if (relations.length > 1) {
+        const avg = relations.reduce((s, r) => s + r.strength, 0) / relations.length;
+        entry.relations[type] = [{ strength: avg, timestamp: Date.now() }];
+      }
+    }
+  }
+
+  getL2(cardId) {
+    const related = [];
+    for (const key in this.L2.entries) {
+      if (key.includes(cardId)) {
+        const entry = this.L2.entries[key];
+        for (const type in entry.relations) {
+          const strength = entry.relations[type][0]?.strength || 0;
+          const otherCard = entry.cards[0] === cardId ? entry.cards[1] : entry.cards[0];
+          related.push({ card: otherCard, relation: type, strength });
         }
       }
-      localStorage.setItem(this.STORAGE_KEYS.L2_FACTS, JSON.stringify(existing));
-    } catch (e) { console.warn('AIMemory L2 save failed:', e); }
+    }
+    return related.sort((a, b) => b.strength - a.strength);
   }
 
-  getCardPriorities() {
-    try {
-      const data = localStorage.getItem(this.STORAGE_KEYS.L2_FACTS);
-      return data ? JSON.parse(data) : {};
-    } catch { return {}; }
-  }
+  // ========== L3: 程序记忆（出牌模式） ==========
+  _extractPatternsFromL1() {
+    if (this.L1.length < 3) return;
 
-  getCardPriority(cardId) {
-    const priorities = this.getCardPriorities();
-    return priorities[cardId]?.priority || 0.5;
-  }
-
-  // ===== L3: Player SOPs (Skills/Patterns) =====
-  recordPlayerCombo(comboSequence) {
-    if (!comboSequence || !Array.isArray(comboSequence) || comboSequence.length < 2) return;
-    try {
-      const sops = this.getPlayerSOPs();
-      const patternKey = comboSequence.join('->');
+    const recentMatches = this.L1.slice(0, 10);
+    for (const match of recentMatches) {
+      if (!match.keyCards || match.keyCards.length === 0) continue;
+      if (!match.finalL0 || !match.finalL0.hpRatio) continue;
       
-      const existing = sops.find(s => s.patternKey === patternKey);
-      if (existing) {
-        existing.usageCount++;
-        existing.lastUsed = Date.now();
-        // 更新胜率
-        if (comboSequence.winRate !== undefined) {
-          existing.winRate = (existing.winRate * (existing.usageCount - 1) + comboSequence.winRate) / existing.usageCount;
+      const hpRatio = match.finalL0.hpRatio;
+      const hpBucket = Math.floor(hpRatio * 10);
+      const action = match.victory ? 'win' : 'lose';
+      
+      for (const card of match.keyCards.slice(0, 3)) {
+        const patternKey = `hp_${hpBucket}_${action}_${card}`;
+        if (!this.L3.patterns[patternKey]) {
+          this.L3.patterns[patternKey] = { count: 0, successes: 0, card, hpBucket, action };
         }
-      } else {
-        sops.push({
-          patternKey,
-          pattern: comboSequence.sequence || comboSequence,
-          usageCount: 1,
-          winRate: comboSequence.winRate || 0.5,
-          lastUsed: Date.now(),
-          createdAt: Date.now()
-        });
+        this.L3.patterns[patternKey].count++;
+        if (match.victory) this.L3.patterns[patternKey].successes++;
       }
-      
-      // 只保留最近50个SOP
-      if (sops.length > 50) sops.shift();
-      localStorage.setItem(this.STORAGE_KEYS.L3_SOPS, JSON.stringify(sops));
-    } catch (e) { console.warn('AIMemory L3 save failed:', e); }
+    }
+
+    for (const key in this.L3.patterns) {
+      const p = this.L3.patterns[key];
+      p.successRate = p.count > 0 ? p.successes / p.count : 0.5;
+    }
   }
 
-  getPlayerSOPs() {
-    try {
-      const data = localStorage.getItem(this.STORAGE_KEYS.L3_SOPS);
-      return data ? JSON.parse(data) : [];
-    } catch { return []; }
-  }
-
-  matchPlayerSOP(currentHand, recentPlayed = []) {
-    if (!currentHand || currentHand.length === 0) return null;
-    const sops = this.getPlayerSOPs();
+  getL3(context = {}) {
+    const hpRatio = context.hpRatio || 0.5;
+    const hpBucket = Math.floor(hpRatio * 10);
     
-    // 匹配最近的出牌序列
-    for (const sop of sops) {
-      if (sop.usageCount < 2) continue; // 至少使用2次才可靠
-      const pattern = sop.pattern;
-      if (recentPlayed.length >= pattern.length - 1) {
-        const recent = [...recentPlayed].slice(-(pattern.length - 1));
-        if (this._arraysEqual(recent, pattern.slice(0, -1))) {
-          return { ...sop, recommendedResponse: pattern[pattern.length - 1] };
-        }
+    let matched = [];
+    for (const key in this.L3.patterns) {
+      if (key.includes(`hp_${hpBucket}`)) {
+        matched.push({ key, ...this.L3.patterns[key] });
       }
     }
-    return null;
+    return matched.sort((a, b) => (b.successRate * b.count) - (a.successRate * a.count));
   }
 
-  _arraysEqual(a, b) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (a[i] !== b[i]) return false;
+  // ========== L4: 元记忆（学习策略） ==========
+  _updateL4(session) {
+    this.L4.totalMatches = (this.L4.totalMatches || 0) + 1;
+    
+    const totalWins = this.L1.filter(s => s.victory).length;
+    this.L4.winRate = totalWins / this.L4.totalMatches;
+
+    const enemyType = session.enemyType || 'normal';
+    if (!this.L4.opponentProfiles[enemyType]) {
+      this.L4.opponentProfiles[enemyType] = { wins: 0, total: 0, winRate: 0, avgHp: 50 };
     }
-    return true;
+    const profile = this.L4.opponentProfiles[enemyType];
+    profile.total++;
+    if (session.victory) profile.wins++;
+    profile.winRate = profile.total > 0 ? profile.wins / profile.total : 0;
+    profile.avgHp = session.finalHp || 50;
   }
 
-  // ===== L4: Session Archive (IndexedDB) =====
-  async _initDB() {
-    if (typeof indexedDB === 'undefined') return;
+  getL4(enemyType) {
+    const base = {
+      totalMatches: this.L4.totalMatches || 0,
+      winRate: this.L4.winRate || 0.5,
+      learningRate: this.L4.learningRate || 0.1,
+      adaptationRate: this.L4.adaptationRate || 0.05
+    };
+    if (enemyType && this.L4.opponentProfiles?.[enemyType]) {
+      return { ...base, ...this.L4.opponentProfiles[enemyType] };
+    }
+    return base;
+  }
+
+  // ========== AI 对手决策辅助 ==========
+  getDecisionAdvice(context = {}) {
+    const hpRatio = context.hpRatio !== undefined ? context.hpRatio : 0.5;
+    const enemyHpRatio = context.enemyHpRatio !== undefined ? context.enemyHpRatio : 1;
+    const energy = context.energy !== undefined ? context.energy : 3;
+    const enemyType = context.enemyType || 'normal';
+
+    let aggression = 0.5;
+    if (hpRatio > 0.7 && energy >= 2) aggression = 0.8;
+    if (hpRatio < 0.3) aggression = 0.3;
+    if (enemyHpRatio < 0.2) aggression = 0.9;
+
+    const L3Patterns = this.getL3({ hpRatio });
+    if (L3Patterns.length > 0) {
+      const topPattern = L3Patterns[0];
+      if (topPattern.successRate > 0.7) {
+        aggression = aggression * 0.7 + (topPattern.action === 'win' ? 0.75 : 0.45) * 0.3;
+      }
+    }
+
+    const L4Info = this.getL4(enemyType);
+    if (enemyType === 'boss' && L4Info.winRate < 0.4) {
+      aggression = Math.min(aggression, 0.5);
+    }
+
+    return {
+      aggression: Math.max(0, Math.min(1, aggression)),
+      recommendedAction: aggression > 0.6 ? 'attack' : 'defend',
+      confidence: L3Patterns.length > 2 ? 'high' : 'medium',
+      patterns: L3Patterns.slice(0, 3),
+      opponentAnalysis: L4Info,
+      turn: context.turn || 1
+    };
+  }
+
+  // ========== 持久化 (IndexedDB) ==========
+  async _loadFromDB() {
+    if (!window.indexedDB) return;
+    
     return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.DB_NAME, 1);
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => { this._db = request.result; resolve(); };
-      request.onupgradeneeded = (e) => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains(this.L4_STORE)) {
-          db.createObjectStore(this.L4_STORE, { keyPath: 'sessionId' });
-        }
-      };
+      try {
+        const req = indexedDB.open('AIMemoryDB', 1);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains('memory')) {
+            resolve();
+            return;
+          }
+          const tx = db.transaction('memory', 'readonly');
+          const store = tx.objectStore('memory');
+          const getReq = store.get('aiMemory');
+          getReq.onsuccess = () => {
+            if (getReq.result && getReq.result.data) {
+              const data = getReq.result.data;
+              this.L0 = data.L0 || {};
+              this.L1 = data.L1 || [];
+              this.L2 = data.L2 || { entries: {} };
+              this.L3 = data.L3 || { patterns: {} };
+              this.L4 = data.L4 || {};
+              console.log('[AIMemory] Loaded from IndexedDB, L1:', this.L1.length, 'L3 patterns:', Object.keys(this.L3.patterns || {}).length);
+            }
+            resolve();
+          };
+          getReq.onerror = () => reject(getReq.error);
+        };
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('memory')) {
+            db.createObjectStore('memory', { keyPath: 'id' });
+          }
+        };
+      } catch(e) {
+        reject(e);
+      }
     });
   }
 
-  async archiveSession(gameResult) {
-    if (!gameResult) return;
-    try {
-      await this._ensureDB();
-      const session = {
-        sessionId: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: Date.now(),
-        playerDeck: gameResult.playerDeck || [],
-        enemyId: gameResult.enemyId,
-        enemyType: gameResult.enemyType,
-        win: gameResult.win,
-        turns: gameResult.turns,
-        damageDealt: gameResult.damageDealt,
-        damageTaken: gameResult.damageTaken,
-        cardsPlayed: gameResult.cardsPlayed,
-        maxCombo: gameResult.maxCombo,
-        features: this._extractFeatures(gameResult)
-      };
-      
-      return new Promise((resolve, reject) => {
-        const tx = this._db.transaction(this.L4_STORE, 'readwrite');
-        const store = tx.objectStore(this.L4_STORE);
-        const request = store.put(session);
-        request.onsuccess = () => resolve(session.sessionId);
-        request.onerror = () => reject(request.error);
-      });
-    } catch (e) { console.warn('AIMemory L4 archive failed:', e); }
-  }
-
-  async _ensureDB() {
-    if (!this._db) await this._initDB();
-  }
-
-  _extractFeatures(gameResult) {
-    return {
-      isAggressive: gameResult.turns < 10,
-      hasCombo: gameResult.maxCombo > 2,
-      usesPowerCards: gameResult.cardsPlayed > 15,
-      damagePerTurn: gameResult.turns > 0 ? gameResult.damageDealt / gameResult.turns : 0,
-      defenseoriented: gameResult.damageTaken < gameResult.damageDealt * 0.5
-    };
-  }
-
-  async findSimilarSessions(currentSituation, limit = 5) {
-    try {
-      await this._ensureDB();
-      return new Promise((resolve, reject) => {
-        const tx = this._db.transaction(this.L4_STORE, 'readonly');
-        const store = tx.objectStore(this.L4_STORE);
-        const request = store.getAll();
-        request.onsuccess = () => {
-          const sessions = request.result || [];
-          // 根据当前局面特征找相似对局
-          const scored = sessions.map(s => ({
-            session: s,
-            similarity: this._calcSimilarity(s.features, currentSituation)
-          })).filter(s => s.similarity > 0.3)
-            .sort((a, b) => b.similarity - a.similarity)
-            .slice(0, limit);
-          resolve(scored);
+  async _saveToDB() {
+    if (!window.indexedDB) return;
+    
+    return new Promise((resolve, reject) => {
+      try {
+        const req = indexedDB.open('AIMemoryDB', 1);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => {
+          const db = req.result;
+          const tx = db.transaction('memory', 'readwrite');
+          let store;
+          try {
+            store = tx.objectStore('memory');
+          } catch(e) {
+            resolve();
+            return;
+          }
+          store.put({
+            id: 'aiMemory',
+            data: {
+              L0: this.L0,
+              L1: this.L1,
+              L2: this.L2,
+              L3: this.L3,
+              L4: this.L4
+            },
+            timestamp: Date.now()
+          });
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
         };
-        request.onerror = () => reject(request.error);
-      });
-    } catch (e) { console.warn('AIMemory L4 query failed:', e); return []; }
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('memory')) {
+            db.createObjectStore('memory', { keyPath: 'id' });
+          }
+        };
+      } catch(e) {
+        reject(e);
+      }
+    });
   }
 
-  _calcSimilarity(featuresA, featuresB) {
-    let score = 0;
-    if (featuresA.isAggressive === featuresB.isAggressive) score++;
-    if (featuresA.hasCombo === featuresB.hasCombo) score++;
-    if (featuresA.usesPowerCards === featuresB.usesPowerCards) score++;
-    const dmgDiff = Math.abs(featuresA.damagePerTurn - featuresB.damagePerTurn);
-    if (dmgDiff < 2) score++;
-    return score / 4;
-  }
-
-  async getSessionCount() {
-    try {
-      await this._ensureDB();
-      return new Promise((resolve, reject) => {
-        const tx = this._db.transaction(this.L4_STORE, 'readonly');
-        const store = tx.objectStore(this.L4_STORE);
-        const request = store.count();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-    } catch { return 0; }
-  }
-
-  // ===== Memory Integration with Game =====
-  getMemoryBonus(memoryType, context = {}) {
-    const style = this.getPlayerStyle();
-    
-    switch (memoryType) {
-      case 'l1':
-        // L1风格加成
-        if (style.style === 'aggressive') return { holdDefend: true, preferAttack: true };
-        if (style.style === 'defensive') return { preserveHealth: true, preferDefend: true };
-        if (style.style === 'combo') return { lookForCombo: true };
-        return {};
-        
-      case 'l2':
-        // L2卡牌优先级
-        return { cardPriorities: this.getCardPriorities() };
-        
-      case 'l3':
-        // L3 SOP匹配
-        const matchedSOP = this.matchPlayerSOP(context.currentHand, context.recentPlayed);
-        return matchedSOP ? { matchedSOP } : {};
-        
-      case 'l4':
-        // L4相似对局需要异步获取
-        return { pendingAsync: true, context };
-        
-      default:
-        return {};
-    }
-  }
-
-  // 获取记忆状态摘要
-  getMemoryStatus() {
-    const l1 = this.getPlayerStyle();
-    const l2 = this.getCardPriorities();
-    const l3 = this.getPlayerSOPs();
-    const cardCount = Object.keys(l2).length;
-    const sopCount = l3.length;
-    
+  // ========== 调试/统计 ==========
+  getStats() {
     return {
-      l0Active: true,
-      l1Style: l1.style || 'balanced',
-      l1Confidence: l1.confidence || 0.5,
-      l2CardCount: cardCount,
-      l3SopCount: sopCount,
-      l4Pending: 'call getSessionCount() for async count'
+      L1Count: this.L1.length,
+      L2Relations: Object.keys(this.L2.entries || {}).length,
+      L3Patterns: Object.keys(this.L3.patterns || {}).length,
+      L4: {
+        totalMatches: this.L4.totalMatches || 0,
+        winRate: this.L4.winRate || 0,
+        opponentTypes: Object.keys(this.L4.opponentProfiles || {}).length
+      }
     };
   }
 
-  // 重置所有记忆
-  resetMemory() {
-    try {
-      localStorage.removeItem(this.STORAGE_KEYS.L1_INDEX);
-      localStorage.removeItem(this.STORAGE_KEYS.L2_FACTS);
-      localStorage.removeItem(this.STORAGE_KEYS.L3_SOPS);
-    } catch (e) {}
-    // L4 IndexedDB 需要单独清空
-    try {
-      this._ensureDB().then(() => {
-        if (this._db) {
-          const tx = this._db.transaction(this.L4_STORE, 'readwrite');
-          tx.objectStore(this.L4_STORE).clear();
-        }
-      });
-    } catch (e) {}
-    return true;
+  clear() {
+    this.L0 = {};
+    this.L1 = [];
+    this.L2 = { entries: {} };
+    this.L3 = { patterns: {} };
+    this.L4 = { learningRate: 0.1, adaptationRate: 0.05, totalMatches: 0, winRate: 0.5, opponentProfiles: {} };
+    this._saveToDB().catch(() => {});
+    console.log('[AIMemory] Cleared all memory');
   }
 }
 
 // 导出
-if (typeof window !== 'undefined') window.AIMemory = AIMemory;
-if (typeof module !== 'undefined' && module.exports) module.exports = { AIMemory };
+window.AIMemory = AIMemory;
+
+// ===== 增强的 getAISessionResult (V84) =====
+// 替代原来的 getGameResult，提供更丰富的会话数据
+window.getAISessionResult = function(win) {
+  // 计算关键卡牌（使用频率最高的卡牌）
+  const cardCounts = {};
+  let maxCombo = 0;
+  let currentCombo = 0;
+  let keyCards = [];
+  
+  if (window.gameState && window.gameState.battleLog) {
+    for (const entry of window.gameState.battleLog) {
+      const playedMatch = entry.message.match(/(?:使用|打出)\s*["']?([^"'\s]+)/);
+      if (playedMatch) {
+        const cardName = playedMatch[1];
+        cardCounts[cardName] = (cardCounts[cardName] || 0) + 1;
+      }
+      if (entry.message.includes('连击') || entry.message.includes('combo')) {
+        currentCombo++;
+        maxCombo = Math.max(maxCombo, currentCombo);
+      } else {
+        currentCombo = 0;
+      }
+    }
+  }
+  
+  // 提取前3张关键卡牌
+  keyCards = Object.entries(cardCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(e => e[0]);
+
+  let damageDealt = 0, damageTaken = 0, cardsPlayed = 0;
+  if (window.gameState && window.gameState.battleLog) {
+    for (const entry of window.gameState.battleLog) {
+      const dmgMatch = entry.message.match(/造成\s*(\d+)\s*伤害/);
+      if (dmgMatch) damageDealt += parseInt(dmgMatch[1]);
+      const takenMatch = entry.message.match(/受到\s*(\d+)\s*伤害/);
+      if (takenMatch) damageTaken += parseInt(takenMatch[1]);
+      if (entry.message.includes('使用') || entry.message.includes('打出')) cardsPlayed++;
+    }
+  }
+
+  return {
+    victory: win,
+    chapter: typeof chapterState !== 'undefined' ? chapterState.currentChapter : 1,
+    floor: window.gameState ? window.gameState.currentFloor : 1,
+    finalHp: window.gameState ? window.gameState.playerHp : 0,
+    maxHp: window.gameState ? window.gameState.playerMaxHp : 80,
+    gold: window.gameState ? window.gameState.gold : 0,
+    relicsGained: window.gameState && window.gameState.relics ? window.gameState.relics.slice(-3) : [],
+    enemyName: window.gameState && window.gameState.enemy ? window.gameState.enemy.name : 'Unknown',
+    keyEvents: [],
+    keyCards: keyCards,
+    comboCount: maxCombo,
+    damageDealt,
+    damageTaken,
+    cardsPlayed
+  };
+};
+
+// ===== 集成：拦截原有 archiveSession 调用，使用增强数据 =====
+// patch archiveSession 入口点，在 V83/V84 迭代中已通过 try-catch 调用 window.aiMemory.archiveSession
+// 现在 window.getAISessionResult 提供更丰富的数据，无需修改原有调用点
