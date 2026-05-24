@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V66 — 视觉与音效系统</title>
+  <title>DBG卡牌游戏 V80 — 插件通信协议</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -3434,6 +3434,83 @@
     .difficulty-btn.selected { box-shadow: 0 0 15px rgba(255,255,255,0.5); transform: scale(1.05); }
     .difficulty-label { font-weight: bold; }
     .difficulty-lock { font-size: 12px; }
+
+    /* V80 PluginBus 事件总线调试面板 */
+    #eventbus-panel {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 10px;
+      padding: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    #eventbus-panel.show { display: flex; }
+    #eventbus-panel h4 {
+      color: #ffd700;
+      font-size: 13px;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .eventbus-event {
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .eventbus-event.card { background: rgba(139,0,0,0.3); border-left: 3px solid #ff6347; }
+    .eventbus-event.relic { background: rgba(0,0,139,0.3); border-left: 3px solid #6495ed; }
+    .eventbus-event.combat { background: rgba(128,0,128,0.3); border-left: 3px solid #da70d6; }
+    .eventbus-event.player { background: rgba(0,128,0,0.3); border-left: 3px solid #00ff7f; }
+    .eventbus-event.enemy { background: rgba(255,165,0,0.3); border-left: 3px solid #ffa500; }
+    .eventbus-event .event-time { color: #888; font-size: 10px; }
+    .eventbus-event .event-name { color: #ffd700; font-weight: bold; }
+    .eventbus-event .event-data { color: #ccc; flex: 1; }
+    .eventbus-event .event-handlers { color: #4ecdc4; font-size: 10px; }
+    #eventbus-topology {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      min-height: 40px;
+    }
+    .eventbus-plugin-tag {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .eventbus-plugin-tag.builtin { background: rgba(255,215,0,0.2); border: 1px solid #ffd700; color: #ffd700; }
+    .eventbus-plugin-tag.regular { background: rgba(100,100,100,0.2); border: 1px solid #888; color: #ccc; }
+    #eventbus-trigger-area {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+    }
+    .eventbus-trigger-btn {
+      padding: 6px 12px;
+      border: 1px solid #555;
+      border-radius: 15px;
+      background: #333;
+      color: #aaa;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .eventbus-trigger-btn:hover { border-color: #ffd700; color: #ffd700; background: rgba(255,215,0,0.1); }
+    .eventbus-trigger-btn:active { transform: scale(0.95); }
   </style>
 <!-- V69 插件系统 v2 -->
 <script src="plugin-api.js"></script>
@@ -3447,6 +3524,8 @@
 <script src="enemy-ai.js"></script>
 <!-- V79 AI Memory System -->
 <script src="ai-memory.js"></script>
+<!-- V80 Offline Archive System -->
+<script src="game-archive.js"></script>
 <!-- V62 Roguelike: 精英与Boss系统 -->
 <script src="elite-loader.js"></script>
 <!-- V63 Meta Progress System -->
@@ -3697,23 +3776,43 @@
 
     <div class="settings-section">
       <h3>🔌 插件管理</h3>
-      <button onclick="openPluginManager()" style="
-        width: 100%;
-        padding: 12px;
-        background: linear-gradient(145deg, #9b59b6, #8e44ad);
-        border: none;
-        border-radius: 10px;
-        color: #fff;
-        font-weight: bold;
-        font-size: 14px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-      ">
-        🔌 管理插件
-      </button>
+      <div id="settings-tabs" style="display:flex;gap:6px;margin-bottom:10px;">
+        <button id="tab-plugin-list" onclick="showSettingsTab('plugin-list')" style="flex:1;padding:8px;border:1px solid #555;border-radius:8px;background:#333;color:#aaa;font-size:12px;cursor:pointer;">📋 插件列表</button>
+        <button id="tab-eventbus" onclick="showSettingsTab('eventbus')" style="flex:1;padding:8px;border:1px solid #555;border-radius:8px;background:#333;color:#aaa;font-size:12px;cursor:pointer;">📡 事件总线</button>
+      </div>
+      <div id="plugin-list-content">
+        <button onclick="openPluginManager()" style="
+          width: 100%;
+          padding: 12px;
+          background: linear-gradient(145deg, #9b59b6, #8e44ad);
+          border: none;
+          border-radius: 10px;
+          color: #fff;
+          font-weight: bold;
+          font-size: 14px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        ">
+          🔌 管理插件
+        </button>
+      </div>
+      <div id="eventbus-content" style="display:none;">
+        <div id="eventbus-panel" class="show">
+          <h4>📡 最近事件 (<span id="eventbus-count">0</span>)</h4>
+          <div id="eventbus-events"></div>
+        </div>
+        <div style="margin-top:8px;">
+          <div style="color:#888;font-size:11px;margin-bottom:6px;">插件拓扑:</div>
+          <div id="eventbus-topology"></div>
+        </div>
+        <div style="margin-top:8px;">
+          <div style="color:#888;font-size:11px;margin-bottom:6px;">手动触发事件:</div>
+          <div id="eventbus-trigger-area"></div>
+        </div>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -5527,6 +5626,297 @@ class AudioManager {
 }
 
 const audioManager = new AudioManager();
+
+// ===== V80 PluginBus 插件间通信协议 =====
+// 8个预定义事件: card:played, card:effect-triggered, relic:activated, relic:stacking,
+//               enemy:intent-revealed, player:turn-start, player:turn-end, combat:victory, combat:defeat
+const PluginBus = {
+  _subscribers: new Map(),    // eventName -> [handler1, handler2, ...]
+  _publishers: new Map(),     // pluginId -> Set<eventName>
+  _eventHistory: [],          // 最近20个事件
+  _maxHistory: 20,
+
+  // 插件声明自己能发布哪些事件（用于文档化和验证）
+  declarePublish(pluginId, events) {
+    this._publishers.set(pluginId, new Set(events));
+  },
+
+  // 订阅事件
+  subscribe(eventName, handler) {
+    if (!this._subscribers.has(eventName)) {
+      this._subscribers.set(eventName, []);
+    }
+    this._subscribers.get(eventName).push(handler);
+  },
+
+  // 发布事件（同步触发，短路）
+  publish(eventName, context) {
+    const handlers = this._subscribers.get(eventName) || [];
+    // 记录到历史
+    const entry = {
+      name: eventName,
+      data: context,
+      time: new Date().toLocaleTimeString(),
+      handlerCount: handlers.length,
+      category: this._getEventCategory(eventName)
+    };
+    this._eventHistory.push(entry);
+    if (this._eventHistory.length > this._maxHistory) {
+      this._eventHistory.shift();
+    }
+    // 通知UI更新
+    this._updateUI();
+    // 同步执行handlers
+    for (const h of handlers) {
+      try { h(context); } catch(e) { console.error('PluginBus handler error:', e); }
+    }
+  },
+
+  // 获取事件类别
+  _getEventCategory(eventName) {
+    if (eventName.startsWith('card:')) return 'card';
+    if (eventName.startsWith('relic:')) return 'relic';
+    if (eventName.startsWith('enemy:')) return 'enemy';
+    if (eventName.startsWith('player:')) return 'player';
+    if (eventName.startsWith('combat:')) return 'combat';
+    return 'info';
+  },
+
+  // 查询可用事件列表（调试/文档用）
+  listEvents() {
+    return [...this._subscribers.keys()];
+  },
+
+  // 获取事件历史
+  getHistory() {
+    return [...this._eventHistory];
+  },
+
+  // 获取插件拓扑
+  getTopology() {
+    const topology = [];
+    this._publishers.forEach((events, pluginId) => {
+      const subs = [];
+      this._subscribers.forEach((handlers, eventName) => {
+        // 检查哪些handler属于此插件（通过尝试调用时捕获）
+        subs.push(eventName);
+      });
+      topology.push({ pluginId, publishes: [...events], subscribes: subs });
+    });
+    return topology;
+  },
+
+  // 更新调试面板UI
+  _updateUI() {
+    // 更新事件计数
+    const countEl = document.getElementById('eventbus-count');
+    if (countEl) countEl.textContent = this._eventHistory.length;
+
+    // 更新事件列表
+    const eventsEl = document.getElementById('eventbus-events');
+    if (eventsEl) {
+      eventsEl.innerHTML = this._eventHistory.map(e => `
+        <div class="eventbus-event ${e.category}">
+          <span class="event-time">${e.time}</span>
+          <span class="event-name">${e.name}</span>
+          <span class="event-data">${JSON.stringify(e.data).substring(0, 40)}</span>
+          <span class="event-handlers">${e.handlerCount}h</span>
+        </div>
+      `).join('');
+    }
+  },
+
+  // 渲染拓扑
+  renderTopology() {
+    const topologyEl = document.getElementById('eventbus-topology');
+    if (!topologyEl) return;
+    const topology = this.getTopology();
+    // 显示内置插件
+    const builtIn = ['iron-streak-relic', 'combo-system', 'curse-cards'];
+    let html = '';
+    builtIn.forEach(id => {
+      html += `<span class="eventbus-plugin-tag builtin">🛡 ${id}</span>`;
+    });
+    topology.forEach(p => {
+      html += `<span class="eventbus-plugin-tag regular">🔌 ${p.pluginId}</span>`;
+    });
+    topologyEl.innerHTML = html || '<span style="color:#666;font-size:11px;">暂无插件</span>';
+
+    // 渲染触发按钮
+    const triggerEl = document.getElementById('eventbus-trigger-area');
+    if (triggerEl) {
+      const events = this.listEvents();
+      triggerEl.innerHTML = events.map(e => `
+        <button class="eventbus-trigger-btn" onclick="PluginBus.testPublish('${e}')">${e}</button>
+      `).join('') || '<span style="color:#666;font-size:11px;">暂无可触发事件</span>';
+    }
+  },
+
+  // 测试发布事件
+  testPublish(eventName) {
+    const mockContext = { test: true, timestamp: Date.now() };
+    this.publish(eventName, mockContext);
+  }
+};
+
+// 手动触发事件
+window.PluginBus = PluginBus;
+
+// ===== V80 内置插件: IronStreakRelic =====
+const IronStreakRelic = {
+  id: 'iron-streak-relic',
+  name: '铁身遗物',
+  icon: '🔗',
+  publishes: ['relic:stacking'],
+  subscribes: ['card:played'],
+  _consecutiveAttacks: 0,
+
+  init() {
+    PluginBus.declarePublish(this.id, this.publishes);
+    PluginBus.subscribe('card:played', this.on_card_played.bind(this));
+  },
+
+  on_card_played(ctx) {
+    // 只对攻击牌计数
+    const card = ctx.card || gameState.deck.find(c => c.id === ctx.cardId);
+    if (card && card.type === 'attack') {
+      this._consecutiveAttacks++;
+      if (this._consecutiveAttacks >= 2) {
+        // 发布遗物叠加事件
+        PluginBus.publish('relic:stacking', {
+          relicId: this.id,
+          stack: this._consecutiveAttacks - 1,
+          trigger: 'consecutive-attack'
+        });
+      }
+    } else {
+      this._consecutiveAttacks = 0;
+    }
+  }
+};
+
+// ===== V80 内置插件: ComboSystem =====
+const ComboSystem = {
+  id: 'combo-system',
+  name: '连击系统',
+  icon: '⚡',
+  publishes: ['combo:achieved'],
+  subscribes: ['card:played', 'player:turn-end'],
+  _cardsThisTurn: 0,
+
+  init() {
+    PluginBus.declarePublish(this.id, this.publishes);
+    PluginBus.subscribe('card:played', this.on_card_played.bind(this));
+    PluginBus.subscribe('player:turn-end', this.on_player_turn_end.bind(this));
+  },
+
+  on_card_played(ctx) {
+    this._cardsThisTurn++;
+  },
+
+  on_player_turn_end(ctx) {
+    if (this._cardsThisTurn >= 3) {
+      PluginBus.publish('combo:achieved', {
+        cardsPlayed: this._cardsThisTurn,
+        comboLevel: Math.floor(this._cardsThisTurn / 3)
+      });
+    }
+    this._cardsThisTurn = 0;
+  }
+};
+
+// ===== V80 内置插件: CurseCards =====
+const CurseCards = {
+  id: 'curse-cards',
+  name: '诅咒牌',
+  icon: '💀',
+  publishes: ['curse:triggered'],
+  subscribes: ['enemy:intent-revealed'],
+
+  init() {
+    PluginBus.declarePublish(this.id, this.publishes);
+    PluginBus.subscribe('enemy:intent-revealed', this.on_enemy_intent_revealed.bind(this));
+  },
+
+  on_enemy_intent_revealed(ctx) {
+    // 当敌人准备高伤害攻击时触发诅咒效果
+    if (ctx.intent === 'attack' && ctx.value >= 10) {
+      PluginBus.publish('curse:triggered', {
+        enemyId: ctx.enemyId,
+        intent: ctx.intent,
+        value: ctx.value,
+        curseEffect: 'defense-reduce'
+      });
+    }
+  }
+};
+
+// ===== V80 设置面板Tab切换 =====
+function showSettingsTab(tab) {
+  const pluginListContent = document.getElementById('plugin-list-content');
+  const eventbusContent = document.getElementById('eventbus-content');
+  const tabPluginList = document.getElementById('tab-plugin-list');
+  const tabEventbus = document.getElementById('tab-eventbus');
+
+  if (tab === 'plugin-list') {
+    pluginListContent.style.display = '';
+    eventbusContent.style.display = 'none';
+    tabPluginList.style.background = 'rgba(255,215,0,0.2)';
+    tabPluginList.style.borderColor = '#ffd700';
+    tabPluginList.style.color = '#ffd700';
+    tabEventbus.style.background = '#333';
+    tabEventbus.style.borderColor = '#555';
+    tabEventbus.style.color = '#aaa';
+  } else {
+    pluginListContent.style.display = 'none';
+    eventbusContent.style.display = '';
+    tabEventbus.style.background = 'rgba(255,215,0,0.2)';
+    tabEventbus.style.borderColor = '#ffd700';
+    tabEventbus.style.color = '#ffd700';
+    tabPluginList.style.background = '#333';
+    tabPluginList.style.borderColor = '#555';
+    tabPluginList.style.color = '#aaa';
+    // 初始化事件总线拓扑
+    PluginBus.renderTopology();
+  }
+}
+
+// ===== V80 离线存档系统 =====
+let gameArchive = null;
+async function initGameArchive() {
+  gameArchive = new GameArchive();
+  await gameArchive.initDB();
+  // 加载已保存的成就进度
+  const savedAchievements = await gameArchive.loadAchievements();
+  if (savedAchievements && Object.keys(savedAchievements).length > 0) {
+    gameState.achievements = { ...gameState.achievements, ...savedAchievements };
+  }
+}
+// 异步初始化存档系统
+initGameArchive().catch(console.error);
+
+// 初始化内置插件
+IronStreakRelic.init();
+ComboSystem.init();
+CurseCards.init();
+
+// 对局结束后自动保存
+async function saveMatchToArchive(result, duration) {
+  if (!gameArchive) return;
+  try {
+    await gameArchive.saveMatch({
+      result: result,
+      date: Date.now(),
+      duration: duration,
+      deck: { deckId: 'current', name: 'Current Deck', cards: gameState.deck?.cards || [] },
+      stats: {
+        damageDealt: gameState.achievementStats?.totalDamageDealt || 0,
+        cardsPlayed: gameState.achievementStats?.totalCardsPlayed || 0,
+        win: result === 'victory'
+      }
+    });
+  } catch (e) { console.warn('Failed to save match:', e); }
+}
 
 // ===== V22 静音开关 =====
 function toggleMute() {
@@ -12690,6 +13080,11 @@ function playCard(card, index) {
   gameState.guidebook.cards[card.id].timesPlayed++;
   gameState.guidebook.cards[card.id].discovered = true;
 
+  // V80 PluginBus: 发布 card:played 事件
+  if (window.PluginBus) {
+    PluginBus.publish('card:played', { cardId: card.id, card: card, zone: 'hand', playerId: 'player' });
+  }
+
   // V63 Meta: 卡牌使用追踪
   try { window.metaManager && window.metaManager.onCardUsed(card.id); } catch(e) {}
 
@@ -15113,6 +15508,12 @@ function showGameOver() {
   // V19 隐藏快速存档按钮
   document.getElementById('quick-save-btn').classList.remove('show');
 
+  // V80 保存对局到离线存档
+  if (gameState.gameStartTime) {
+    const duration = Math.floor((Date.now() - gameState.gameStartTime) / 1000);
+    saveMatchToArchive('defeat', duration);
+  }
+
   document.getElementById('game-container').style.display = 'none';
   document.getElementById('log-panel').style.display = 'none';
   document.getElementById('game-over-screen').classList.add('show');
@@ -15227,9 +15628,15 @@ function showVictory() {
     completeDailyChallenge();
   }
   
-  // V43 更新游戏进度（胜利）
+// V43 更新游戏进度（胜利）
   updateProgressOnGameEnd(true);
-  
+
+  // V80 保存对局到离线存档
+  if (gameState.gameStartTime) {
+    const duration = Math.floor((Date.now() - gameState.gameStartTime) / 1000);
+    saveMatchToArchive('victory', duration);
+  }
+
   // V28 显示终局结算界面
   showEndgameScreen();
 }
