@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V83 — AI多Agent观战解说系统</title>
+  <title>DBG卡牌游戏 V85 — AI技能结晶系统 (Direction F)</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -3524,6 +3524,10 @@
 <script src="enemy-ai.js"></script>
 <!-- V79 AI Memory System -->
 <script src="ai-memory.js"></script>
+<!-- V85 Skill Crystallizer (Direction F) -->
+<script src="skill-crystallizer.js"></script>
+<!-- V85 CardStudio (卡牌工作室可视化编辑器) -->
+<script src="ai-card-studio.js"></script>
 <!-- V80 Offline Archive System -->
 <script src="game-archive.js"></script>
 <!-- V62 Roguelike: 精英与Boss系统 -->
@@ -3564,6 +3568,7 @@
     <button id="stats-btn" class="menu-btn btn-rank" onclick="window.metaManager && window.metaManager.showStatsPanel()"><span class="btn-icon">📊</span>统计</button>
     <button id="battle-log-btn" class="menu-btn btn-full" onclick="openSettings()"><span class="btn-icon">⚙️</span>设置</button>
     <button id="cloud-sync-btn" class="menu-btn" onclick="showCloudSyncPanel()" style="background:linear-gradient(145deg,#8e44ad,#9b59b6);"><span class="btn-icon">☁️</span>云同步</button>
+    <button id="card-studio-btn" class="menu-btn" onclick="window.cardStudio && window.cardStudio.open()" style="background:linear-gradient(145deg,#e94560,#ff6b6b);"><span class="btn-icon">🎨</span>卡牌工作室</button>
     <button id="watch-mode-btn" class="menu-btn" onclick="toggleWatchMode()" style="background:linear-gradient(145deg,#2c3e50,#34495e);"><span class="btn-icon">🎙️</span>观战模式</button>
   </div>
   <!-- V63 Difficulty Selector -->
@@ -17013,6 +17018,16 @@ function startNewGame() {
   // V79 AI Memory: 初始化AI记忆系统
   if (!window.aiMemory) {
     window.aiMemory = new AIMemory();
+  }
+  // V85 SkillCrystallizer: 初始化技能结晶系统
+  if (!window.skillCrystallizer) {
+    window.skillCrystallizer = new SkillCrystallizer(window.aiMemory);
+    window.skillCrystallizer.loadSkills();
+    window.skillCrystallizer.crystallizeAllFromL3(); // 启动时从L3模式自动结晶
+  }
+  // V85 CardStudio: 初始化卡牌工作室
+  if (!window.cardStudio) {
+    window.cardStudio = new CardStudio();
   }
 
   // V63 Meta: 设置难度
