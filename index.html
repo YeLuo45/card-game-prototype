@@ -3927,6 +3927,50 @@
     <button onclick="switchMarketTab('browse')" id="tab-browse" style="flex:1;padding:8px;background:#27ae60;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;">📦 市场</button>
     <button onclick="switchMarketTab('leaderboard')" id="tab-leaderboard" style="flex:1;padding:8px;background:#444;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;">🏆 排行榜</button>
     <button onclick="switchMarketTab('aicard')" id="tab-aicard" style="flex:1;padding:8px;background:#444;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;">⚡ AI卡牌</button>
+    <button onclick="switchMarketTab('publisher')" id="tab-publisher" style="flex:1;padding:8px;background:#444;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;">📤 发布</button>
+  </div>
+  <div id="publisher-panel" style="display:none;width:90%;max-width:700px;">
+    <div style="background:linear-gradient(135deg,rgba(155,89,182,0.2),rgba(52,152,219,0.2));border:2px solid #9b59b6;border-radius:12px;padding:16px;margin-bottom:12px;">
+      <div style="color:#9b59b6;font-size:16px;font-weight:bold;margin-bottom:10px;">📤 插件发布者</div>
+      <div id="publisher-login" style="display:block;">
+        <input type="text" id="publisher-github" placeholder="GitHub 用户名" style="width:100%;padding:10px;margin-bottom:8px;background:#1a1a2e;border:1px solid #444;border-radius:8px;color:#fff;font-size:13px;">
+        <input type="password" id="publisher-token" placeholder="GitHub Token (或任意字符串)" style="width:100%;padding:10px;margin-bottom:8px;background:#1a1a2e;border:1px solid #444;border-radius:8px;color:#fff;font-size:13px;">
+        <button onclick="bindPublisherGitHub()" style="width:100%;padding:10px;background:#9b59b6;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;font-weight:bold;">🔗 绑定 GitHub</button>
+      </div>
+      <div id="publisher-profile" style="display:none;">
+        <div style="color:#2ecc71;font-size:14px;margin-bottom:8px;">✓ 已绑定: <span id="publisher-username"></span></div>
+        <button onclick="logoutPublisher()" style="width:100%;padding:8px;background:#c0392b;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:12px;">登出</button>
+      </div>
+    </div>
+    <div id="plugin-submit-section" style="display:none;">
+      <div style="background:rgba(39,174,96,0.2);border:2px solid #27ae60;border-radius:12px;padding:16px;margin-bottom:12px;">
+        <div style="color:#27ae60;font-size:14px;font-weight:bold;margin-bottom:10px;">📦 提交插件到审核队列</div>
+        <div style="margin-bottom:8px;">
+          <label style="color:#aaa;font-size:12px;">插件名称:</label>
+          <input type="text" id="plugin-submit-name" placeholder="my-awesome-plugin" style="width:100%;padding:8px;background:#1a1a2e;border:1px solid #444;border-radius:8px;color:#fff;font-size:13px;">
+        </div>
+        <div style="margin-bottom:8px;">
+          <label style="color:#aaa;font-size:12px;">版本:</label>
+          <input type="text" id="plugin-submit-version" value="1.0.0" placeholder="1.0.0" style="width:100%;padding:8px;background:#1a1a2e;border:1px solid #444;border-radius:8px;color:#fff;font-size:13px;">
+        </div>
+        <div style="margin-bottom:8px;">
+          <label style="color:#aaa;font-size:12px;">描述:</label>
+          <textarea id="plugin-submit-desc" placeholder="插件描述..." style="width:100%;height:50px;padding:8px;background:#1a1a2e;border:1px solid #444;border-radius:8px;color:#fff;font-size:12px;resize:none;"></textarea>
+        </div>
+        <button onclick="submitPluginToReview()" style="width:100%;padding:10px;background:#27ae60;border:none;border-radius:8px;color:#fff;cursor:pointer;font-size:13px;font-weight:bold;">🚀 提交审核</button>
+      </div>
+      <div id="plugin-submit-result" style="display:none;padding:10px;background:rgba(0,0,0,0.3);border-radius:8px;color:#4ecdc4;font-size:13px;"></div>
+    </div>
+    <div style="margin-top:10px;">
+      <div style="color:#888;font-size:12px;margin-bottom:6px;">待审核插件:</div>
+      <div id="pending-review-list" style="max-height:200px;overflow-y:auto;"></div>
+    </div>
+  </div>
+  <div id="review-queue-panel" style="display:none;width:90%;max-width:700px;">
+    <div style="background:linear-gradient(135deg,rgba(231,76,60,0.2),rgba(241,196,15,0.2));border:2px solid #e74c3c;border-radius:12px;padding:16px;margin-bottom:12px;">
+      <div style="color:#e74c3c;font-size:14px;font-weight:bold;margin-bottom:10px;">🔍 审核队列</div>
+      <div id="review-list" style="max-height:300px;overflow-y:auto;"></div>
+    </div>
   </div>
   <div id="market-header">
     <select id="market-category" onchange="filterMarketPlugins()" style="padding:8px;border-radius:8px;border:1px solid #444;background:#2a2a2a;color:#fff;font-size:13px;">
@@ -17668,6 +17712,10 @@ function switchMarketTab(tab) {
     filterMarketPlugins();
   } else if (tab === 'aicard') {
     renderAICardList();
+  } else if (tab === 'publisher') {
+    updatePublisherUI();
+  } else if (tab === 'review') {
+    updateReviewList();
   }
 }
 
@@ -18204,6 +18252,109 @@ function selectHealReward() {
 function closeBattleRewardModal() {
   const modal = document.getElementById('battle-reward-modal');
   if (modal) modal.remove();
+}
+
+// ===== V79: 插件市场v4 - 发布者+审核队列 UI 函数 =====
+
+function updatePublisherUI() {
+  const loginDiv = document.getElementById('publisher-login');
+  const profileDiv = document.getElementById('publisher-profile');
+  const usernameSpan = document.getElementById('publisher-username');
+  const submitSection = document.getElementById('plugin-submit-section');
+  const pendingList = document.getElementById('pending-review-list');
+  if (!loginDiv) return;
+  const isReg = window.PluginPublisher ? window.PluginPublisher.isRegistered() : false;
+  loginDiv.style.display = isReg ? 'none' : 'block';
+  profileDiv.style.display = isReg ? 'block' : 'none';
+  submitSection.style.display = isReg ? 'block' : 'none';
+  if (isReg && usernameSpan) {
+    const profile = window.PluginPublisher.getProfile();
+    usernameSpan.textContent = profile.github || profile.author || 'Unknown';
+  }
+  if (pendingList) {
+    const pending = window.ReviewQueue ? window.ReviewQueue.getPending() : [];
+    pendingList.innerHTML = pending.length === 0
+      ? '<div style="color:#555;font-size:12px;">暂无待审核插件</div>'
+      : pending.map(p => `<div style="padding:6px;background:rgba(255,255,255,0.05);border-radius:6px;margin-bottom:4px;"><b>${p.name}</b> v${p.version} <span style="color:#888;">by ${p.author}</span></div>`).join('');
+  }
+}
+
+function bindPublisherGitHub() {
+  const githubInput = document.getElementById('publisher-github');
+  const tokenInput = document.getElementById('publisher-token');
+  if (!githubInput || !tokenInput) return;
+  const github = githubInput.value.trim();
+  const token = tokenInput.value.trim();
+  if (!github || !token) { alert('请填写 GitHub 用户名和 Token'); return; }
+  if (window.PluginPublisher) {
+    window.PluginPublisher.bindGitHub(github, token);
+    updatePublisherUI();
+  }
+}
+
+function logoutPublisher() {
+  if (window.PluginPublisher) window.PluginPublisher.logout();
+  updatePublisherUI();
+}
+
+function submitPluginToReview() {
+  const nameInput = document.getElementById('plugin-submit-name');
+  const versionInput = document.getElementById('plugin-submit-version');
+  const descInput = document.getElementById('plugin-submit-desc');
+  const resultDiv = document.getElementById('plugin-submit-result');
+  if (!nameInput || !versionInput) return;
+  const name = nameInput.value.trim();
+  const version = versionInput.value.trim();
+  const description = descInput ? descInput.value.trim() : '';
+  if (!name || !version) { alert('请填写插件名称和版本'); return; }
+  if (!window.PluginPublisher || !window.PluginPublisher.isRegistered()) {
+    alert('请先绑定 GitHub 账号'); return;
+  }
+  const profile = window.PluginPublisher.getProfile();
+  const manifest = window.PluginManifestGenerator
+    ? window.PluginManifestGenerator.create({ name, version, author: profile.github || profile.author, description, cards: [], relics: [], hooks: [], dependencies: {} })
+    : { name, version, author: profile.github, description };
+  if (window.ReviewQueue) {
+    const result = window.ReviewQueue.submit(manifest);
+    if (resultDiv) {
+      resultDiv.style.display = 'block';
+      resultDiv.textContent = result.success ? `✓ 提交成功！插件 "${name}"已进入审核队列` : `✗ 提交失败: ${result.error}`;
+    }
+    if (result.success) {
+      nameInput.value = '';
+      descInput.value = '';
+      versionInput.value = '1.0.0';
+      updatePublisherUI();
+    }
+  }
+}
+
+function updateReviewList() {
+  const reviewList = document.getElementById('review-list');
+  if (!reviewList || !window.ReviewQueue) return;
+  const pending = window.ReviewQueue.getPending() || [];
+  if (pending.length === 0) {
+    reviewList.innerHTML = '<div style="color:#555;font-size:13px;">审核队列为空</div>';
+    return;
+  }
+  reviewList.innerHTML = pending.map(p => `
+    <div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:10px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <b style="color:#e74c3c;">${p.name}</b>
+        <span style="color:#888;font-size:11px;">v${p.version}</span>
+      </div>
+      <div style="color:#aaa;font-size:12px;margin:4px 0;">by ${p.author || 'unknown'}</div>
+      <div style="color:#555;font-size:11px;margin-bottom:6px;">${p.description || ''}</div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="window.ReviewQueue && window.ReviewQueue.approve('${p.name}') && updateReviewList()" style="flex:1;padding:6px;background:#27ae60;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">✅ 通过</button>
+        <button onclick="window.ReviewQueue && window.ReviewQueue.reject('${p.name}', '内容不符合规范') && updateReviewList()" style="flex:1;padding:6px;background:#e74c3c;border:none;border-radius:6px;color:#fff;font-size:12px;cursor:pointer;">❌ 拒绝</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderPendingReview() {
+  updatePublisherUI();
 }
 </script>
 

@@ -1,9 +1,176 @@
-// plugin-api.js - V78 插件系统 API v8
+// plugin-api.js - V79 插件系统 API v9
 // 统一插件接口：Card/Relic/Enemy/Event 注册 + LifecycleManager + EventBus + RemoteMarket
-// V78: 插件更新检测与热更新系统
+// V79: 插件市场v4 — 第三方分发 + 版本治理 (PluginManifest + HMAC-SHA256 + semver + 审核队列)
 
 (function() {
   'use strict';
+
+  // ===== V79 新增：SemVer 版本比较 =====
+  const SemVer = {
+    // 解析版本字符串为组件
+    parse(version) {
+      const parts = String(version).match(/^(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9._-]+))?$/);
+      if (!parts) return null;
+      return {
+        major: parseInt(parts[1], 10),
+        minor: parseInt(parts[2], 10),
+        patch: parseInt(parts[3], 10),
+        prerelease: parts[4] || ''
+      };
+    },
+
+    // 比较两个版本: 返回 1 (a>b), 0 (相等), -1 (a<b)
+    compare(a, b) {
+      const va = this.parse(a);
+      const vb = this.parse(b);
+      if (!va || !vb) return 0;
+
+      if (va.major !== vb.major) return va.major - vb.major;
+      if (va.minor !== vb.minor) return va.minor - vb.minor;
+      if (va.patch !== vb.patch) return va.patch - vb.patch;
+
+      // 正式版 > prerelease
+      if (va.prerelease && !vb.prerelease) return -1;
+      if (!va.prerelease && vb.prerelease) return 1;
+      if (va.prerelease < vb.prerelease) return -1;
+      if (va.prerelease > vb.prerelease) return 1;
+      return 0;
+    },
+
+    // 检查v1是否大于v2
+    gt(a, b) { return this.compare(a, b) > 0; },
+    // 检查v1是否小于v2
+    lt(a, b) { return this.compare(a, b) < 0; },
+    // 检查v1是否等于v2
+    eq(a, b) { return this.compare(a, b) === 0; },
+    // 检查v1是否大于等于v2
+    gte(a, b) { return this.compare(a, b) >= 0; },
+    // 检查v1是否小于等于v2
+    lte(a, b) { return this.compare(a, b) <= 0; },
+
+    // 格式化版本差异
+    diff(v1, v2) {
+      const va = this.parse(v1);
+      const vb = this.parse(v2);
+      if (!va || !vb) return 'unknown';
+
+      if (va.major !== vb.major) return 'major'; // breaking change
+      if (va.minor !== vb.minor) return 'minor'; // feature
+      if (va.patch !== vb.patch) return 'patch'; // fix
+      return 'same';
+    },
+
+    // 检查版本是否有效
+    isValid(version) { return this.parse(version) !== null; }
+  };
+
+  // ===== V79 新增：HMAC-SHA256 签名工具 =====
+  const SignatureTool = {
+    SECRET_KEY: 'plugin-market-v79-secret',
+
+    // 生成 HMAC-SHA256 签名
+    async sign(data) {
+      const key = await this._getKey();
+      const encoder = new TextEncoder();
+      const dataBytes = encoder.encode(JSON.stringify(data));
+
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+      );
+
+      const signature = await crypto.subtle.sign('HMAC', cryptoKey, dataBytes);
+      return this._arrayBufferToHex(signature);
+    },
+
+    // 验证签名
+    async verify(data, signature) {
+      const computed = await this.sign(data);
+      return computed === signature;
+    },
+
+    // 生成插件包的签名
+    async signPluginManifest(manifest) {
+      const signData = {
+        name: manifest.name,
+        version: manifest.version,
+        author: manifest.author,
+        cards: manifest.cards,
+        relics: manifest.relics,
+        hooks: manifest.hooks,
+        dependencies: manifest.dependencies
+      };
+      return await this.sign(signData);
+    },
+
+    // 内部：获取密钥
+    async _getKey() {
+      const encoder = new TextEncoder();
+      return encoder.encode(this.SECRET_KEY + (localStorage.getItem('plugin_publisher_token') || ''));
+    },
+
+    // 内部：ArrayBuffer转Hex
+    _arrayBufferToHex(buffer) {
+      return [...new Uint8Array(buffer)].map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+  };
+
+  // ===== V79 新增：PluginManifest 生成器 =====
+  const PluginManifestGenerator = {
+    // 创建标准 manifest
+    async create(pluginData) {
+      const manifest = {
+        name: pluginData.name || 'unnamed-plugin',
+        version: pluginData.version || '1.0.0',
+        author: pluginData.author || 'anonymous',
+        description: pluginData.description || '',
+        signature: '',
+        cards: pluginData.cards || [],
+        relics: pluginData.relics || [],
+        hooks: pluginData.hooks || [],
+        dependencies: pluginData.dependencies || {}
+      };
+
+      // 生成签名
+      manifest.signature = await SignatureTool.signPluginManifest(manifest);
+
+      return manifest;
+    },
+
+    // 验证 manifest 完整性
+    validate(manifest) {
+      const errors = [];
+
+      if (!manifest.name) errors.push('Missing name');
+      if (!manifest.version) errors.push('Missing version');
+      if (!manifest.author) errors.push('Missing author');
+      if (!manifest.signature) errors.push('Missing signature');
+
+      if (!SemVer.isValid(manifest.version)) {
+        errors.push(`Invalid version format: ${manifest.version}`);
+      }
+
+      if (!Array.isArray(manifest.cards)) errors.push('cards must be array');
+      if (!Array.isArray(manifest.relics)) errors.push('relics must be array');
+      if (!Array.isArray(manifest.hooks)) errors.push('hooks must be array');
+      if (typeof manifest.dependencies !== 'object') errors.push('dependencies must be object');
+
+      return { valid: errors.length === 0, errors };
+    },
+
+    // 导出为 JSON 字符串
+    exportToJSON(manifest) {
+      return JSON.stringify(manifest, null, 2);
+    },
+
+    // 从 JSON 解析
+    parseFromJSON(jsonStr) {
+      try {
+        return JSON.parse(jsonStr);
+      } catch (e) {
+        return null;
+      }
+    }
+  };
 
   // ===== V72 更新：PluginCache TTL =====
   const PluginCache = {
@@ -262,161 +429,6 @@
           tags: ['遗物', '幸运']
         }
       ];
-    },
-
-    // ===== V78: 插件更新检测与热更新 =====
-    // 更新日志存储
-    _updateHistory: [],
-
-    // 版本比较：返回 1 if v1 > v2, -1 if v1 < v2, 0 if equal
-    compareVersions(v1, v2) {
-      const parse = (v) => v.split('.').map(n => parseInt(n, 10) || 0);
-      const parts1 = parse(v1);
-      const parts2 = parse(v2);
-      for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
-        const p1 = parts1[i] || 0;
-        const p2 = parts2[i] || 0;
-        if (p1 > p2) return 1;
-        if (p1 < p2) return -1;
-      }
-      return 0;
-    },
-
-    // 检测所有已安装插件是否有新版本
-    checkPluginUpdates() {
-      return new Promise((resolve) => {
-        console.log('[RemoteMarket] Checking plugin updates...');
-        const installedPlugins = window.PluginRegistry ? window.PluginRegistry.getPlugins() : [];
-        const updateResults = [];
-
-        // 获取远程插件列表
-        this.fetchManifest(this.marketUrl).then(remotePlugins => {
-          for (const local of installedPlugins) {
-            const remote = remotePlugins.find(p => p.id === local.id);
-            if (remote) {
-              const hasUpdate = this.compareVersions(remote.version, local.version) > 0;
-              updateResults.push({
-                pluginId: local.id,
-                name: local.name,
-                localVersion: local.version || '1.0.0',
-                remoteVersion: remote.version,
-                hasUpdate: hasUpdate,
-                changelog: remote.changelog || '新版发布'
-              });
-              if (hasUpdate) {
-                console.log(`[RemoteMarket] Update available: ${local.id} ${local.version} -> ${remote.version}`);
-              }
-            }
-          }
-          // 保存更新历史
-          localStorage.setItem('plugin_update_results', JSON.stringify(updateResults));
-          console.log(`[RemoteMarket] Checked ${updateResults.length} plugins, ${updateResults.filter(r => r.hasUpdate).length} updates available`);
-          resolve(updateResults);
-        }).catch(() => {
-          console.log('[RemoteMarket] Check failed, using mock data');
-          // 使用 mock 数据模拟更新检测
-          for (const local of installedPlugins) {
-            updateResults.push({
-              pluginId: local.id,
-              name: local.name,
-              localVersion: local.version || '1.0.0',
-              remoteVersion: '1.1.0',
-              hasUpdate: false,
-              changelog: '无可用更新'
-            });
-          }
-          resolve(updateResults);
-        });
-      });
-    },
-
-    // 热更新插件（下载新版本 + 替换 + 刷新）
-    updateMarketPlugin(pluginId) {
-      return new Promise((resolve, reject) => {
-        console.log(`[RemoteMarket] Updating plugin: ${pluginId}`);
-        
-        // 获取当前已安装插件
-        const installed = window.PluginRegistry ? window.PluginRegistry.plugins.get(pluginId) : null;
-        if (!installed) {
-          reject(new Error(`Plugin not installed: ${pluginId}`));
-          return;
-        }
-
-        // 获取远程最新版本
-        this.fetchManifest(this.marketUrl).then(remotePlugins => {
-          const remotePlugin = remotePlugins.find(p => p.id === pluginId);
-          if (!remotePlugin) {
-            reject(new Error(`Plugin not found in market: ${pluginId}`));
-            return;
-          }
-
-          // 检查版本是否更新
-          if (this.compareVersions(remotePlugin.version, installed.version || '1.0.0') <= 0) {
-            console.log(`[RemoteMarket] Plugin ${pluginId} is already up to date`);
-            resolve({ success: true, message: '已是最新版本', version: installed.version });
-            return;
-          }
-
-          // 模拟下载新版本 JS 文件
-          console.log(`[RemoteMarket] Downloading ${pluginId} v${remotePlugin.version}...`);
-          setTimeout(() => {
-            // 更新插件数据
-            const updatedPlugin = {
-              ...installed,
-              version: remotePlugin.version,
-              description: remotePlugin.description || installed.description,
-              author: remotePlugin.author || installed.author,
-              updatedAt: new Date().toISOString()
-            };
-
-            // 重新注册插件（热替换）
-            window.PluginRegistry.plugins.set(pluginId, updatedPlugin);
-            
-            // 记录更新日志
-            const logEntry = {
-              pluginId: pluginId,
-              name: remotePlugin.name,
-              fromVersion: installed.version || '1.0.0',
-              toVersion: remotePlugin.version,
-              time: new Date().toISOString(),
-              changelog: remotePlugin.changelog || '版本更新'
-            };
-            this._updateHistory.push(logEntry);
-            localStorage.setItem('plugin_update_history', JSON.stringify(this._updateHistory));
-
-            console.log(`[RemoteMarket] Updated ${pluginId}: ${installed.version} -> ${remotePlugin.version}`);
-            resolve({ success: true, plugin: updatedPlugin, log: logEntry });
-          }, 500);
-        }).catch(err => {
-          reject(err);
-        });
-      });
-    },
-
-    // 获取更新历史
-    getUpdateHistory() {
-      try {
-        const stored = localStorage.getItem('plugin_update_history');
-        return stored ? JSON.parse(stored) : [];
-      } catch (e) {
-        return [];
-      }
-    },
-
-    // 清除更新历史
-    clearUpdateHistory() {
-      this._updateHistory = [];
-      localStorage.removeItem('plugin_update_history');
-      console.log('[RemoteMarket] Update history cleared');
-    },
-
-    // 获取有可用更新的插件列表
-    getPluginsWithUpdates() {
-      return new Promise((resolve) => {
-        this.checkPluginUpdates().then(results => {
-          resolve(results.filter(r => r.hasUpdate));
-        });
-      });
     }
   };
 
@@ -866,7 +878,286 @@
     }
   };
 
-  window.PluginManager = PluginManager;
+  // ===== V79 新增：审核队列 =====
+  const ReviewQueue = {
+    STORAGE_KEY: 'plugin_review_queue',
 
-console.log("Plugin API V78 initialized");
+    // 获取队列
+    getQueue() {
+      try {
+        const data = localStorage.getItem(this.STORAGE_KEY);
+        return data ? JSON.parse(data) : [];
+      } catch (e) {
+        console.error('[ReviewQueue] Failed to get queue:', e);
+        return [];
+      }
+    },
+
+    // 保存队列
+    _saveQueue(queue) {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(queue));
+    },
+
+    // 提交插件到审核队列
+    submit(pluginManifest) {
+      const queue = this.getQueue();
+      const existing = queue.findIndex(p => p.name === pluginManifest.name);
+      if (existing >= 0) {
+        // 更新已存在的插件版本
+        queue[existing] = { ...pluginManifest, status: 'pending_review', submittedAt: Date.now() };
+      } else {
+        queue.push({ ...pluginManifest, status: 'pending_review', submittedAt: Date.now() });
+      }
+      this._saveQueue(queue);
+      console.log(`[ReviewQueue] Submitted: ${pluginManifest.name} v${pluginManifest.version}`);
+      return true;
+    },
+
+    // 获取待审核列表
+    getPending() {
+      return this.getQueue().filter(p => p.status === 'pending_review');
+    },
+
+    // 批准插件
+    approve(pluginName) {
+      const queue = this.getQueue();
+      const item = queue.find(p => p.name === pluginName);
+      if (item) {
+        item.status = 'approved';
+        item.reviewedAt = Date.now();
+        this._saveQueue(queue);
+        console.log(`[ReviewQueue] Approved: ${pluginName}`);
+        return true;
+      }
+      return false;
+    },
+
+    // 拒绝插件
+    reject(pluginName, reason) {
+      const queue = this.getQueue();
+      const item = queue.find(p => p.name === pluginName);
+      if (item) {
+        item.status = 'rejected';
+        item.rejectionReason = reason || 'No reason provided';
+        item.reviewedAt = Date.now();
+        this._saveQueue(queue);
+        console.log(`[ReviewQueue] Rejected: ${pluginName} - ${reason}`);
+        return true;
+      }
+      return false;
+    },
+
+    // 获取已批准列表
+    getApproved() {
+      return this.getQueue().filter(p => p.status === 'approved');
+    },
+
+    // 获取已拒绝列表
+    getRejected() {
+      return this.getQueue().filter(p => p.status === 'rejected');
+    },
+
+    // 清除已批准的插件（移到市场后）
+    clearApproved() {
+      const queue = this.getQueue().filter(p => p.status !== 'approved');
+      this._saveQueue(queue);
+    }
+  };
+
+  // ===== V79 新增：版本 Diff 对比 =====
+  const VersionDiff = {
+    // 对比两个插件版本，返回差异
+    compare(oldPlugin, newPlugin) {
+      const result = {
+        hasBreaking: false,
+        hasNewFeatures: false,
+        hasBugFixes: false,
+        newCards: [],
+        modifiedCards: [],
+        removedCards: [],
+        newRelics: [],
+        modifiedRelics: [],
+        removedRelics: [],
+        newHooks: [],
+        removedHooks: [],
+        dependencyChanges: {}
+      };
+
+      // 版本差异类型
+      const diffType = SemVer.diff(newPlugin.version, oldPlugin.version);
+      if (diffType === 'major') result.hasBreaking = true;
+      if (diffType === 'minor') result.hasNewFeatures = true;
+      if (diffType === 'patch') result.hasBugFixes = true;
+
+      // 卡牌差异
+      const oldCards = oldPlugin.cards || [];
+      const newCards = newPlugin.cards || [];
+
+      const oldCardIds = new Set(oldCards.map(c => c.id));
+      const newCardIds = new Set(newCards.map(c => c.id));
+
+      // 新增卡牌
+      result.newCards = newCards.filter(c => !oldCardIds.has(c.id));
+      // 移除卡牌
+      result.removedCards = oldCards.filter(c => !newCardIds.has(c.id));
+      // 修改卡牌（同一ID但内容不同）
+      result.modifiedCards = newCards.filter(c => {
+        if (!oldCardIds.has(c.id)) return false;
+        const oldCard = oldCards.find(oc => oc.id === c.id);
+        return JSON.stringify(oldCard) !== JSON.stringify(c);
+      });
+
+      // 遗物差异
+      const oldRelics = oldPlugin.relics || [];
+      const newRelics = newPlugin.relics || [];
+
+      const oldRelicIds = new Set(oldRelics.map(r => r.id));
+      const newRelicIds = new Set(newRelics.map(r => r.id));
+
+      result.newRelics = newRelics.filter(r => !oldRelicIds.has(r.id));
+      result.removedRelics = oldRelics.filter(r => !newRelicIds.has(r.id));
+      result.modifiedRelics = newRelics.filter(r => {
+        if (!oldRelicIds.has(r.id)) return false;
+        const oldRelic = oldRelics.find(or => or.id === r.id);
+        return JSON.stringify(oldRelic) !== JSON.stringify(r);
+      });
+
+      // Hook 差异
+      const oldHooks = new Set(oldPlugin.hooks || []);
+      const newHooks = new Set(newPlugin.hooks || []);
+      result.newHooks = [...newHooks].filter(h => !oldHooks.has(h));
+      result.removedHooks = [...oldHooks].filter(h => !newHooks.has(h));
+
+      // 依赖变化
+      const oldDeps = oldPlugin.dependencies || {};
+      const newDeps = newPlugin.dependencies || {};
+      for (const [key, newVer] of Object.entries(newDeps)) {
+        if (oldDeps[key] !== undefined) {
+          if (oldDeps[key] !== newVer) {
+            result.dependencyChanges[key] = { from: oldDeps[key], to: newVer };
+          }
+        } else {
+          result.dependencyChanges[key] = { from: null, to: newVer };
+        }
+      }
+      for (const key of Object.keys(oldDeps)) {
+        if (!newDeps[key]) {
+          result.dependencyChanges[key] = { from: oldDeps[key], to: null };
+        }
+      }
+
+      return result;
+    },
+
+    // 格式化差异为可读文本
+    format(diff) {
+      const lines = [];
+      if (diff.hasBreaking) lines.push('⚠️ Breaking Change (主版本号变更)');
+      if (diff.hasNewFeatures) lines.push('✨ New Features (次版本号变更)');
+      if (diff.hasBugFixes) lines.push('🐛 Bug Fixes (补丁版本变更)');
+
+      if (diff.newCards.length) {
+        lines.push(`\n🆕 New Cards (${diff.newCards.length}):`);
+        diff.newCards.forEach(c => lines.push(`   - ${c.name || c.id}`));
+      }
+      if (diff.removedCards.length) {
+        lines.push(`\n❌ Removed Cards (${diff.removedCards.length}):`);
+        diff.removedCards.forEach(c => lines.push(`   - ${c.name || c.id}`));
+      }
+      if (diff.modifiedCards.length) {
+        lines.push(`\n📝 Modified Cards (${diff.modifiedCards.length}):`);
+        diff.modifiedCards.forEach(c => lines.push(`   - ${c.name || c.id}`));
+      }
+      if (diff.newRelics.length) {
+        lines.push(`\n🆕 New Relics (${diff.newRelics.length}):`);
+        diff.newRelics.forEach(r => lines.push(`   - ${r.name || r.id}`));
+      }
+      if (diff.removedRelics.length) {
+        lines.push(`\n❌ Removed Relics (${diff.removedRelics.length}):`);
+        diff.removedRelics.forEach(r => lines.push(`   - ${r.name || r.id}`));
+      }
+      if (diff.newHooks.length) {
+        lines.push(`\n🆕 New Hooks: ${diff.newHooks.join(', ')}`);
+      }
+      if (diff.removedHooks.length) {
+        lines.push(`\n❌ Removed Hooks: ${diff.removedHooks.join(', ')}`);
+      }
+      const depChanges = Object.keys(diff.dependencyChanges);
+      if (depChanges.length) {
+        lines.push('\n📦 Dependency Changes:');
+        depChanges.forEach(k => {
+          const change = diff.dependencyChanges[k];
+          if (change.from === null) lines.push(`   + ${k}: ${change.to}`);
+          else if (change.to === null) lines.push(`   - ${k}: ${change.from} (removed)`);
+          else lines.push(`   ~ ${k}: ${change.from} → ${change.to}`);
+        });
+      }
+      return lines.join('\n') || 'No changes detected';
+    }
+  };
+
+  // ===== V79 新增：发布者注册 =====
+  const PluginPublisher = {
+    STORAGE_KEY: 'plugin_publisher_profile',
+
+    // 保存发布者资料
+    saveProfile(profile) {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(profile));
+      console.log('[PluginPublisher] Profile saved:', profile.github || profile.author);
+    },
+
+    // 获取发布者资料
+    getProfile() {
+      try {
+        const data = localStorage.getItem(this.STORAGE_KEY);
+        return data ? JSON.parse(data) : null;
+      } catch (e) {
+        return null;
+      }
+    },
+
+    // 检查是否已注册
+    isRegistered() {
+      return this.getProfile() !== null;
+    },
+
+    // 绑定 GitHub
+    bindGitHub(githubUsername, token) {
+      const profile = {
+        github: githubUsername,
+        token: token,
+        boundAt: Date.now()
+      };
+      this.saveProfile(profile);
+      // 同时保存到 plugin_publisher_token 供 SignatureTool 使用
+      localStorage.setItem('plugin_publisher_token', token);
+      console.log(`[PluginPublisher] GitHub bound: ${githubUsername}`);
+      return true;
+    },
+
+    // 登出
+    logout() {
+      localStorage.removeItem(this.STORAGE_KEY);
+      localStorage.removeItem('plugin_publisher_token');
+      console.log('[PluginPublisher] Logged out');
+    }
+  };
+
+  // 导出到全局
+  window.PluginRegistry = PluginRegistry;
+  window.PluginLoader = PluginLoader;
+  window.PluginCache = PluginCache;
+  window.EventBus = EventBus;
+  window.RemoteMarket = RemoteMarket;
+  window.LifecycleManager = LifecycleManager;
+  window.PluginManager = PluginManager;
+  // V79 新增导出
+  window.SemVer = SemVer;
+  window.SignatureTool = SignatureTool;
+  window.PluginManifestGenerator = PluginManifestGenerator;
+  window.ReviewQueue = ReviewQueue;
+  window.VersionDiff = VersionDiff;
+  window.PluginPublisher = PluginPublisher;
+
+  console.log('[plugin-api.js] Plugin API V79 initialized — Plugin Market v4: Third-party Distribution + Version Governance');
 })();
