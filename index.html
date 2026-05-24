@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1a1a2e">
   <link rel="manifest" href="manifest.json">
-  <title>DBG卡牌游戏 V77 — AI卡牌生成器</title>
+  <title>DBG卡牌游戏 V78 — AI卡牌生成器</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -16479,7 +16479,7 @@ function closeSettings() {
   overlay.classList.remove('show');
 }
 
-// V69 插件管理
+// V69 插件管理, V78 插件更新检测与热更新
 function openPluginManager() {
   const existing = document.getElementById('plugin-manager-container');
   if (existing) { existing.remove(); }
@@ -16498,36 +16498,56 @@ function openPluginManager() {
     ">
       <div style="
         background: #1a1a2e; border: 2px solid #9b59b6; border-radius: 15px;
-        padding: 20px; max-width: 500px; width: 90%; max-height: 80vh;
+        padding: 20px; max-width: 550px; width: 90%; max-height: 85vh;
         overflow-y: auto;
       ">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
           <h2 style="color:#9b59b6;margin:0;">🔌 插件管理</h2>
-          <button onclick="closePluginManager()" style="
-            background:none;border:none;color:#fff;font-size:24px;cursor:pointer;
-          ">✕</button>
+          <div style="display:flex;gap:8px;">
+            <button onclick="showUpdateHistory()" style="
+              background:#f39c12;border:none;color:#000;padding:6px 12px;
+              border-radius:8px;font-size:12px;cursor:pointer;font-weight:bold;
+            ">📋 更新日志</button>
+            <button onclick="closePluginManager()" style="
+              background:none;border:none;color:#fff;font-size:24px;cursor:pointer;
+            ">✕</button>
+          </div>
         </div>
+        <button onclick="checkAndShowUpdates()" style="
+          width:100%;padding:10px;margin-bottom:15px;
+          background:linear-gradient(145deg,#3498db,#2980b9);
+          border:none;border-radius:10px;color:#fff;font-weight:bold;
+          font-size:14px;cursor:pointer;
+        ">🔍 检测插件更新</button>
+        <div id="update-status" style="text-align:center;color:#888;font-size:12px;margin-bottom:10px;min-height:20px;"></div>
   `;
 
   if (plugins.length === 0) {
     html += `<p style="color:#888;text-align:center;">暂无已加载的插件</p>`;
   } else {
-    html += `<div style="margin-bottom:15px;">`;
+    html += `<div id="plugin-list" style="margin-bottom:15px;">`;
     for (const plugin of plugins) {
       const isEnabled = plugin.enabled !== false;
       const isBuiltIn = plugin.builtIn === true;
       html += `
-        <div style="
+        <div id="plugin-item-${plugin.id}" style="
           background:rgba(255,255,255,0.05);border-radius:10px;padding:12px;
           margin-bottom:10px;display:flex;align-items:center;gap:12px;
         ">
           <span style="font-size:28px;">🔌</span>
           <div style="flex:1;">
-            <div style="color:#9b59b6;font-weight:bold;">${plugin.name}</div>
-            <div style="color:#666;font-size:12px;">v${plugin.version} | ${plugin.author || '未知作者'}</div>
+            <div style="color:#9b59b6;font-weight:bold;">
+              ${plugin.name}
+              <span id="update-badge-${plugin.id}" style="display:none;background:#e74c3c;color:#fff;padding:2px 6px;border-radius:8px;font-size:10px;margin-left:6px;">🔔 有新版本</span>
+            </div>
+            <div style="color:#666;font-size:12px;">v<span id="plugin-version-${plugin.id}">${plugin.version || '1.0.0'}</span> | ${plugin.author || '未知作者'}</div>
             <div style="color:#888;font-size:11px;">${plugin.description || ''}</div>
             ${isBuiltIn ? '<span style="color:#f39c12;font-size:10px;">[内置]</span>' : ''}
           </div>
+          <button id="update-btn-${plugin.id}" onclick="updatePlugin('${plugin.id}')" style="
+            display:none;background:#2ecc71;border:none;color:#fff;padding:6px 12px;
+            border-radius:8px;font-size:12px;cursor:pointer;font-weight:bold;
+          ">更新</button>
           ${!isBuiltIn ? `
           <label style="position:relative;width:50px;height:26px;cursor:pointer;">
             <input type="checkbox" id="plugin-toggle-${plugin.id}"
@@ -16568,6 +16588,170 @@ function openPluginManager() {
 
   container.innerHTML = html;
   document.body.appendChild(container);
+
+  // 自动检测更新
+  setTimeout(() => checkAndShowUpdates(), 100);
+}
+
+// V78: 检测并显示插件更新
+async function checkAndShowUpdates() {
+  const statusEl = document.getElementById('update-status');
+  if (!statusEl) return;
+  statusEl.textContent = '正在检测插件更新...';
+  statusEl.style.color = '#3498db';
+
+  try {
+    if (window.RemoteMarket && window.RemoteMarket.checkPluginUpdates) {
+      const results = await window.RemoteMarket.checkPluginUpdates();
+      let updateCount = 0;
+
+      for (const result of results) {
+        const badge = document.getElementById('update-badge-' + result.pluginId);
+        const btn = document.getElementById('update-btn-' + result.pluginId);
+
+        if (result.hasUpdate) {
+          updateCount++;
+          if (badge) {
+            badge.style.display = 'inline';
+            badge.textContent = `🔔 v${result.remoteVersion}`;
+          }
+          if (btn) {
+            btn.style.display = 'block';
+          }
+        } else {
+          if (badge) badge.style.display = 'none';
+          if (btn) btn.style.display = 'none';
+        }
+      }
+
+      if (updateCount > 0) {
+        statusEl.textContent = `发现 ${updateCount} 个插件可更新`;
+        statusEl.style.color = '#e74c3c';
+      } else {
+        statusEl.textContent = '所有插件已是最新版本';
+        statusEl.style.color = '#2ecc71';
+      }
+    } else {
+      statusEl.textContent = '更新检测功能不可用';
+      statusEl.style.color = '#888';
+    }
+  } catch (e) {
+    statusEl.textContent = '检测失败: ' + e.message;
+    statusEl.style.color = '#e74c3c';
+  }
+}
+
+// V78: 更新指定插件
+async function updatePlugin(pluginId) {
+  const statusEl = document.getElementById('update-status');
+  const btn = document.getElementById('update-btn-' + pluginId);
+
+  if (!window.RemoteMarket || !window.RemoteMarket.updateMarketPlugin) {
+    if (statusEl) {
+      statusEl.textContent = '更新功能不可用';
+      statusEl.style.color = '#e74c3c';
+    }
+    return;
+  }
+
+  if (statusEl) {
+    statusEl.textContent = '正在更新插件...';
+    statusEl.style.color = '#3498db';
+  }
+  if (btn) btn.disabled = true;
+  if (btn) btn.textContent = '更新中...';
+
+  try {
+    const result = await window.RemoteMarket.updateMarketPlugin(pluginId);
+    const versionEl = document.getElementById('plugin-version-' + pluginId);
+    if (versionEl && result.plugin) {
+      versionEl.textContent = result.plugin.version;
+    }
+    const badge = document.getElementById('update-badge-' + pluginId);
+    if (badge) badge.style.display = 'none';
+    if (btn) btn.style.display = 'none';
+
+    if (statusEl) {
+      statusEl.textContent = `✓ ${result.plugin.name} 更新成功!`;
+      statusEl.style.color = '#2ecc71';
+    }
+    console.log('[Update] Plugin updated:', result);
+  } catch (e) {
+    if (statusEl) {
+      statusEl.textContent = '更新失败: ' + e.message;
+      statusEl.style.color = '#e74c3c';
+    }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '重试';
+    }
+  }
+}
+
+// V78: 显示更新历史面板
+function showUpdateHistory() {
+  const existing = document.getElementById('update-history-container');
+  if (existing) { existing.remove(); }
+
+  const container = document.createElement('div');
+  container.id = 'update-history-container';
+
+  let history = [];
+  if (window.RemoteMarket && window.RemoteMarket.getUpdateHistory) {
+    history = window.RemoteMarket.getUpdateHistory();
+  }
+
+  let historyHtml = '';
+  if (history.length === 0) {
+    historyHtml = '<p style="color:#888;text-align:center;padding:20px;">暂无更新记录</p>';
+  } else {
+    for (const entry of history) {
+      const date = new Date(entry.time).toLocaleString('zh-CN');
+      historyHtml += `
+        <div style="
+          background:rgba(255,255,255,0.05);border-radius:8px;padding:10px;margin-bottom:8px;
+        ">
+          <div style="color:#9b59b6;font-weight:bold;">${entry.name}</div>
+          <div style="color:#666;font-size:12px;">${entry.fromVersion} → ${entry.toVersion}</div>
+          <div style="color:#888;font-size:11px;">${date}</div>
+          <div style="color:#aaa;font-size:11px;margin-top:4px;">${entry.changelog}</div>
+        </div>
+      `;
+    }
+  }
+
+  container.innerHTML = `
+    <div style="
+      position:fixed;top:0;left:0;width:100%;height:100%;
+      background:rgba(0,0,0,0.85);z-index:10002;
+      display:flex;align-items:center;justify-content:center;
+    ">
+      <div style="
+        background:#1a1a2e;border:2px solid #f39c12;border-radius:15px;
+        padding:20px;max-width:450px;width:90%;max-height:70vh;overflow-y:auto;
+      ">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+          <h2 style="color:#f39c12;margin:0;">📋 更新历史</h2>
+          <button onclick="closeUpdateHistory()" style="
+            background:none;border:none;color:#fff;font-size:24px;cursor:pointer;
+          ">✕</button>
+        </div>
+        ${historyHtml}
+        <button onclick="closeUpdateHistory()" style="
+          width:100%;padding:12px;margin-top:10px;
+          background:linear-gradient(145deg,#f39c12,#e67e22);
+          border:none;border-radius:10px;color:#fff;font-weight:bold;font-size:14px;cursor:pointer;
+        ">关闭</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(container);
+}
+
+function closeUpdateHistory() {
+  const container = document.getElementById('update-history-container');
+  if (container) container.remove();
 }
 
 function closePluginManager() {
