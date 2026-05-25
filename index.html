@@ -3515,7 +3515,6 @@
 <!-- V69 插件系统 v2 -->
 <script src="plugin-api.js"></script>
 <script src="plugin-loader.js"></script>
-<script src="plugin-manager.js"></script>
 <!-- V61 卡包市场 -->
 <script src="market-loader.js"></script>
 <!-- V62 Roguelike: 遗物系统核心 -->
@@ -3526,10 +3525,6 @@
 <script src="ai-memory.js"></script>
 <!-- V85 Skill Crystallizer (Direction F) -->
 <script src="skill-crystallizer.js"></script>
-<!-- V85 CardStudio (卡牌工作室可视化编辑器) -->
-<script src="ai-card-studio.js"></script>
-<!-- V80 Offline Archive System -->
-<script src="game-archive.js"></script>
 <!-- V62 Roguelike: 精英与Boss系统 -->
 <script src="elite-loader.js"></script>
 <!-- V63 Meta Progress System -->
@@ -5886,8 +5881,7 @@ const CommentaryBar = {
       const html = this._messages.map(m => {
         // 高亮关键词
         const t = m.text
-          .replace(/关键牌|局势逆转|致命打击/g, '<b style="color:#f39c12;">$&
-</b>')
+          .replace(/关键牌|局势逆转|致命打击/g, '<b style="color:#f39c12;">$&\n</b>')
           .replace(/玩家|对手/g, '<b style="color:#3498db;">$&</b>');
         return `<div style="margin-bottom:3px;"><span style="color:#888;font-size:10px;">${m.time}</span> <span>${emoji}</span> ${t}</div>`;
       }).join('');
