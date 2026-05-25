@@ -169,4 +169,12 @@ class EnemyAI {
   getState() { return { ...this._state, type: this.type, difficulty: this.difficulty, isSecondPhase: this._state.inSecondPhase }; }
 }
 
-if (typeof window !== 'undefined') window.EnemyAI = EnemyAI;
+if (typeof window !== 'undefined') {
+  window.EnemyAI = EnemyAI;
+}
+if (typeof global !== 'undefined') {
+  global.EnemyAI = EnemyAI;
+}
+if (typeof globalThis !== 'undefined') {
+  globalThis.EnemyAI = EnemyAI;
+}

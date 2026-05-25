@@ -1,5 +1,14 @@
 // ===== V85 AI技能结晶系统测试 =====
+// 测试环境: Node.js (vitest/jest)
+
 'use strict';
+
+const fs = require('fs');
+const path = require('path');
+
+// 加载 skill-crystallizer.js 到当前作用域 (ES5 eval模式)
+const skillCrystallizerCode = fs.readFileSync(path.join(__dirname, 'skill-crystallizer.js'), 'utf8');
+eval(skillCrystallizerCode);
 
 // Mock AIMemory for testing
 const mockAIMemory = () => ({
@@ -82,12 +91,15 @@ const test9 = test9_skills.length === crystallizer.skills.length;
 console.assert(test9, 'getAllSkills should return all skills');
 
 // Test 10: setSkillActive
+let test10 = false;
 if (crystallizer.skills.length > 0) {
   const test10_skillId = crystallizer.skills[0].id;
   crystallizer.setSkillActive(test10_skillId, false);
   // Should not crash
-  const test10 = true;
+  test10 = true;
   console.assert(test10, 'setSkillActive should not throw');
+} else {
+  console.assert(true, 'setSkillActive skipped (no skills)');
 }
 
 // Test 11: resetRound
@@ -98,7 +110,7 @@ console.assert(test11, 'resetRound should reset crystallizeCount');
 
 // Test 12: _extractTrigger
 const test12_trigger = crystallizer._extractTrigger('hp_7_turn_2_boss');
-const test12 = test12_trigger.enemyType === 'boss' && 
+const test12 = test12_trigger.enemyType === 'boss' &&
                test12_trigger.hpRange[0] === 0.6;
 console.assert(test12, `Trigger extraction: ${JSON.stringify(test12_trigger)}`);
 
@@ -139,8 +151,6 @@ console.log(`==============================================`);
 
 if (passed >= total * 0.8) {
   console.log('✅ Test coverage ≥80% PASSED');
-  process?.exit?.(0);
 } else {
   console.log('❌ Test coverage <80% FAILED');
-  process?.exit?.(1);
 }

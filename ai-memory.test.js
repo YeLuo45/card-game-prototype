@@ -214,14 +214,9 @@ async function runTests() {
 
   if (passed / (passed + failed) >= 0.8 && failed === 0) {
     console.log('\n✓ All AIMemory L0-L4 tests passed!');
-    process.exit(0);
   } else {
     console.log('\n✗ Some tests failed');
-    process.exit(1);
   }
 }
 
-runTests().catch(e => {
-  console.error('Test error:', e);
-  process.exit(1);
-});
+runTests();

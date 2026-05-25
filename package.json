@@ -1,0 +1,8 @@
+{
+  "name": "card-game-prototype",
+  "version": "85.0.0",
+  "type": "commonjs",
+  "devDependencies": {
+    "vitest": "^4.1.7"
+  }
+}

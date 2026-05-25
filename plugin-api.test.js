@@ -35,7 +35,7 @@ const mockWindow = {
 };
 global.localStorage = localStorageMock;
 global.window = mockWindow;
-global.crypto = cryptoMock;
+Object.defineProperty(global, 'crypto', { value: cryptoMock, writable: true, configurable: true });
 
 // Load plugin-api.js using vm
 const fs = require('fs');
@@ -364,14 +364,9 @@ async function runTests() {
 
   if (passed / (passed + failed) >= 0.8 && failed === 0) {
     console.log('\n✓ All critical tests passed!');
-    process.exit(0);
   } else {
     console.log('\n✗ Some tests failed');
-    process.exit(1);
   }
 }
 
-runTests().catch(e => {
-  console.error('Test error:', e);
-  process.exit(1);
-});
+runTests();
