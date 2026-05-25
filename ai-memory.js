@@ -629,6 +629,64 @@ class DreamManager {
     });
   }
 
+  showDreamPanel() {
+    const fragments = this.getDreamFragments('player1', 20);
+    const stats = this.getStats();
+    const statsHtml = Object.keys(stats.emotionDistribution).length === 0
+      ? '<p style="color:#888;text-align:center;">暂无梦境记录，先玩几局再回来吧~</p>'
+      : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div style="background:#2a2a3e;padding:10px;border-radius:8px;text-align:center;">
+            <div style="color:#ffd700;font-size:20px;">${stats.dreamCount}</div>
+            <div style="color:#888;font-size:11px;">梦境总数</div>
+          </div>
+          <div style="background:#2a2a3e;padding:10px;border-radius:8px;text-align:center;">
+            <div style="color:#ff6b6b;font-size:20px;">${Object.keys(stats.emotionDistribution).length}</div>
+            <div style="color:#888;font-size:11px;">情感类型</div>
+          </div>
+        </div>`;
+    const itemsHtml = fragments.length === 0 ? '' : fragments.map(f => `
+      <div class="dream-fragment-item" data-id="${f.id}" style="background:#1e1e2e;border:1px solid #333;border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#6366f1'" onmouseout="this.style.borderColor='#333'">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="color:#a78bfa;font-size:13px;">${f.title}</span>
+          <span style="background:${f.emotion==='exciting'?'#27ae60':f.emotion==='tense'?'#e74c3c':f.emotion==='strategic'?'#3498db':'#95a5a6'};padding:2px 8px;border-radius:10px;font-size:10px;">${f.emotion}</span>
+        </div>
+        <div style="color:#666;font-size:11px;margin-bottom:4px;">${new Date(f.timestamp).toLocaleString('zh-CN')}</div>
+        <div style="color:#aaa;font-size:12px;">${f.summary}</div>
+      </div>`).join('');
+    const overlay = document.createElement('div');
+    overlay.id = 'dream-panel-overlay';
+    overlay.style = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:99998;display:flex;justify-content:center;align-items:center;padding:20px;';
+    overlay.innerHTML = `<div style="background:#1a1a2e;border:2px solid #6366f1;border-radius:16px;padding:20px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h2 style="color:#a78bfa;margin:0;">🌙 梦境回溯</h2>
+        <button onclick="document.getElementById('dream-panel-overlay').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;">✕</button>
+      </div>
+      ${statsHtml}
+      <div id="dream-fragments-list">${itemsHtml || '<p style="color:#888;text-align:center;">暂无梦境~</p>'}</div>
+    </div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    overlay.querySelectorAll('.dream-fragment-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const detail = this.getDreamDetail(item.dataset.id);
+        if (!detail) return;
+        const decisionsHtml = detail.keyDecisions.map(d => `<div style="background:#2a2a3e;padding:8px;margin-bottom:6px;border-radius:8px;border-left:3px solid #6366f1;">
+          <div style="color:#ffd700;font-size:12px;">第${d.turn}回合 — ${d.context}</div>
+          <div style="color:#a78bfa;font-size:11px;margin-top:3px;">🤖 AI决策: ${d.aiDecision}</div>
+          <div style="color:#aaa;font-size:11px;">结果: ${d.outcome}</div>
+        </div>`).join('');
+        item.innerHTML = `<div style="margin-top:8px;padding-top:8px;border-top:1px solid #333;">
+          <div style="color:#888;font-size:11px;margin-bottom:6px;">关键决策</div>
+          ${decisionsHtml}
+          <div style="margin-top:8px;padding:8px;background:#2a2a3e;border-radius:8px;">
+            <div style="color:#95a5a6;font-size:10px;">流派: <span style="color:#a78bfa;">${detail.archetype}</span> | 敌人: <span style="color:#a78bfa;">${detail.session?.enemyName || '未知'}</span></div>
+          </div>
+        </div>`;
+        item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    });
+  }
+
   async _saveToDB() {
     if (!window.indexedDB) return;
     return new Promise((resolve, reject) => {

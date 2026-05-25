@@ -3565,6 +3565,7 @@
     <button id="cloud-sync-btn" class="menu-btn" onclick="showCloudSyncPanel()" style="background:linear-gradient(145deg,#8e44ad,#9b59b6);"><span class="btn-icon">☁️</span>云同步</button>
     <button id="card-studio-btn" class="menu-btn" onclick="window.cardStudio && window.cardStudio.open()" style="background:linear-gradient(145deg,#e94560,#ff6b6b);"><span class="btn-icon">🎨</span>卡牌工作室</button>
     <button id="watch-mode-btn" class="menu-btn" onclick="toggleWatchMode()" style="background:linear-gradient(145deg,#2c3e50,#34495e);"><span class="btn-icon">🎙️</span>观战模式</button>
+    <button id="dream-memory-btn" class="menu-btn" onclick="window.dreamManager && window.dreamManager.showDreamPanel()" style="background:linear-gradient(145deg,#1a1a3e,#2d2d5e);"><span class="btn-icon">🌙</span>梦境回溯</button>
   </div>
   <!-- V63 Difficulty Selector -->
   <div id="difficulty-select-container"></div>
@@ -15351,6 +15352,8 @@ function checkEnemyDeath() {
       try { window.metaManager && window.metaManager.onBattleEnd(true, window.gameStateDifficulty || 'normal'); } catch(e) {}
       // V79 AI Memory: 记忆对局结果
       try { if (window.aiMemory) window.aiMemory.archiveSession(getGameResult(true)); } catch(e) {}
+      // V86 Dream Memory: 战斗结束后自动生成梦境
+      try { if (window.dreamManager) { const dream = window.dreamManager.generateDreamSummary(window.aiMemory.getL1({recentN:1})[0]?.id); if (dream) window.dreamManager.saveDream(dream); } } catch(e) {}
       completeNode(gameState.currentNode);
       gameState.totalBattlesWon++;
       gameState.achievementStats.totalBossesDefeated++;
@@ -17012,6 +17015,10 @@ function startNewGame() {
   // V79 AI Memory: 初始化AI记忆系统
   if (!window.aiMemory) {
     window.aiMemory = new AIMemory();
+  }
+  // V86 DreamManager: 初始化梦境记忆系统
+  if (!window.dreamManager) {
+    window.dreamManager = new DreamManager(window.aiMemory);
   }
   // V85 SkillCrystallizer: 初始化技能结晶系统
   if (!window.skillCrystallizer) {
