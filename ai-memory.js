@@ -458,3 +458,196 @@ window.getAISessionResult = function(win) {
 // ===== 集成：拦截原有 archiveSession 调用，使用增强数据 =====
 // patch archiveSession 入口点，在 V83/V84 迭代中已通过 try-catch 调用 window.aiMemory.archiveSession
 // 现在 window.getAISessionResult 提供更丰富的数据，无需修改原有调用点
+
+// ===== V86 Dream Memory 梦境记忆系统 (Direction A) =====
+// 基于 nanobot-design Dream Memory + generic-agent-design L0-L4
+
+class DreamManager {
+  constructor(aiMemory) {
+    this.aiMemory = aiMemory;
+    this.dreams = [];
+    this.maxDreams = 50;
+    this.dbName = 'DreamDB';
+    this.storeName = 'dreams';
+    this._loadFromDB().catch(() => {});
+  }
+
+  generateDreamSummary(gameId) {
+    const sessions = this.aiMemory.getL1({ recentN: 10 });
+    if (sessions.length === 0) return null;
+    let targetSession = sessions.find(s => s.id == gameId) || sessions[0];
+    const emotions = this._analyzeEmotion(targetSession);
+    const archetype = this._analyzeArchetype(targetSession);
+    const keyDecisions = this._extractKeyDecisions(targetSession);
+    const title = this._generateTitle(targetSession, emotions);
+    const summary = this._generateSummary(targetSession, emotions, archetype);
+    return {
+      id: `dream_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      gameId: targetSession.id,
+      playerId: 'player1',
+      timestamp: Date.now(),
+      title,
+      summary,
+      keyDecisions,
+      emotion: emotions.primary,
+      archetype,
+      session: targetSession
+    };
+  }
+
+  _analyzeEmotion(session) {
+    const hpRatio = (session.finalHp || 0) / (session.maxHp || 1);
+    const victory = session.victory;
+    const comboCount = session.comboCount || 0;
+    let primary = 'neutral', secondary = 'neutral';
+    if (victory && hpRatio > 0.7) { primary = 'exciting'; secondary = 'strategic'; }
+    else if (victory && hpRatio < 0.3) { primary = 'tense'; secondary = 'exciting'; }
+    else if (!victory && hpRatio > 0.5) { primary = 'strategic'; secondary = 'defensive'; }
+    else if (!victory) { primary = 'defensive'; secondary = 'tense'; }
+    else if (comboCount >= 5) { primary = 'exciting'; secondary = 'strategic'; }
+    return { primary, secondary };
+  }
+
+  _analyzeArchetype(session) {
+    const keyCards = session.keyCards || [];
+    const damageDealt = session.damageDealt || 0;
+    const damageTaken = session.damageTaken || 0;
+    if (keyCards.some(c => c.includes('攻击') || c.includes('Strike') || c.includes('strike'))) return 'aggressive';
+    if (keyCards.some(c => c.includes('防御') || c.includes('Defend') || c.includes('defend'))) return 'defensive';
+    if (keyCards.some(c => c.includes('抽牌') || c.includes('Draw') || c.includes('draw'))) return 'control';
+    if (damageDealt > damageTaken * 2) return 'aggressive';
+    if (damageTaken > damageDealt) return 'defensive';
+    return 'balanced';
+  }
+
+  _extractKeyDecisions(session) {
+    const decisions = [];
+    const finalL0 = session.finalL0 || {};
+    const hpRatio = (session.finalHp || 0) / (session.maxHp || 1);
+    const turn = finalL0.turn || 10;
+    if (hpRatio < 0.3 && session.victory) {
+      decisions.push({ turn: Math.floor(turn * 0.7), context: 'HP危险但最终获胜', aiDecision: '在低HP情况下做出了关键防守决策', outcome: '惊险逆转' });
+    }
+    if ((session.comboCount || 0) >= 3) {
+      decisions.push({ turn: Math.floor(turn * 0.5), context: `发动了${session.comboCount}连击`, aiDecision: '识别到连击机会，优先打出高伤害组合', outcome: `造成${session.damageDealt || 0}伤害` });
+    }
+    if (session.victory && hpRatio > 0.8) {
+      decisions.push({ turn: Math.floor(turn * 0.6), context: '保持高HP获胜', aiDecision: '全程保持进攻压力，零伤亡通关', outcome: '完美胜利' });
+    }
+    if (decisions.length === 0) {
+      decisions.push({ turn: Math.floor(turn / 2), context: '常规对局', aiDecision: '根据当前局势做出标准决策', outcome: session.victory ? '获胜' : '失败' });
+    }
+    return decisions;
+  }
+
+  _generateTitle(session, emotions) {
+    const hpRatio = Math.round(((session.finalHp || 0) / (session.maxHp || 1)) * 100);
+    if (emotions.primary === 'exciting' && session.victory) return `高压下的完美斩获 (HP:${hpRatio}%)`;
+    if (emotions.primary === 'tense' && session.victory) return `绝处逢生的逆转胜利 (HP:${hpRatio}%)`;
+    if (emotions.primary === 'defensive' && !session.victory) return `防守策略的沉痛代价 (HP:${hpRatio}%)`;
+    if (emotions.primary === 'exciting' && !session.victory) return `激战中的遗憾落败 (HP:${hpRatio}%)`;
+    if (emotions.primary === 'strategic') return `策略性胜利：HP${hpRatio}%`;
+    return `对局回顾：HP${hpRatio}%`;
+  }
+
+  _generateSummary(session, emotions, archetype) {
+    const enemy = session.enemyName || 'Unknown';
+    const victory = session.victory ? '获胜' : '失败';
+    const hpPercent = Math.round(((session.finalHp || 0) / (session.maxHp || 1)) * 100);
+    const archetypeNames = { aggressive: '进攻型', defensive: '防守型', control: '控制型', balanced: '均衡型' };
+    let summary = `${enemy}对局，${victory}。最终HP${hpPercent}%，流派${archetypeNames[archetype] || archetype}。`;
+    if ((session.comboCount || 0) >= 3) summary += `发动${session.comboCount}连击。`;
+    if (emotions.primary === 'exciting') summary += '整局充满紧张感。';
+    else if (emotions.primary === 'strategic') summary += '展现了清晰的策略思维。';
+    else if (emotions.primary === 'defensive') summary += '防守策略执行得当。';
+    return summary;
+  }
+
+  async saveDream(dream) {
+    this.dreams.unshift(dream);
+    if (this.dreams.length > this.maxDreams) this.dreams = this.dreams.slice(0, this.maxDreams);
+    await this._saveToDB();
+    return dream;
+  }
+
+  getDreamFragments(playerId = 'player1', limit = 10) {
+    return this.dreams.slice(0, limit).map(d => ({
+      id: d.id, gameId: d.gameId, timestamp: d.timestamp, title: d.title, summary: d.summary, emotion: d.emotion, archetype: d.archetype
+    }));
+  }
+
+  getDreamDetail(fragmentId) {
+    const dream = this.dreams.find(d => d.id === fragmentId);
+    return dream || null;
+  }
+
+  async generateFromSessions() {
+    const sessions = this.aiMemory.getL1({ recentN: 5 });
+    for (const session of sessions) {
+      const exists = this.dreams.some(d => d.gameId === session.id);
+      if (!exists) {
+        const dream = this.generateDreamSummary(session.id);
+        if (dream) await this.saveDream(dream);
+      }
+    }
+  }
+
+  async pruneOldDreams(maxFragments = 50) {
+    if (this.dreams.length <= maxFragments) return;
+    this.dreams = this.dreams.slice(0, maxFragments);
+    await this._saveToDB();
+  }
+
+  getStats() {
+    return {
+      dreamCount: this.dreams.length,
+      emotionDistribution: this.dreams.reduce((acc, d) => { acc[d.emotion] = (acc[d.emotion] || 0) + 1; return acc; }, {}),
+      archetypeDistribution: this.dreams.reduce((acc, d) => { acc[d.archetype] = (acc[d.archetype] || 0) + 1; return acc; }, {})
+    };
+  }
+
+  async _loadFromDB() {
+    if (!window.indexedDB) return;
+    return new Promise((resolve, reject) => {
+      try {
+        const req = indexedDB.open(this.dbName, 1);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains(this.storeName)) { resolve(); return; }
+          const tx = db.transaction(this.storeName, 'readonly');
+          const store = tx.objectStore(this.storeName);
+          const getReq = store.get('dreams');
+          getReq.onsuccess = () => {
+            if (getReq.result && getReq.result.data) { this.dreams = getReq.result.data; console.log('[DreamManager] Loaded', this.dreams.length, 'dreams'); }
+            resolve();
+          };
+          getReq.onerror = () => reject(getReq.error);
+        };
+        req.onupgradeneeded = (e) => { const db = e.target.result; if (!db.objectStoreNames.contains(this.storeName)) db.createObjectStore(this.storeName, { keyPath: 'id' }); };
+      } catch(e) { reject(e); }
+    });
+  }
+
+  async _saveToDB() {
+    if (!window.indexedDB) return;
+    return new Promise((resolve, reject) => {
+      try {
+        const req = indexedDB.open(this.dbName, 1);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => {
+          const db = req.result;
+          const tx = db.transaction(this.storeName, 'readwrite');
+          let store;
+          try { store = tx.objectStore(this.storeName); } catch(e) { resolve(); return; }
+          store.put({ id: 'dreams', data: this.dreams, timestamp: Date.now() });
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        };
+        req.onupgradeneeded = (e) => { const db = e.target.result; if (!db.objectStoreNames.contains(this.storeName)) db.createObjectStore(this.storeName, { keyPath: 'id' }); };
+      } catch(e) { reject(e); }
+    });
+  }
+}
+
+window.DreamManager = DreamManager;
