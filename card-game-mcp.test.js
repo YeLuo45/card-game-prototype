@@ -14,16 +14,16 @@ const server = new CardGameMCPServer();
 // Test 1: Server construction
 console.log('Test 1: Constructor');
 assert(server.name === 'card-game-prototype', 'server name correct');
-assert(server.version === '1.0.0', 'version is 1.0.0');
+assert(server.version === '1.1.0', 'version is 1.1.0');
 assert(typeof server.tools === 'object', 'tools is object');
-assert(Object.keys(server.tools).length === 19, '19 tools registered');
+assert(Object.keys(server.tools).length === 24, '24 tools registered');
 
 // Test 2: listTools
 console.log('\nTest 2: listTools');
 const listResult = server._handleRequest({ method: 'tools/list', id: 1 });
 assert(listResult.jsonrpc === '2.0', 'jsonrpc 2.0 response');
 assert(Array.isArray(listResult.result.tools), 'result.tools is array');
-assert(listResult.result.tools.length === 19, '19 tools listed');
+assert(listResult.result.tools.length === 24, '24 tools listed');
 const toolNames = listResult.result.tools.map(t => t.name);
 assert(toolNames.includes('getGameState'), 'has getGameState');
 assert(toolNames.includes('getPlayerDeck'), 'has getPlayerDeck');
@@ -38,7 +38,7 @@ assert(initResult.jsonrpc === '2.0', 'jsonrpc 2.0');
 assert(initResult.result.protocolVersion === '2024-11-05', 'correct protocol version');
 assert(initResult.result.capabilities.tools !== undefined, 'has tools capability');
 assert(initResult.result.serverInfo.name === 'card-game-prototype', 'server info name');
-assert(initResult.result.serverInfo.version === '1.0.0', 'server info version');
+assert(initResult.result.serverInfo.version === '1.1.0', 'server info version');
 
 // Test 4: ping
 console.log('\nTest 4: ping');
@@ -52,8 +52,8 @@ const infoResult = server._handleRequest({ method: 'tools/call', params: { name:
 assert(infoResult.jsonrpc === '2.0', 'jsonrpc 2.0');
 const info = JSON.parse(infoResult.result.content[0].text);
 assert(info.name === 'card-game-prototype', 'server name');
-assert(info.version === '1.0.0', 'version');
-assert(info.toolCount === 19, 'toolCount is 19');
+assert(info.version === '1.1.0', 'version');
+assert(info.toolCount === 24, 'toolCount is 24');
 
 // Test 6: getGameState
 console.log('\nTest 6: getGameState');

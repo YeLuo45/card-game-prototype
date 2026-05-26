@@ -46,12 +46,14 @@ global.window.gameState = mockGameState;
 
 class CardGameMCPServer {
   constructor() {
-    this.version = '1.0.0';
+    this.version = '1.1.0';
     this.name = 'card-game-prototype';
     this.tools = this._buildTools();
     this.memory = { L0: {}, L1: [], L2: [], L3: [], L4: {} };
     this.dreams = [];
     this.skills = [];
+    this.evolutionLog = [];
+    this.tuningParams = {};
     this._requestId = 0;
   }
 
@@ -154,6 +156,67 @@ class CardGameMCPServer {
         handler: ({ skillId }) => this.skills.find(s => s.id === skillId) || { error: `Skill ${skillId} not found` }
       },
 
+      // === Self-Evolution Tools ===
+      getEvolutionLog: {
+        description: '获取自演化历史记录',
+        inputSchema: { type: 'object', properties: { limit: { type: 'number', description: '返回条数，默认10' } }, required: [] },
+        handler: ({ limit = 10 } = {}) => this.evolutionLog.slice(-limit)
+      },
+      analyzePerformance: {
+        description: '分析最近N场对局的AI表现，计算胜率、伤害、生存率等指标',
+        inputSchema: { type: 'object', properties: { sessions: { type: 'array', description: 'L1会话列表' } }, required: ['sessions'] },
+        handler: ({ sessions }) => {
+          if (!sessions || sessions.length === 0) return { error: 'No sessions provided' };
+          const total = sessions.length;
+          const victories = sessions.filter(s => s.outcome === 'victory').length;
+          const avgDamage = sessions.reduce((sum, s) => sum + (s.damageDealt || 0), 0) / total;
+          const avgHpRatio = sessions.reduce((sum, s) => sum + (s.hpRatio || 0), 0) / total;
+          const survivals = sessions.filter(s => s.hpRatio > 0).length;
+          return {
+            totalSessions: total,
+            winRate: victories / total,
+            avgDamageDealt: Math.round(avgDamage),
+            avgSurvivalHpRatio: Math.round(avgHpRatio * 100) / 100,
+            survivability: survivals / total,
+            recommendations: this._generateRecommendations(victories / total, avgDamage, avgHpRatio)
+          };
+        }
+      },
+      generateImprovement: {
+        description: '基于表现分析生成参数调优建议',
+        inputSchema: { type: 'object', properties: { analysis: { type: 'object', description: 'analyzePerformance返回的分析结果' } }, required: ['analysis'] },
+        handler: ({ analysis }) => {
+          if (!analysis) return { error: 'No analysis provided' };
+          const recs = [];
+          if (analysis.winRate < 0.5) recs.push({ param: 'enemy_damage_base', direction: 'reduce', amount: 0.1, reason: '玩家胜率偏低，降低敌人基础伤害10%' });
+          if (analysis.avgDamageDealt < 50) recs.push({ param: 'player_attack_multiplier', direction: 'increase', amount: 0.15, reason: '玩家平均伤害偏低，提升攻击力系数15%' });
+          if (analysis.avgSurvivalHpRatio < 0.3) recs.push({ param: 'healing_rate', direction: 'increase', amount: 0.2, reason: '玩家存活HP偏低，提升治疗率20%' });
+          if (analysis.survivability < 0.7) recs.push({ param: 'block_effectiveness', direction: 'increase', amount: 0.1, reason: '生存率偏低，提升格挡效果10%' });
+          return { improvementId: `imp_${Date.now()}`, recommendations: recs, confidence: analysis.winRate > 0.6 ? 'high' : 'medium' };
+        }
+      },
+      applyImprovement: {
+        description: '应用参数调优到游戏AI',
+        inputSchema: { type: 'object', properties: { improvementId: { type: 'string' }, recommendations: { type: 'array' } }, required: ['improvementId', 'recommendations'] },
+        handler: ({ improvementId, recommendations }) => {
+          if (!improvementId || !recommendations || recommendations.length === 0) return { error: 'Missing improvementId or recommendations' };
+          const applied = recommendations.map(r => {
+            this.tuningParams[r.param] = this.tuningParams[r.param] || {};
+            const current = this.tuningParams[r.param].value || 1.0;
+            const delta = r.direction === 'increase' ? r.amount : -r.amount;
+            this.tuningParams[r.param] = { value: Math.round((current + delta) * 1000) / 1000, lastUpdate: Date.now() };
+            return { param: r.param, oldValue: current, newValue: this.tuningParams[r.param].value };
+          });
+          this.evolutionLog.push({ improvementId, applied, timestamp: Date.now(), status: 'applied' });
+          return { success: true, improvementId, applied, newParams: this.tuningParams };
+        }
+      },
+      getTuningParams: {
+        description: '获取当前参数调优状态',
+        inputSchema: { type: 'object', properties: {} },
+        handler: () => ({ ...this.tuningParams })
+      },
+
       // === System Tools ===
       ping: {
         description: '健康检查',
@@ -192,6 +255,14 @@ class CardGameMCPServer {
       ],
       timestamp: Date.now()
     };
+  }
+
+  _generateRecommendations(winRate, avgDamage, avgHpRatio) {
+    const recs = [];
+    if (winRate < 0.5) recs.push('建议降低敌人伤害或增加玩家初始生命值');
+    if (avgDamage < 50) recs.push('建议提升卡牌伤害或降低敌人护甲');
+    if (avgHpRatio < 0.3) recs.push('建议增加治疗卡牌效果或减少敌人攻击频率');
+    return recs;
   }
 
   // JSON-RPC 2.0 stdio protocol
