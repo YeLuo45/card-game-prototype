@@ -3525,6 +3525,8 @@
 <script src="ai-memory.js"></script>
 <!-- V85 Skill Crystallizer (Direction F) -->
 <script src="skill-crystallizer.js"></script>
+<!-- V99 Strategy Guide (Direction S) -->
+<script src="strategy-guide.js"></script>
 <!-- V87 CardStudio 2.0 -->
 <script src="card-studio.js"></script>
 <!-- V62 Roguelike: 精英与Boss系统 -->
@@ -17027,6 +17029,16 @@ function startNewGame() {
     window.skillCrystallizer = new SkillCrystallizer(window.aiMemory);
     window.skillCrystallizer.loadSkills();
     window.skillCrystallizer.crystallizeAllFromL3(); // 启动时从L3模式自动结晶
+  }
+  // V99 StrategyGuide: 初始化AI策略导航系统
+  if (!window.strategyGuide) {
+    window.strategyGuide = new StrategyGuidePanel(window.PluginBus, window.aiMemory);
+    // 注册游戏钩子（如果可用）
+    if (window.gameHookHub) {
+      window.gameHookHub.registerHook('combat:start', () => window.strategyGuide.updateSuggestions());
+      window.gameHookHub.registerHook('player:turn-start', () => window.strategyGuide.updateSuggestions());
+      window.gameHookHub.registerHook('card:played', () => window.strategyGuide.updateSuggestions());
+    }
   }
   // V85 CardStudio: 初始化卡牌工作室
   if (!window.cardStudio) {
