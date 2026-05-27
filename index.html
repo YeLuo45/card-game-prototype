@@ -3529,6 +3529,8 @@
 <script src="strategy-guide.js"></script>
 <!-- V100 Card Fusion (Direction T) -->
 <script src="card-fusion.js"></script>
+<!-- V101 Card Evolution (Direction U) -->
+<script src="card-evolution.js"></script>
 <!-- V87 CardStudio 2.0 -->
 <script src="card-studio.js"></script>
 <!-- V62 Roguelike: 精英与Boss系统 -->
@@ -17035,6 +17037,9 @@ function startNewGame() {
   // V100 CardFusion: 初始化卡牌融合系统
   if (!window.fusionInventory) {
     window.fusionInventory = new FusionInventory();
+  }
+  if (!window.evolutionInventory) {
+    window.evolutionInventory = new CardEvolutionInventory();
   }
   // V99 StrategyGuide: 初始化AI策略导航系统
   if (!window.strategyGuide) {
