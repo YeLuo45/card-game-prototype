@@ -3545,6 +3545,8 @@
 <script src="tournament-system.js"></script>
 <!-- V108 Achievement System (Direction B) -->
 <script src="achievement-system.js"></script>
+<!-- V109 Card Cosmetic System (Direction C) -->
+<script src="cosmetic-system.js"></script>
 <!-- V87 CardStudio 2.0 -->
 <script src="card-studio.js"></script>
 <!-- V62 Roguelike: 精英与Boss系统 -->
@@ -17068,6 +17070,8 @@ function startNewGame() {
   if (!window._sharedTournaments) window._sharedTournaments = {};
   if (!window._achSystem) window._achSystem = new AchievementSystem();
   window._achSystem.registerDefaultAchievements();
+  if (!window._cosmeticShop) window._cosmeticShop = new CosmeticShop();
+  window._cosmeticShop.registerDefaultCosmetics();
   // V99 StrategyGuide: 初始化AI策略导航系统
   if (!window.strategyGuide) {
     window.strategyGuide = new StrategyGuidePanel(window.PluginBus, window.aiMemory);
