@@ -3547,6 +3547,8 @@
 <script src="achievement-system.js"></script>
 <!-- V109 Card Cosmetic System (Direction C) -->
 <script src="cosmetic-system.js"></script>
+<!-- V110 Season Ranked System (Direction D) -->
+<script src="season-ranked-system.js"></script>
 <!-- V87 CardStudio 2.0 -->
 <script src="card-studio.js"></script>
 <!-- V62 Roguelike: 精英与Boss系统 -->
@@ -17072,6 +17074,7 @@ function startNewGame() {
   window._achSystem.registerDefaultAchievements();
   if (!window._cosmeticShop) window._cosmeticShop = new CosmeticShop();
   window._cosmeticShop.registerDefaultCosmetics();
+  if (!window._rankedLadder) window._rankedLadder = new RankedLadder();
   // V99 StrategyGuide: 初始化AI策略导航系统
   if (!window.strategyGuide) {
     window.strategyGuide = new StrategyGuidePanel(window.PluginBus, window.aiMemory);
