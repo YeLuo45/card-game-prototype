@@ -3549,6 +3549,8 @@
 <script src="cosmetic-system.js"></script>
 <!-- V110 Season Ranked System (Direction D) -->
 <script src="season-ranked-system.js"></script>
+<!-- V111 Battle Pass System (Direction E) -->
+<script src="battle-pass-system.js"></script>
 <!-- V87 CardStudio 2.0 -->
 <script src="card-studio.js"></script>
 <!-- V62 Roguelike: 精英与Boss系统 -->
@@ -17075,6 +17077,7 @@ function startNewGame() {
   if (!window._cosmeticShop) window._cosmeticShop = new CosmeticShop();
   window._cosmeticShop.registerDefaultCosmetics();
   if (!window._rankedLadder) window._rankedLadder = new RankedLadder();
+  if (!window._battlePassSystem) window._battlePassSystem = new BattlePassSystem();
   // V99 StrategyGuide: 初始化AI策略导航系统
   if (!window.strategyGuide) {
     window.strategyGuide = new StrategyGuidePanel(window.PluginBus, window.aiMemory);
