@@ -3537,6 +3537,8 @@
 <script src="rune-system.js"></script>
 <!-- V104 Card Auction House (Direction X) -->
 <script src="auction-house.js"></script>
+<!-- V105 Guild System (Direction Y) -->
+<script src="guild-system.js"></script>
 <!-- V87 CardStudio 2.0 -->
 <script src="card-studio.js"></script>
 <!-- V62 Roguelike: 精英与Boss系统 -->
@@ -17056,6 +17058,7 @@ function startNewGame() {
   if (!window.auctionHouse) {
     window.auctionHouse = new AuctionHouse();
   }
+  if (!window._sharedGuilds) window._sharedGuilds = {};
   // V99 StrategyGuide: 初始化AI策略导航系统
   if (!window.strategyGuide) {
     window.strategyGuide = new StrategyGuidePanel(window.PluginBus, window.aiMemory);
