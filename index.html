@@ -3533,6 +3533,8 @@
 <script src="card-evolution.js"></script>
 <!-- V102 Card Gacha (Direction V) -->
 <script src="card-gacha.js"></script>
+<!-- V103 Rune Inscription (Direction W) -->
+<script src="rune-system.js"></script>
 <!-- V87 CardStudio 2.0 -->
 <script src="card-studio.js"></script>
 <!-- V62 Roguelike: 精英与Boss系统 -->
@@ -17045,6 +17047,9 @@ function startNewGame() {
   }
   if (!window.gachaInventory) {
     window.gachaInventory = new GachaInventory();
+  }
+  if (!window.runeInventory) {
+    window.runeInventory = new RuneInventory();
   }
   // V99 StrategyGuide: 初始化AI策略导航系统
   if (!window.strategyGuide) {
