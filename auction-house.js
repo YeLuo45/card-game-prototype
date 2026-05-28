@@ -1,276 +1,264 @@
 // ============================================================================
-// Card Auction House — V104 Direction X
+// Card Auction House — V137 Direction E
 // ============================================================================
-// Marketplace for player-to-player card trading with offline-first persistence.
-// Integrates thunderbolt offline-first + ruflo hook system + nanobot tool registry.
+// Real-time bidding marketplace with escrow, bidding wars, and price discovery.
+// chatdev multi-agent (bid agent, escrow agent) + thunderbolt feedback loops.
 // ============================================================================
 
 'use strict';
 
-class AuctionHouse {
-  constructor() {
-    this.listings = this._loadListings();
-    this.auctioneerHooks = [];
-    this.tickInterval = null;
-    this.isRunning = false;
+class AuctionItem {
+  constructor(itemId, cardId, sellerId, startPrice, duration) {
+    this.itemId = itemId;
+    this.cardId = cardId;
+    this.sellerId = sellerId;
+    this.startPrice = startPrice;
+    this.currentPrice = startPrice;
+    this.highestBidderId = null;
+    this.bids = [];
+    this.status = 'active'; // active, sold, expired, cancelled
+    this.createdAt = Date.now();
+    this.endsAt = Date.now() + (duration * 1000);
+    this.buyNowPrice = startPrice * 3;
   }
 
-  // ---- thunderbolt offline-first: localStorage persistence ----
-  _loadListings() {
-    try {
-      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('auction_listings') : null;
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  _saveListings() {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('auction_listings', JSON.stringify(this.listings));
-    }
-  }
-
-  // ---- ruflo hook system for auction events ----
-  registerHook(callback) {
-    this.auctioneerHooks.push(callback);
-  }
-
-  _emit(event, data) {
-    for (const hook of this.auctioneerHooks) {
-      try { hook(event, data); } catch {}
-    }
-  }
-
-  // ---- Core auction operations ----
-  listCard(card, sellerId, startingPrice, durationMinutes = 60) {
-    const listing = {
-      id: 'lst_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-      card,
-      sellerId,
-      startingPrice,
-      currentBid: startingPrice,
-      currentBidder: null,
-      endTime: Date.now() + durationMinutes * 60 * 1000,
-      durationMinutes,
-      status: 'active',
-      bidHistory: [],
-      createdAt: Date.now()
-    };
-    this.listings.push(listing);
-    this._saveListings();
-    this._emit('listing_created', listing);
-    return listing;
-  }
-
-  placeBid(listingId, bidderId, amount) {
-    const listing = this.listings.find(l => l.id === listingId);
-    if (!listing) return { error: 'invalid_listing' };
-    if (listing.status === 'ended' || listing.status === 'cancelled') return { error: 'auction_ended' };
-    if (listing.status !== 'active') return { error: 'invalid_listing' };
-    if (Date.now() > listing.endTime) {
-      listing.status = 'ended';
-      this._saveListings();
-      return { error: 'auction_ended' };
-    }
-    if (amount <= listing.currentBid) {
-      return { error: 'bid_too_low', currentBid: listing.currentBid };
-    }
-    listing.currentBid = amount;
-    listing.currentBidder = bidderId;
-    listing.bidHistory.push({ bidderId, amount, time: Date.now() });
-    this._saveListings();
-    this._emit('bid_placed', { listingId, bidderId, amount });
-    return {
-      success: true,
-      currentBid: listing.currentBid,
-      currentBidder: listing.currentBidder
-    };
-  }
-
-  getListing(listingId) {
-    return this.listings.find(l => l.id === listingId) || null;
-  }
-
-  getActiveListings() {
-    const now = Date.now();
-    const active = this.listings.filter(l => l.status === 'active' && l.endTime > now);
-    // Auto-expire stale listings
-    for (const l of active) {
-      if (l.endTime <= now) {
-        l.status = 'ended';
-      }
-    }
-    return active;
-  }
-
-  getMyListings(sellerId) {
-    return this.listings.filter(l => l.sellerId === sellerId);
-  }
-
-  getMyBids(bidderId) {
-    return this.listings.filter(l => l.currentBidder === bidderId && l.status === 'active');
-  }
-
-  cancelListing(listingId, sellerId) {
-    const listing = this.listings.find(l => l.id === listingId);
-    if (!listing) return false;
-    if (listing.sellerId !== sellerId) return false;
-    if (listing.bidHistory.length > 0) return false; // Can't cancel if bids exist
-    listing.status = 'cancelled';
-    this._saveListings();
-    this._emit('listing_cancelled', listing);
+  addBid(bidderId, amount) {
+    if (amount <= this.currentPrice) return false;
+    if (Date.now() > this.endsAt) return false;
+    if (this.highestBidderId === bidderId) return false; // cannot outbid self
+    this.bids.push({ bidderId, amount, timestamp: Date.now() });
+    this.currentPrice = amount;
+    this.highestBidderId = bidderId;
     return true;
   }
 
-  processExpiredListings() {
-    const now = Date.now();
-    const results = [];
-    for (const listing of this.listings) {
-      if (listing.status === 'active' && listing.endTime <= now) {
-        listing.status = 'ended';
-        const result = {
-          listing,
-          winner: listing.currentBidder,
-          finalPrice: listing.currentBid
-        };
-        results.push(result);
-        this._emit('auction_ended', result);
-      }
+  buyNow(buyerId) {
+    if (this.status !== 'active') return false;
+    this.bids.push({ bidderId: buyerId, amount: this.buyNowPrice, timestamp: Date.now(), buyNow: true });
+    this.currentPrice = this.buyNowPrice;
+    this.highestBidderId = buyerId;
+    this.status = 'sold';
+    return true;
+  }
+
+  isExpired() { return Date.now() > this.endsAt && this.status === 'active'; }
+
+  finalize() {
+    if (this.status !== 'active') return null;
+    if (this.highestBidderId && this.currentPrice > this.startPrice) {
+      this.status = 'sold';
+      return { winnerId: this.highestBidderId, price: this.currentPrice };
     }
-    if (results.length > 0) this._saveListings();
-    return results;
+    this.status = 'expired';
+    return { winnerId: null, price: 0 };
+  }
+}
+
+class BidHistory {
+  constructor() { this.entries = []; }
+  add(bidderId, itemId, amount) {
+    this.entries.push({ bidderId, itemId, amount, timestamp: Date.now() });
+    if (this.entries.length > 500) this.entries.shift();
+  }
+  getPlayerBids(playerId) { return this.entries.filter(e => e.bidderId === playerId); }
+  getItemBids(itemId) { return this.entries.filter(e => e.itemId === itemId); }
+}
+
+class EscrowService {
+  constructor() { this.holds = new Map(); } // transactionId → Hold
+  placeHold(transactionId, buyerId, sellerId, amount) {
+    this.holds.set(transactionId, { transactionId, buyerId, sellerId, amount, status: 'held', timestamp: Date.now() });
+    return { success: true };
+  }
+  releaseHold(transactionId) {
+    const h = this.holds.get(transactionId);
+    if (!h) return { error: 'hold_not_found' };
+    h.status = 'released';
+    return { success: true };
+  }
+  getHold(transactionId) { return this.holds.get(transactionId) || null; }
+}
+
+class AuctionHouse {
+  constructor() {
+    this.items = new Map(); // itemId → AuctionItem
+    this.bidHistory = new BidHistory();
+    this.escrow = new EscrowService();
+    this.hooks = [];
+    this._load();
   }
 
-  // ---- Analytics ----
-  getStats() {
-    const now = Date.now();
-    const active = this.listings.filter(l => l.status === 'active');
-    const ended = this.listings.filter(l => l.status === 'ended');
-    const totalVolume = ended.reduce((sum, l) => sum + l.currentBid, 0);
+  _load() {
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('auction_house') : null;
+      if (raw) {
+        const data = JSON.parse(raw);
+        for (const [iid, idata] of Object.entries(data.items || {})) {
+          const item = new AuctionItem(idata.cardId, idata.cardId, idata.sellerId, idata.startPrice, 60);
+          item.currentPrice = idata.currentPrice;
+          item.highestBidderId = idata.highestBidderId;
+          item.status = idata.status;
+          item.bids = idata.bids || [];
+          item.createdAt = idata.createdAt || Date.now();
+          item.endsAt = idata.endsAt || Date.now() + 60000;
+          this.items.set(iid, item);
+        }
+      }
+    } catch {}
+  }
+
+  _save() {
+    if (typeof localStorage !== 'undefined') {
+      const data = {
+        items: Object.fromEntries(Array.from(this.items.entries()).map(([k, v]) => [k, {
+          cardId: v.cardId, sellerId: v.sellerId, startPrice: v.startPrice,
+          currentPrice: v.currentPrice, highestBidderId: v.highestBidderId,
+          status: v.status, bids: v.bids, createdAt: v.createdAt, endsAt: v.endsAt
+        }]))
+      };
+      localStorage.setItem('auction_house', JSON.stringify(data));
+    }
+  }
+
+  registerHook(cb) { this.hooks.push(cb); }
+  _emit(event, data) { for (const h of this.hooks) { try { h(event, data); } catch {} } }
+
+  listItem(cardId, sellerId, startPrice, durationSec) {
+    const itemId = `auction_${Date.now()}`;
+    const item = new AuctionItem(itemId, cardId, sellerId, startPrice, durationSec);
+    this.items.set(itemId, item);
+    this._save();
+    this._emit('item_listed', { itemId, cardId });
+    return item;
+  }
+
+  placeBid(itemId, bidderId, amount) {
+    const item = this.items.get(itemId);
+    if (!item) return { error: 'item_not_found' };
+    if (item.sellerId === bidderId) return { error: 'cannot_bid_on_own' };
+
+    const result = item.addBid(bidderId, amount);
+    if (!result) return { error: 'bid_too_low' };
+
+    this.bidHistory.add(bidderId, itemId, amount);
+    this._save();
+    this._emit('bid_placed', { itemId, bidderId, amount });
+    return { success: true, currentPrice: item.currentPrice };
+  }
+
+  buyNow(itemId, buyerId) {
+    const item = this.items.get(itemId);
+    if (!item) return { error: 'item_not_found' };
+    if (item.sellerId === buyerId) return { error: 'cannot_buy_own' };
+
+    const result = item.buyNow(buyerId);
+    if (!result) return { error: 'auction_not_active' };
+
+    this._save();
+    this._emit('buy_now', { itemId, buyerId, price: item.buyNowPrice });
+    return { success: true, price: item.buyNowPrice };
+  }
+
+  finalizeAuction(itemId) {
+    const item = this.items.get(itemId);
+    if (!item) return { error: 'item_not_found' };
+    const result = item.finalize();
+    if (result && result.winnerId) {
+      // Place escrow hold
+      const txId = `tx_${itemId}_${Date.now()}`;
+      this.escrow.placeHold(txId, result.winnerId, item.sellerId, result.price);
+    }
+    this._save();
+    this._emit('auction_finalized', { itemId, ...result });
+    return result;
+  }
+
+  getActiveAuctions(limit) {
+    return Array.from(this.items.values())
+      .filter(i => i.status === 'active')
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, limit || 20)
+      .map(i => ({ itemId: i.itemId, cardId: i.cardId, currentPrice: i.currentPrice, endsAt: i.endsAt, bidCount: i.bids.length }));
+  }
+
+  getMyBids(playerId) {
+    return this.bidHistory.getPlayerBids(playerId)
+      .map(b => ({ itemId: b.itemId, amount: b.amount, timestamp: b.timestamp }))
+      .sort((a, b) => b.timestamp - a.timestamp);
+  }
+
+  getItemDetails(itemId) {
+    const item = this.items.get(itemId);
+    if (!item) return null;
     return {
-      activeListings: active.length,
-      totalListings: this.listings.length,
-      endedAuctions: ended.length,
-      totalVolume,
-      averagePrice: ended.length > 0 ? Math.round(totalVolume / ended.length) : 0
+      itemId: item.itemId, cardId: item.cardId, sellerId: item.sellerId,
+      startPrice: item.startPrice, currentPrice: item.currentPrice,
+      highestBidderId: item.highestBidderId, status: item.status,
+      bidCount: item.bids.length, endsAt: item.endsAt
     };
   }
 
-  // ---- Tool registry (nanobot pattern) ----
-  getTool(name) {
-    const tools = {
-      'auction.list': { handler: (args) => this.getActiveListings() },
-      'auction.list_card': { handler: (args) => this.getListing(args.listingId) },
-      'auction.place_bid': { handler: (args) => this.placeBid(args.listingId, args.bidderId, args.amount) },
-      'auction.my_listings': { handler: (args) => this.getMyListings(args.sellerId) },
-      'auction.my_bids': { handler: (args) => this.getMyBids(args.bidderId) },
-      'auction.stats': { handler: () => this.getStats() },
-    };
-    return tools[name] || null;
+  cancelAuction(itemId, sellerId) {
+    const item = this.items.get(itemId);
+    if (!item) return { error: 'item_not_found' };
+    if (item.sellerId !== sellerId) return { error: 'not_owner' };
+    if (item.bids.length > 0) return { error: 'has_bids' };
+    item.status = 'cancelled';
+    this._save();
+    return { success: true };
   }
 }
 
 const AuctionTools = {
   'auction.list': {
-    description: 'List all active card auctions',
-    parameters: { type: 'object', properties: {} },
-    handler(args, ctx) {
-      const engine = new AuctionHouse();
-      return engine.getActiveListings();
+    description: 'List an item for auction',
+    parameters: { type: 'object', properties: { cardId: { type: 'string' }, sellerId: { type: 'string' }, startPrice: { type: 'number' }, durationSec: { type: 'number' } }, required: ['cardId', 'sellerId', 'startPrice'] },
+    handler(args) {
+      if (!window._auctionHouse) window._auctionHouse = new AuctionHouse();
+      return window._auctionHouse.listItem(args.cardId, args.sellerId, args.startPrice, args.durationSec || 60);
     }
   },
-  'auction.place_bid': {
-    description: 'Place a bid on an auction listing',
-    parameters: { type: 'object', properties: { listingId: { type: 'string' }, bidderId: { type: 'string' }, amount: { type: 'number' } }, required: ['listingId', 'bidderId', 'amount'] },
-    handler(args, ctx) {
-      const engine = new AuctionHouse();
-      return engine.placeBid(args.listingId, args.bidderId, args.amount);
+  'auction.bid': {
+    description: 'Place a bid',
+    parameters: { type: 'object', properties: { itemId: { type: 'string' }, bidderId: { type: 'string' }, amount: { type: 'number' } }, required: ['itemId', 'bidderId', 'amount'] },
+    handler(args) {
+      if (!window._auctionHouse) return { error: 'not_init' };
+      return window._auctionHouse.placeBid(args.itemId, args.bidderId, args.amount);
     }
   },
-  'auction.list_card': {
-    description: 'Get details of a specific listing',
-    parameters: { type: 'object', properties: { listingId: { type: 'string' } }, required: ['listingId'] },
-    handler(args, ctx) {
-      const engine = new AuctionHouse();
-      return engine.getListing(args.listingId);
+  'auction.buy_now': {
+    description: 'Buy now at fixed price',
+    parameters: { type: 'object', properties: { itemId: { type: 'string' }, buyerId: { type: 'string' } }, required: ['itemId', 'buyerId'] },
+    handler(args) {
+      if (!window._auctionHouse) return { error: 'not_init' };
+      return window._auctionHouse.buyNow(args.itemId, args.buyerId);
     }
   },
-  'auction.my_listings': {
-    description: 'Get my auction listings',
-    parameters: { type: 'object', properties: { sellerId: { type: 'string' } }, required: ['sellerId'] },
-    handler(args, ctx) {
-      const engine = new AuctionHouse();
-      return engine.getMyListings(args.sellerId);
+  'auction.active': {
+    description: 'Get active auctions',
+    parameters: { type: 'object', properties: { limit: { type: 'number' } } },
+    handler(args) {
+      if (!window._auctionHouse) window._auctionHouse = new AuctionHouse();
+      return window._auctionHouse.getActiveAuctions(args.limit);
     }
   },
-  'auction.stats': {
-    description: 'Get auction house statistics',
-    parameters: { type: 'object', properties: {} },
-    handler(args, ctx) {
-      const engine = new AuctionHouse();
-      return engine.getStats();
+  'auction.my_bids': {
+    description: 'Get my bid history',
+    parameters: { type: 'object', properties: { playerId: { type: 'string' } } },
+    handler(args) {
+      if (!window._auctionHouse) window._auctionHouse = new AuctionHouse();
+      return window._auctionHouse.getMyBids(args.playerId);
     }
   }
 };
 
-// ---- UI Panel (ruflo hook pattern) ----
-class AuctionPanel {
-  constructor(auctionHouse) {
-    this.auctionHouse = auctionHouse;
-    this.isOpen = false;
-    this.panel = null;
-    this.hookUnregister = null;
-  }
-
-  open() {
-    this.isOpen = true;
-    this._render();
-  }
-
-  close() {
-    this.isOpen = false;
-    if (this.panel) {
-      this.panel.remove();
-      this.panel = null;
-    }
-  }
-
-  toggle() {
-    if (this.isOpen) this.close();
-    else this.open();
-  }
-
-  _render() {
-    if (typeof document === 'undefined') return;
-    const stats = this.auctionHouse.getStats();
-    this.panel = document.createElement('div');
-    this.panel.id = 'auction-panel';
-    this.panel.style.cssText = [
-      'position:fixed;bottom:80px;right:20px;width:320px;background:rgba(10,15,30,0.95);',
-      'border:2px solid #9b59b6;border-radius:12px;padding:16px;z-index:9996;',
-      'font-family:monospace;font-size:13px;color:#ecf0f1;'
-    ].join('');
-    this.panel.innerHTML = [
-      `<div style="color:#9b59b6;font-weight:bold;margin-bottom:8px;">🏷️ 拍卖行</div>`,
-      `<div style="color:#999;font-size:11px;">`,
-      `  活跃拍卖: ${stats.activeListings} | 已结束: ${stats.endedAuctions}<br/>`,
-      `  总交易额: ${stats.totalVolume} | 均价: ${stats.averagePrice}`,
-      `</div>`
-    ].join('');
-    document.body.appendChild(this.panel);
-  }
-
-  getPanelState() {
-    return { open: this.isOpen, stats: this.auctionHouse.getStats() };
-  }
-}
-
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { AuctionHouse, AuctionPanel, AuctionTools };
+  module.exports = { AuctionItem, BidHistory, EscrowService, AuctionHouse, AuctionTools };
 }
 if (typeof window !== 'undefined') {
+  window.AuctionItem = AuctionItem;
+  window.BidHistory = BidHistory;
+  window.EscrowService = EscrowService;
   window.AuctionHouse = AuctionHouse;
-  window.AuctionPanel = AuctionPanel;
   window.AuctionTools = AuctionTools;
 }
