@@ -239,6 +239,8 @@
   // Start new season
   HeroLeague.prototype.startNewSeason = function () {
     var newId = this._createNewSeason();
+    this._currentSeasonId = newId;
+    this._save();
     return { success: true, seasonId: newId };
   };
 
