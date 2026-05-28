@@ -1,212 +1,246 @@
 // ============================================================================
-// Card Achievement System — V108 Direction B
+// Card Achievement System — V130 Direction X
 // ============================================================================
-// Unlockable achievement/badge system with progress tracking and rewards.
-// Integrates: chatdev multi-agent + thunderbolt offline-first.
+// Achievement unlocks, badge display, mastery tiers, achievement categories.
+// generic-agent L0-L4 (achievement history, unlock patterns) + nanobot registry.
 // ============================================================================
 
 'use strict';
 
 class Achievement {
-  constructor(achievementId, name, description, category, icon, threshold) {
+  constructor(achievementId, name, description, category, icon, threshold, xp) {
     this.achievementId = achievementId;
     this.name = name;
     this.description = description;
-    this.category = category; // 'battle' | 'collection' | 'social' | 'special'
+    this.category = category; // 'combat' | 'collection' | 'social' | 'exploration' | 'mastery'
     this.icon = icon || '🏆';
-    this.threshold = threshold; // number or object { type, value }
+    this.threshold = threshold; // number of times needed to unlock
+    this.xp = xp || 10;
     this.unlockedAt = null;
     this.progress = 0;
-    this.reward = null;
+    this.tier = 0; // 0=locked, 1=bronze, 2=silver, 3=gold, 4=diamond
   }
 
-  checkProgress(current) {
-    if (this.unlockedAt) return { unlocked: true, progress: this.progress };
-    if (typeof this.threshold === 'number') {
-      this.progress = Math.min(current, this.threshold);
-    } else if (this.threshold.type === 'win_streak') {
-      this.progress = current;
+  checkProgress(value) {
+    if (this.tier >= 4) return; // maxed out
+    this.progress = Math.min(value, this.threshold);
+    if (this.progress >= this.threshold && this.tier === 0) {
+      this.tier = 1; // bronze
+      this.unlockedAt = Date.now();
     }
-    const complete = typeof this.threshold === 'number'
-      ? current >= this.threshold
-      : current >= this.threshold.value;
-    return { unlocked: complete, progress: this.progress };
   }
+
+  getTier() { return this.tier; }
+  isUnlocked() { return this.tier > 0; }
+}
+
+class AchievementRegistry {
+  constructor() {
+    this.achievements = new Map(); // achievementId → Achievement
+    this.hooks = [];
+  }
+
+  register(achievement) { this.achievements.set(achievement.achievementId, achievement); }
+  get(achievementId) { return this.achievements.get(achievementId) || null; }
+
+  getByCategory(category) {
+    return Array.from(this.achievements.values()).filter(a => a.category === category);
+  }
+
+  getAll() { return Array.from(this.achievements.values()); }
+
+  registerHook(cb) { this.hooks.push(cb); }
+  _emit(event, data) { for (const h of this.hooks) { try { h(event, data); } catch {} } }
+}
+
+class PlayerAchievementState {
+  constructor(playerId) {
+    this.playerId = playerId;
+    this.unlocked = new Map(); // achievementId → { unlockedAt, tier, progress }
+    this.totalXP = 0;
+    this.masteryLevel = 1;
+    this.unlockHistory = []; // { achievementId, unlockedAt, xp }
+  }
+
+  addXP(amount) {
+    this.totalXP += amount;
+    const levels = [0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500];
+    for (let i = levels.length - 1; i >= 0; i--) {
+      if (this.totalXP >= levels[i]) { this.masteryLevel = i + 1; break; }
+    }
+  }
+
+  unlock(achievement) {
+    if (this.unlocked.has(achievement.achievementId)) return false;
+    this.unlocked.set(achievement.achievementId, { unlockedAt: Date.now(), tier: achievement.tier, progress: achievement.progress });
+    this.addXP(achievement.xp);
+    this.unlockHistory.push({ achievementId: achievement.achievementId, unlockedAt: Date.now(), xp: achievement.xp });
+    return true;
+  }
+
+  getProgress(achievementId) { return this.unlocked.get(achievementId) || null; }
+  isUnlocked(achievementId) { return this.unlocked.has(achievementId); }
+
+  getMasteryLevel() { return this.masteryLevel; }
+  getTotalXP() { return this.totalXP; }
 }
 
 class AchievementSystem {
   constructor() {
-    this.achievements = new Map();
-    this.playerProgress = new Map(); // playerId → { achievementId → progress }
-    this.unlockedCache = new Map(); // achievementId → Set of playerIds
-    this.hooks = [];
+    this.registry = new AchievementRegistry();
+    this.playerStates = new Map(); // playerId → PlayerAchievementState
+    this._initAchievements();
     this._load();
   }
 
-  // ---- thunderbolt: localStorage persistence ----
+  _initAchievements() {
+    const defs = [
+      // Combat achievements
+      { id: 'first_blood', name: 'First Blood', description: 'Win your first battle', category: 'combat', icon: '⚔️', threshold: 1, xp: 20 },
+      { id: 'warrior_10', name: 'Warrior', description: 'Win 10 battles', category: 'combat', icon: '⚔️', threshold: 10, xp: 50 },
+      { id: 'veteran_50', name: 'Veteran', description: 'Win 50 battles', category: 'combat', icon: '🛡️', threshold: 50, xp: 150 },
+      { id: 'legend_100', name: 'Legend', description: 'Win 100 battles', category: 'combat', icon: '👑', threshold: 100, xp: 300 },
+      // Collection achievements
+      { id: 'collector_10', name: 'Card Collector', description: 'Collect 10 unique cards', category: 'collection', icon: '🃏', threshold: 10, xp: 30 },
+      { id: 'collector_50', name: 'Card Hoarder', description: 'Collect 50 unique cards', category: 'collection', icon: '📚', threshold: 50, xp: 100 },
+      { id: 'deck_builder', name: 'Deck Builder', description: 'Build 5 different decks', category: 'collection', icon: '🛠️', threshold: 5, xp: 40 },
+      // Social achievements
+      { id: 'friendly', name: 'Social Butterfly', description: 'Add 3 friends', category: 'social', icon: '🤝', threshold: 3, xp: 20 },
+      { id: 'duelist', name: 'Duelist', description: 'Complete 10 duels', category: 'social', icon: '🎯', threshold: 10, xp: 50 },
+      // Exploration achievements
+      { id: 'journey_starter', name: 'Journey Starter', description: 'Complete your first journey', category: 'exploration', icon: '🗺️', threshold: 1, xp: 30 },
+      { id: 'quester', name: 'Quester', description: 'Complete 20 quests', category: 'exploration', icon: '📜', threshold: 20, xp: 80 },
+    ];
+    for (const d of defs) {
+      this.registry.register(new Achievement(d.id, d.name, d.description, d.category, d.icon, d.threshold, d.xp));
+    }
+  }
+
   _load() {
     try {
       const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('achievement_system') : null;
       if (raw) {
         const data = JSON.parse(raw);
-        this.unlockedCache = new Map(Object.entries(data.unlockedCache || {}).map(([k, v]) => [k, new Set(v)]));
+        for (const [pid, pdata] of Object.entries(data.playerStates || {})) {
+          const s = new PlayerAchievementState(pid);
+          s.totalXP = pdata.totalXP || 0;
+          s.masteryLevel = pdata.masteryLevel || 1;
+          s.unlockHistory = pdata.unlockHistory || [];
+          for (const [aid, udata] of Object.entries(pdata.unlocked || {})) {
+            s.unlocked.set(aid, udata);
+          }
+          this.playerStates.set(pid, s);
+        }
       }
     } catch {}
   }
 
   _save() {
     if (typeof localStorage !== 'undefined') {
-      const serializable = {};
-      for (const [k, v] of this.unlockedCache) serializable[k] = Array.from(v);
-      localStorage.setItem('achievement_system', JSON.stringify({ unlockedCache: serializable }));
+      const data = {
+        playerStates: Object.fromEntries(Array.from(this.playerStates.entries()).map(([k, v]) => [k, { totalXP: v.totalXP, masteryLevel: v.masteryLevel, unlocked: Object.fromEntries(v.unlocked.entries()), unlockHistory: v.unlockHistory }]))
+      };
+      localStorage.setItem('achievement_system', JSON.stringify(data));
     }
   }
 
-  // ---- ruflo hook system ----
-  registerHook(cb) { this.hooks.push(cb); }
-  _emit(event, data) { for (const h of this.hooks) { try { h(event, data); } catch {} } }
+  registerHook(cb) { this.registry.registerHook(cb); }
+  _emit(event, data) { this.registry._emit(event, data); }
 
-  // ---- Achievement registration ----
-  registerAchievement(achievement) {
-    this.achievements.set(achievement.achievementId, achievement);
-    if (!this.unlockedCache.has(achievement.achievementId)) {
-      this.unlockedCache.set(achievement.achievementId, new Set());
-    }
-    return achievement;
+  getOrCreatePlayerState(playerId) {
+    if (!this.playerStates.has(playerId)) this.playerStates.set(playerId, new PlayerAchievementState(playerId));
+    return this.playerStates.get(playerId);
   }
 
-  // ---- Batch register default achievements ----
-  registerDefaultAchievements() {
-    const defaults = [
-      new Achievement('first_win', '首胜', '赢得第一场战斗', 'battle', '🎖️', 1),
-      new Achievement('win_10', '十连胜', '累计赢得10场战斗', 'battle', '🏅', 10),
-      new Achievement('win_50', '五十杰', '累计赢得50场战斗', 'battle', '🎖️', 50),
-      new Achievement('win_100', '百战百胜', '累计赢得100场战斗', 'battle', '👑', 100),
-      new Achievement('lose_10', '屡败屡战', '累计输掉10场战斗', 'battle', '💪', 10),
-      new Achievement('play_50', '老将', '累计进行50场战斗', 'battle', '⚔️', 50),
-      new Achievement('fusion_first', '初次融合', '首次融合两张卡牌', 'collection', '🧬', 1),
-      new Achievement('fusion_10', '融合者', '累计融合10次', 'collection', '🔬', 10),
-      new Achievement('legendary_summon', '传奇召唤', '召唤一张传奇卡牌', 'collection', '⭐', 1),
-      new Achievement('guild_join', '加入公会', '加入一个公会', 'social', '🏰', 1),
-      new Achievement('guild_create', '创建公会', '创建一个公会', 'social', '👑', 1),
-      new Achievement('tournament_win', '锦标赛冠军', '赢得锦标赛', 'special', '🏆', 1),
-      new Achievement('perfect_game', '完美游戏', '零伤害通关', 'special', '💎', 1),
-    ];
-    for (const a of defaults) this.registerAchievement(a);
-    return defaults.length;
-  }
-
-  // ---- Progress update ----
-  updateProgress(playerId, achievementId, value) {
-    const achievement = this.achievements.get(achievementId);
+  makeProgress(playerId, achievementId, value) {
+    const achievement = this.registry.get(achievementId);
     if (!achievement) return { error: 'achievement_not_found' };
-    if (achievement.unlockedAt) return { unlocked: true, achievement };
+    const state = this.getOrCreatePlayerState(playerId);
+    if (state.isUnlocked(achievementId)) return { alreadyUnlocked: true };
 
-    if (!this.playerProgress.has(playerId)) this.playerProgress.set(playerId, new Map());
-    const progress = this.playerProgress.get(playerId);
-    const prev = progress.get(achievementId) || 0;
-    progress.set(achievementId, Math.max(prev, value));
-
-    const result = achievement.checkProgress(value);
-    if (result.unlocked && !achievement.unlockedAt) {
-      achievement.unlockedAt = Date.now();
-      this.unlockedCache.get(achievementId).add(playerId);
+    const before = achievement.tier;
+    achievement.checkProgress(value);
+    if (before === 0 && achievement.tier > 0) {
+      state.unlock(achievement);
       this._save();
-      this._emit('achievement_unlocked', { playerId, achievementId, achievement });
-      return { unlocked: true, achievement };
+      this._emit('achievement_unlocked', { playerId, achievementId, name: achievement.name });
+      return { unlocked: true, achievement: { name: achievement.name, xp: achievement.xp, tier: achievement.tier } };
     }
-    return { unlocked: false, progress: result.progress };
+    return { unlocked: false, progress: achievement.progress, threshold: achievement.threshold };
   }
 
-  // ---- Quick increment ----
-  incrementProgress(playerId, achievementId, delta = 1) {
-    if (!this.playerProgress.has(playerId)) this.playerProgress.set(playerId, new Map());
-    const current = this.playerProgress.get(playerId).get(achievementId) || 0;
-    return this.updateProgress(playerId, achievementId, current + delta);
-  }
-
-  // ---- Query ----
-  getUnlocked(playerId) {
-    const unlocked = [];
-    for (const [id, achievement] of this.achievements) {
-      if (this.unlockedCache.get(id)?.has(playerId)) {
-        unlocked.push({ ...achievement, unlockedAt: achievement.unlockedAt });
-      }
-    }
-    return unlocked;
-  }
-
-  getLocked(playerId) {
-    const locked = [];
-    for (const [id, achievement] of this.achievements) {
-      if (!this.unlockedCache.get(id)?.has(playerId)) {
-        locked.push({ ...achievement });
-      }
-    }
-    return locked;
-  }
-
-  getProgress(playerId, achievementId) {
-    const p = this.playerProgress.get(playerId)?.get(achievementId);
-    return p || 0;
+  getPlayerAchievements(playerId) {
+    const state = this.getOrCreatePlayerState(playerId);
+    return this.registry.getAll().map(a => ({
+      achievementId: a.achievementId,
+      name: a.name,
+      description: a.description,
+      category: a.category,
+      icon: a.icon,
+      xp: a.xp,
+      isUnlocked: state.isUnlocked(a.achievementId),
+      tier: state.isUnlocked(a.achievementId) ? a.tier : 0,
+      progress: state.isUnlocked(a.achievementId) ? a.threshold : 0
+    }));
   }
 
   getPlayerStats(playerId) {
-    const unlocked = this.getUnlocked(playerId);
-    const byCategory = {};
-    for (const a of unlocked) {
-      byCategory[a.category] = (byCategory[a.category] || 0) + 1;
-    }
-    return {
-      playerId,
-      totalUnlocked: unlocked.length,
-      totalAchievements: this.achievements.size,
-      byCategory
-    };
+    const state = this.getOrCreatePlayerState(playerId);
+    const all = this.registry.getAll();
+    const unlocked = state.unlocked.size;
+    return { totalXP: state.totalXP, masteryLevel: state.masteryLevel, unlockedCount: unlocked, totalCount: all.length };
+  }
+
+  getLeaderboard(limit) {
+    return Array.from(this.playerStates.entries())
+      .map(([pid, s]) => ({ playerId: pid, totalXP: s.totalXP, masteryLevel: s.masteryLevel }))
+      .sort((a, b) => b.totalXP - a.totalXP)
+      .slice(0, limit || 10);
   }
 }
 
-// ---- AchievementTools (nanobot pattern) ----
 const AchievementTools = {
-  'achievement.register': {
-    description: 'Register an achievement',
-    parameters: { type: 'object', properties: { achievementId: { type: 'string' }, name: { type: 'string' }, description: { type: 'string' }, category: { type: 'string' }, threshold: { type: 'number' } }, required: ['achievementId', 'name', 'threshold'] },
-    handler(args) {
-      const a = new Achievement(args.achievementId, args.name, args.description || '', args.category || 'special', args.icon, args.threshold);
-      return window._achSystem ? window._achSystem.registerAchievement(a) : { error: 'system_not_initialized' };
-    }
-  },
   'achievement.progress': {
-    description: 'Update achievement progress',
+    description: 'Make progress on an achievement',
     parameters: { type: 'object', properties: { playerId: { type: 'string' }, achievementId: { type: 'string' }, value: { type: 'number' } }, required: ['playerId', 'achievementId'] },
     handler(args) {
-      if (!window._achSystem) return { error: 'system_not_initialized' };
-      return window._achSystem.updateProgress(args.playerId, args.achievementId, args.value || 1);
+      if (!window._achievementSystem) window._achievementSystem = new AchievementSystem();
+      return window._achievementSystem.makeProgress(args.playerId, args.achievementId, args.value || 1);
     }
   },
-  'achievement.unlocked': {
-    description: 'Get unlocked achievements for player',
+  'achievement.list': {
+    description: 'List player achievements',
     parameters: { type: 'object', properties: { playerId: { type: 'string' } }, required: ['playerId'] },
     handler(args) {
-      if (!window._achSystem) return { error: 'system_not_initialized' };
-      return window._achSystem.getUnlocked(args.playerId);
+      if (!window._achievementSystem) window._achievementSystem = new AchievementSystem();
+      return window._achievementSystem.getPlayerAchievements(args.playerId);
     }
   },
   'achievement.stats': {
-    description: 'Get achievement stats for player',
+    description: 'Get player achievement stats',
     parameters: { type: 'object', properties: { playerId: { type: 'string' } }, required: ['playerId'] },
     handler(args) {
-      if (!window._achSystem) return { error: 'system_not_initialized' };
-      return window._achSystem.getPlayerStats(args.playerId);
+      if (!window._achievementSystem) window._achievementSystem = new AchievementSystem();
+      return window._achievementSystem.getPlayerStats(args.playerId);
+    }
+  },
+  'achievement.leaderboard': {
+    description: 'Get achievement leaderboard',
+    parameters: { type: 'object', properties: { limit: { type: 'number' } } },
+    handler(args) {
+      if (!window._achievementSystem) window._achievementSystem = new AchievementSystem();
+      return window._achievementSystem.getLeaderboard(args.limit);
     }
   }
 };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Achievement, AchievementSystem, AchievementTools };
+  module.exports = { Achievement, AchievementRegistry, PlayerAchievementState, AchievementSystem, AchievementTools };
 }
 if (typeof window !== 'undefined') {
   window.Achievement = Achievement;
+  window.AchievementRegistry = AchievementRegistry;
+  window.PlayerAchievementState = PlayerAchievementState;
   window.AchievementSystem = AchievementSystem;
   window.AchievementTools = AchievementTools;
 }
