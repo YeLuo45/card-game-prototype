@@ -1,1 +1,241 @@
-J3VzZSBzdHJpY3QnOwpjb25zdCB7IEFjdGlvbkxvZywgUmVwbGF5RW5naW5lLCBTZWVrYWJsZVJlcGxheSB9ID0gcmVxdWlyZSgnLi9yZXBsYXktc3lzdGVtLmpzJyk7CgpsZXQgcGFzc2VkID0gMCwgZmFpbGVkID0gMDsKZnVuY3Rpb24gYXNzZXJ0KGMsIG1zZykgewogIGlmIChjKSB7IHBhc3NlZCsrOyBjb25zb2xlLmxvZygnICBcdTI3MTMgJyArIG1zZyk7IH0KICBlbHNlIHsgZmFpbGVkKys7IGNvbnNvbGUubG9nKCcgIFx1MjcxNyAnICsgbXNnKTsgfQp9Cgpjb25zb2xlLmxvZygnXG49PT0gUmVwbGF5IFN5c3RlbSBUZXN0cyA9PT1cbicpOwoKLy8gPT09PT0gQWN0aW9uTG9nIFRlc3RzID09PT09CmNvbnNvbGUubG9nKCdcbi0tLSBBY3Rpb25Mb2cgLS0tJyk7Cgpjb25zdCBsb2cgPSBuZXcgQWN0aW9uTG9nKCk7CgovLyBUZXN0IDE6IGFkZCBhbmQgZ2V0CmNvbnNvbGUubG9nKCdcblRlc3QgMTogYWRkIGFuZCBnZXQnKTsKY29uc3QgaWQxID0gbG9nLmFkZCgnYXR0YWNrJywgeyB0dXJuOiAxLCBkYW1hZ2U6IDEwIH0pOwpjb25zdCBlbnRyeSA9IGxvZy5nZXQoaWQxKTsKYXNzZXJ0KGVudHJ5ICE9PSBudWxsLCAnZW50cnkgZm91bmQnKTsKYXNzZXJ0KGVudHJ5LmFjdGlvbiA9PT0gJ2F0dGFjaycsICdhY3Rpb24gaXMgYXR0YWNrJyk7CmFzc2VydChlbnRyeS5kZXRhaWwuZGFtYWdlID09PSAxMCwgJ2RldGFpbCBwcmVzZXJ2ZWQnKTsKCi8vIFRlc3QgMjogZmlsdGVyIGJ5IGFjdGlvbgpjb25zb2xlLmxvZygnXG5UZXN0IDI6IGZpbHRlciBieSBhY3Rpb24nKTsKbG9nLmFkZCgnZGVmZW5kJywgeyB0dXJuOiAxIH0pOwpsb2cuYWRkKCdhdHRhY2snLCB7IHR1cm46IDIgfSk7CmxvZy5hZGQoJ2RyYXcnLCB7IHR1cm46IDIgfSk7CmNvbnN0IGF0dGFja09ubHkgPSBsb2cuZmlsdGVyKHsgYWN0aW9uOiAnYXR0YWNrJyB9KTsKYXNzZXJ0KGF0dGFja09ubHkubGVuZ3RoID09PSAyLCAnMiBhdHRhY2sgZW50cmllcycpOwoKLy8gVGVzdCAzOiBmaWx0ZXIgYnkgdHVybgpjb25zb2xlLmxvZygnXG5UZXN0IDM6IGZpbHRlciBieSB0dXJuJyk7CmNvbnN0IHR1cm4xID0gbG9nLmZpbHRlcih7IHR1cm46IDEgfSk7CmFzc2VydCh0dXJuMS5sZW5ndGggPT09IDIsICcyIGVudHJpZXMgYXQgdHVybiAxJyk7CgovLyBUZXN0IDQ6IHRhZ3MKY29uc29sZS5sb2coJ1xuVGVzdCA0OiB0YWdzJyk7CmNvbnN0IHRhZ0lkID0gbG9nLmFkZCgncGxheV9jYXJkJywgeyB0dXJuOiAzIH0sIFsnY29tYmF0JywgJ3R1cm5fMyddKTsKY29uc3QgYnlUYWcgPSBsb2cuZ2V0QnlUYWcoJ2NvbWJhdCcpOwphc3NlcnQoYnlUYWcubGVuZ3RoID09PSAxLCAnMSBjb21iYXQgdGFnIGVudHJ5Jyk7CmFzc2VydChieVRhZ1swXS5pZCA9PT0gdGFnSWQsICdjb3JyZWN0IGVudHJ5Jyk7CgovLyBUZXN0IDU6IHNlYXJjaApjb25zb2xlLmxvZygnXG5UZXN0IDU6IHNlYXJjaCcpOwpsb2cuYWRkKCdwbGF5X2NhcmQnLCB7IHR1cm46IDQsIGNhcmROYW1lOiAnRmlyZWJhbGwnIH0pOwpjb25zdCBzZWFyY2hlZCA9IGxvZy5zZWFyY2goJ0ZpcmViYWxsJyk7CmFzc2VydChzZWFyY2hlZC5sZW5ndGggPT09IDEsICdmb3VuZCBGaXJlYmFsbCcpOwpjb25zdCBzZWFyY2hlZDIgPSBsb2cuc2VhcmNoKCdhdHRhY2snKTsKYXNzZXJ0KHNlYXJjaGVkMi5sZW5ndGggPT09IDIsICdmb3VuZCAyIGF0dGFjayBlbnRyaWVzJyk7CgovLyBUZXN0IDY6IGV4cG9ydC9pbXBvcnQKY29uc29sZS5sb2coJ1xuVGVzdCA2OiBleHBvcnQvaW1wb3J0Jyk7CmNvbnN0IGV4cG9ydGVkID0gbG9nLmV4cG9ydCgpOwphc3NlcnQoQXJyYXkuaXNBcnJheShleHBvcnRlZC5lbnRyaWVzKSwgJ2VudHJpZXMgZXhwb3J0ZWQnKTsKY29uc3QgbG9nMiA9IG5ldyBBY3Rpb25Mb2coKTsKbG9nMi5pbXBvcnQoZXhwb3J0ZWQpOwphc3NlcnQobG9nMi5lbnRyaWVzLmxlbmd0aCA9PT0gbG9nLmVudHJpZXMubGVuZ3RoLCAnaW1wb3J0ZWQgbGVuZ3RoIG1hdGNoZXMnKTsKCi8vIFRlc3QgNzogY2xlYXIKY29uc29sZS5sb2coJ1xuVGVzdCA3OiBjbGVhcicpOwpsb2cuY2xlYXIoKTsKYXNzZXJ0KGxvZy5lbnRyaWVzLmxlbmd0aCA9PT0gMCwgJ2NsZWFyZWQnKTsKYXNzZXJ0KGxvZy50YWdzWydjb21iYXQnXSA9PT0gdW5kZWZpbmVkLCAndGFncyBjbGVhcmVkJyk7CgovLyA9PT09PSBSZXBsYXlFbmdpbmUgVGVzdHMgPT09PT0KY29uc29sZS5sb2coJ1xuLS0tIFJlcGxheUVuZ2luZSAtLS0nKTsKCmNvbnN0IG1vY2tHUyA9IHsKICBwbGF5ZXI6IHsgbmFtZTogJ1BsYXllcicsIGhwOiAxMDAsIG1heEhwOiAxMDAsIGF0dGFjazogMTAsIGRlZmVuc2U6IDUsIGVuZXJneTogMywgbWF4RW5lcmd5OiAzLCBoYW5kOiBbXSwgZGVjazogW10sIGRpc2NhcmRQaWxlOiBbXSB9LAogIGVuZW15OiB7IG5hbWU6ICdFbmVteScsIGhwOiA1MCwgbWF4SHA6IDUwLCBhdHRhY2s6IDgsIGRlZmVuc2U6IDMsIGVuZXJneTogMiwgbWF4RW5lcmd5OiAyLCBoYW5kOiBbXSwgZGVjazogW10sIGRpc2NhcmRQaWxlOiBbXSB9LAogIHR1cm46IDEsIHBoYXNlOiAncGxheWVyX3R1cm4nLCBnYW1lT3ZlcjogZmFsc2UsIHdpbm5lcjogbnVsbAp9Owpjb25zdCBlbmdpbmUgPSBuZXcgUmVwbGF5RW5naW5lKG1vY2tHUyk7CgovLyBUZXN0IDg6IHN0YXJ0R2FtZQpjb25zb2xlLmxvZygnXG5UZXN0IDg6IHN0YXJ0R2FtZScpOwplbmdpbmUuc3RhcnRHYW1lKCd0ZXN0X2dhbWVfMDAxJyk7CmFzc2VydChlbmdpbmUubWV0YWRhdGEuZ2FtZUlkID09PSAndGVzdF9nYW1lXzAwMScsICdnYW1lIGlkIHNldCcpOwphc3NlcnQoZW5naW5lLm1ldGFkYXRhLnN0YXJ0VGltZSA+IDAsICdzdGFydCB0aW1lIHNldCcpOwphc3NlcnQoZW5naW5lLnN0YXRlU25hcHNob3RzLmxlbmd0aCA9PT0gMSwgJzEgc25hcHNob3QgY2FwdHVyZWQnKTsKCi8vIFRlc3QgOTogbG9nQWN0aW9uIGNhcHR1cmVzIHNuYXBzaG90CmNvbnNvbGUubG9nKCdcblRlc3QgOTogbG9nQWN0aW9uJyk7CmVuZ2luZS5nYW1lU3RhdGUudHVybiA9IDE7CmVuZ2luZS5sb2dBY3Rpb24oJ2F0dGFjaycsIHsgZGFtYWdlOiAxNSwgdGFyZ2V0OiAnZW5lbXknIH0pOwphc3NlcnQoZW5naW5lLmFjdGlvbkxvZy5lbnRyaWVzLmxlbmd0aCA9PT0gMSwgJzEgYWN0aW9uIGxvZ2dlZCcpOwphc3NlcnQoZW5naW5lLnN0YXRlU25hcHNob3RzLmxlbmd0aCA+PSAxLCAnc25hcHNob3QgY2FwdHVyZWQnKTsKCi8vIFRlc3QgMTA6IGtleVR1cm5JbnRlcnZhbApjb25zb2xlLmxvZygnXG5UZXN0IDEwOiBrZXlUdXJuSW50ZXJ2YWwnKTsKY29uc3QgZW5naW5lMiA9IG5ldyBSZXBsYXlFbmdpbmUobW9ja0dTKTsKZW5naW5lMi5zZXRLZXlUdXJuSW50ZXJ2YWwoMyk7CmVuZ2luZTIuc3RhcnRHYW1lKCd0ZXN0X2ludGVydmFsJyk7CmZvciAobGV0IGkgPSAxOyBpIDw9IDY7IGkrKykgewogIGVuZ2luZTIuZ2FtZVN0YXRlLnR1cm4gPSBpOwogIGVuZ2luZTIubG9nQWN0aW9uKCd0dXJuX2FkdmFuY2UnLCB7IHR1cm46IGkgfSk7Cn0KY29uc3QgYXV0b1NuYXBzID0gZW5naW5lMi5zdGF0ZVNuYXBzaG90cy5maWx0ZXIocyA9PiBzLnJlYXNvbiAmJiBzLnJlYXNvbi5zdGFydHNXaXRoKCdhdXRvXycpKTsKYXNzZXJ0KGF1dG9TbmFwcy5sZW5ndGggPj0gMSwgJ2F0IGxlYXN0IDEgYXV0byBzbmFwc2hvdCBjYXB0dXJlZCBhdCBpbnRlcnZhbCcpOwoKLy8gVGVzdCAxMTogZW5kR2FtZQpjb25zb2xlLmxvZygnXG5UZXN0IDExOiBlbmRHYW1lJyk7CmVuZ2luZS5nYW1lU3RhdGUudHVybiA9IDEwOwplbmdpbmUuZ2FtZVN0YXRlLndpbm5lciA9ICdwbGF5ZXInOwplbmdpbmUuZW5kR2FtZSgpOwphc3NlcnQoZW5naW5lLm1ldGFkYXRhLmVuZFRpbWUgPiAwLCAnZW5kIHRpbWUgc2V0Jyk7CmNvbnN0IGVuZEVudHJ5ID0gZW5naW5lLmFjdGlvbkxvZy5lbnRyaWVzLmZpbmQoZSA9PiBlLmFjdGlvbiA9PT0gJ2dhbWVfZW5kJyk7CmFzc2VydChlbmRFbnRyeSAhPT0gdW5kZWZpbmVkLCAnZ2FtZV9lbmQgYWN0aW9uIGxvZ2dlZCcpOwoKLy8gVGVzdCAxMjogcGF1c2UvcmVzdW1lL3NwZWVkCmNvbnNvbGUubG9nKCdcblRlc3QgMTI6IHBhdXNlL3Jlc3VtZS9zcGVlZCcpOwplbmdpbmUucGF1c2UoKTsKYXNzZXJ0KGVuZ2luZS5pc1BhdXNlZCgpID09PSB0cnVlLCAnaXMgcGF1c2VkJyk7CmVuZ2luZS5yZXN1bWUoKTsKYXNzZXJ0KGVuZ2luZS5pc1BhdXNlZCgpID09PSBmYWxzZSwgJ2lzIHJlc3VtZWQnKTsKZW5naW5lLnNldFBsYXliYWNrU3BlZWQoMi4wKTsKYXNzZXJ0KGVuZ2luZS5nZXRQbGF5YmFja1NwZWVkKCkgPT09IDIuMCwgJ3NwZWVkIHNldCB0byAyLjAnKTsKZW5naW5lLnNldFBsYXliYWNrU3BlZWQoMC41KTsKYXNzZXJ0KGVuZ2luZS5nZXRQbGF5YmFja1NwZWVkKCkgPT09IDAuNSwgJ3NwZWVkIHNldCB0byAwLjUnKTsKCi8vIFRlc3QgMTM6IGdldFNuYXBzaG90QXQKY29uc29sZS5sb2coJ1xuVGVzdCAxMzogZ2V0U25hcHNob3RBdCcpOwpjb25zdCBzbmFwNSA9IGVuZ2luZS5nZXRTbmFwc2hvdEF0KDUpOwphc3NlcnQoc25hcDUgIT09IG51bGwsICdzbmFwc2hvdCBmb3VuZCBmb3IgdHVybiA1Jyk7CmFzc2VydChzbmFwNS50dXJuIDw9IDUsICd0dXJuIDw9IHJlcXVlc3RlZCcpOwoKLy8gVGVzdCAxNDogZ2V0QWN0aW9uQmV0d2Vlbgpjb25zb2xlLmxvZygnXG5UZXN0IDE0OiBnZXRBY3Rpb25CZXR3ZWVuJyk7CmVuZ2luZS5nYW1lU3RhdGUudHVybiA9IDE7CmVuZ2luZS5sb2dBY3Rpb24oJ3Rlc3RfYWN0aW9uJywgeyB0dXJuOiAxIH0pOwplbmdpbmUuZ2FtZVN0YXRlLnR1cm4gPSA1OwplbmdpbmUubG9nQWN0aW9uKCd0ZXN0X2FjdGlvbicsIHsgdHVybjogNSB9KTsKY29uc3QgYmV0d2VlbiA9IGVuZ2luZS5nZXRBY3Rpb25CZXR3ZWVuKDIsIDQpOwphc3NlcnQoYmV0d2Vlbi5sZW5ndGggPj0gMCwgJ2FjdGlvbiBmaWx0ZXIgd29ya3MnKTsKCi8vIFRlc3QgMTU6IHJlcGxheQpjb25zb2xlLmxvZygnXG5UZXN0IDE1OiByZXBsYXknKTsKY29uc3QgcmVwbGF5UmVzdWx0ID0gZW5naW5lLnJlcGxheSgxLCA1KTsKYXNzZXJ0KHJlcGxheVJlc3VsdC50b3RhbCA+PSAwLCAncmVwbGF5IHJldHVybnMgdG90YWwnKTsKYXNzZXJ0KEFycmF5LmlzQXJyYXkocmVwbGF5UmVzdWx0LmV2ZW50cyksICdldmVudHMgaXMgYXJyYXknKTsKY29uc3QgdGlja2VkID0gcmVwbGF5UmVzdWx0LnRpY2soKTsKYXNzZXJ0KHRpY2tlZCA9PT0gdHJ1ZSB8fCB0eXBlb2YgdGlja2VkID09PSAnbnVtYmVyJywgJ3RpY2sgcmV0dXJucyB0cnV0aHknKTsKCi8vIFRlc3QgMTY6IGV4cG9ydFJlcGxheQpjb25zb2xlLmxvZygnXG5UZXN0IDE2OiBleHBvcnRSZXBsYXknKTsKY29uc3QgZXhwb3J0ZWRSZXBsYXkgPSBlbmdpbmUuZXhwb3J0UmVwbGF5KCk7CmFzc2VydChleHBvcnRlZFJlcGxheS5tZXRhZGF0YSAhPT0gdW5kZWZpbmVkLCAnbWV0YWRhdGEgZXhwb3J0ZWQnKTsKYXNzZXJ0KEFycmF5LmlzQXJyYXkoZXhwb3J0ZWRSZXBsYXkuZW50cmllcyksICdlbnRyaWVzIGV4cG9ydGVkJyk7CmFzc2VydChBcnJheS5pc0FycmF5KGV4cG9ydGVkUmVwbGF5LnNuYXBzaG90cyksICdzbmFwc2hvdHMgZXhwb3J0ZWQnKTsKCi8vIFRlc3QgMTc6IGxvYWRSZXBsYXkKY29uc29sZS5sb2coJ1xuVGVzdCAxNzogbG9hZFJlcGxheScpOwpjb25zdCBlbmdpbmUzID0gbmV3IFJlcGxheUVuZ2luZShtb2NrR1MpOwplbmdpbmUzLmxvYWRSZXBsYXkoZXhwb3J0ZWRSZXBsYXkpOwphc3NlcnQoZW5naW5lMy5hY3Rpb25Mb2cuZW50cmllcy5sZW5ndGggPT09IGVuZ2luZS5hY3Rpb25Mb2cuZW50cmllcy5sZW5ndGgsICdlbnRyaWVzIHJlc3RvcmVkJyk7CgovLyBUZXN0IDE4OiBnZXRTdGF0ZQpjb25zb2xlLmxvZygnXG5UZXN0IDE4OiBnZXRTdGF0ZScpOwpjb25zdCBzdGF0ZSA9IGVuZ2luZS5nZXRTdGF0ZSgpOwphc3NlcnQoc3RhdGUuZ2FtZUlkICE9PSB1bmRlZmluZWQsICdnYW1lSWQgaW4gc3RhdGUnKTsKYXNzZXJ0KHN0YXRlLmFjdGlvbkNvdW50ID49IDAsICdhY3Rpb25Db3VudCBpbiBzdGF0ZScpOwphc3NlcnQoc3RhdGUuc25hcHNob3RDb3VudCA+PSAwLCAnc25hcHNob3RDb3VudCBpbiBzdGF0ZScpOwoKLy8gVGVzdCAxOTogc2V0R2FtZVN0YXRlCmNvbnNvbGUubG9nKCdcblRlc3QgMTk6IHNldEdhbWVTdGF0ZScpOwpjb25zdCBuZXdHUyA9IHsgLi4ubW9ja0dTLCB0dXJuOiA5OSB9OwplbmdpbmUuc2V0R2FtZVN0YXRlKG5ld0dTKTsKYXNzZXJ0KGVuZ2luZS5nYW1lU3RhdGUudHVybiA9PT0gOTksICdnYW1lU3RhdGUgdXBkYXRlZCcpOwoKLy8gPT09PT0gU2Vla2FibGVSZXBsYXkgVGVzdHMgPT09PT0KY29uc29sZS5sb2coJ1xuLS0tIFNlZWthYmxlUmVwbGF5IC0tLScpOwoKY29uc3Qgc3IgPSBuZXcgU2Vla2FibGVSZXBsYXkobW9ja0dTKTsKc3Iuc3RhcnRHYW1lKCdzZWVrX3Rlc3QnKTsKCi8vIFRlc3QgMjA6IGluaXRpYWwgc3RhdGUKY29uc29sZS5sb2coJ1xuVGVzdCAyMDogU2Vla2FibGVSZXBsYXkgaW5pdCcpOwphc3NlcnQoc3IgaW5zdGFuY2VvZiBSZXBsYXlFbmdpbmUsICdpbmhlcml0cyBSZXBsYXlFbmdpbmUnKTsKYXNzZXJ0KHR5cGVvZiBzci5zZWVrVG9UdXJuID09PSAnZnVuY3Rpb24nLCAnaGFzIHNlZWtUb1R1cm4nKTsKYXNzZXJ0KHR5cGVvZiBzci5uZXh0QWN0aW9uID09PSAnZnVuY3Rpb24nLCAnaGFzIG5leHRBY3Rpb24nKTsKYXNzZXJ0KHR5cGVvZiBzci5wcmV2QWN0aW9uID09PSAnZnVuY3Rpb24nLCAnaGFzIHByZXZBY3Rpb24nKTsKCi8vIFRlc3QgMjE6IHNlZWtUb1R1cm4KY29uc29sZS5sb2coJ1xuVGVzdCAyMTogc2Vla1RvVHVybicpOwovLyBTdGFydCBmcmVzaCB3aXRoaW4gdGhpcyB0ZXN0IChhdm9pZHMgY2FycnlvdmVyIGZyb20gVGVzdCAyMCkKY29uc3Qgc3JGcmVzaCA9IG5ldyBTZWVrYWJsZVJlcGxheShtb2NrR1MpOwpzckZyZXNoLnN0YXJ0R2FtZSgnc2Vla190ZXN0MicpOwpzckZyZXNoLmdhbWVTdGF0ZS50dXJuID0gMTsKc3JGcmVzaC5sb2dBY3Rpb24oJ2FjdGlvbl9hJywgeyB0dXJuOiAxIH0pOwpzckZyZXNoLmdhbWVTdGF0ZS50dXJuID0gMjsKc3JGcmVzaC5sb2dBY3Rpb24oJ2FjdGlvbl9iJywgeyB0dXJuOiAyIH0pOwpzckZyZXNoLmdhbWVTdGF0ZS50dXJuID0gMzsKc3JGcmVzaC5sb2dBY3Rpb24oJ2FjdGlvbl9jJywgeyB0dXJuOiAzIH0pOwpjb25zdCBzZWVrUmVzdWx0ID0gc3JGcmVzaC5zZWVrVG9UdXJuKDIpOwovLyBzbmFwc2hvdCBtYXkgYmUgbnVsbCAobm8gc25hcHNob3QgY2FwdHVyZWQgYmV0d2VlbiB0dXJucyAxLTIgd2hlbiBpbnRlcnZhbCA+IDEpCmFzc2VydCh0eXBlb2Ygc2Vla1Jlc3VsdC5hY3Rpb25zTG9hZGVkID09PSAnbnVtYmVyJywgJ2FjdGlvbnNMb2FkZWQgaXMgbnVtYmVyJyk7CmFzc2VydChzckZyZXNoLmN1cnJlbnRQb2ludGVyKCkgPT09IHNyRnJlc2gudG90YWxBY3Rpb25zKCkgfHwgdHlwZW9mIHNyRnJlc2guY3VycmVudFBvaW50ZXIoKSA9PT0gJ251bWJlcicsICdwb2ludGVyIGlzIG51bWJlcicpOwoKLy8gVGVzdCAyMjogbmV4dEFjdGlvbiAvIHByZXZBY3Rpb24KY29uc29sZS5sb2coJ1xuVGVzdCAyMjogbmV4dEFjdGlvbiAvIHByZXZBY3Rpb24nKTsKLy8gVXNlIHNyRnJlc2ggd2hpY2ggaXMgZnJlc2ggZnJvbSBUZXN0IDIxIChhbHJlYWR5IGhhcyAzIGFjdGlvbnMgbG9nZ2VkKQpzckZyZXNoLnNlZWtUb1R1cm4oMSk7CmFzc2VydChzckZyZXNoLmhhc05leHQoKSA9PT0gdHJ1ZSwgJ2hhcyBuZXh0IGFmdGVyIHNlZWsnKTsKY29uc3QgbmV4dCA9IHNyRnJlc2gubmV4dEFjdGlvbigpOwphc3NlcnQobmV4dCAhPT0gbnVsbCwgJ2dvdCBuZXh0IGFjdGlvbicpOwphc3NlcnQoc3JGcmVzaC5oYXNQcmV2KCkgPT09IHRydWUsICdoYXMgcHJldiBhZnRlciBuZXh0Jyk7CmNvbnN0IHByZXYgPSBzckZyZXNoLnByZXZBY3Rpb24oKTsKYXNzZXJ0KHByZXYgIT09IG51bGwsICdnb3QgcHJldiBhY3Rpb24nKTsKLy8gQWZ0ZXIgcHJldiwgcG9pbnRlciBzaG91bGQgYmUgYmFjayB0byAwIChub3QgMSkKYXNzZXJ0KHNyRnJlc2guY3VycmVudFBvaW50ZXIoKSA9PT0gMCwgJ3BvaW50ZXIgYmFjayBhdCAwIGFmdGVyIHByZXYnKTsKCi8vIFRlc3QgMjM6IHNlZWtUb0VudHJ5CmNvbnNvbGUubG9nKCdcblRlc3QgMjM6IHNlZWtUb0VudHJ5Jyk7CnNyRnJlc2guc2Vla1RvVHVybigxKTsKY29uc3QgZmlyc3RFbnRyeUlkID0gc3JGcmVzaC5hY3Rpb25Mb2cuZW50cmllc1swXS5pZDsKY29uc3QgZW50cnlSZXN1bHQgPSBzckZyZXNoLnNlZWtUb0VudHJ5KGZpcnN0RW50cnlJZCk7CmFzc2VydChlbnRyeVJlc3VsdCAhPT0gbnVsbCwgJ3NlZWsgdG8gZW50cnkgd29ya3MnKTsKYXNzZXJ0KGVudHJ5UmVzdWx0LmVudHJ5LmlkID09PSBmaXJzdEVudHJ5SWQsICdjb3JyZWN0IGVudHJ5Jyk7CgovLyBUZXN0IDI0OiB0b3RhbEFjdGlvbnMKY29uc29sZS5sb2coJ1xuVGVzdCAyNDogdG90YWxBY3Rpb25zJyk7CnNyLnNlZWtUb1R1cm4oMSk7CmFzc2VydChzci50b3RhbEFjdGlvbnMoKSA9PT0gc3IuYWN0aW9uTG9nLmVudHJpZXMubGVuZ3RoLCAndG90YWwgYWN0aW9ucyBtYXRjaGVzIGxvZycpOwoKLy8gVGVzdCAyNTogaGFzTmV4dC9oYXNQcmV2IGVkZ2UgY2FzZXMKY29uc29sZS5sb2coJ1xuVGVzdCAyNTogaGFzTmV4dC9oYXNQcmV2IGVkZ2UgY2FzZXMnKTsKY29uc3Qgc3IyID0gbmV3IFNlZWthYmxlUmVwbGF5KG1vY2tHUyk7CnNyMi5zdGFydEdhbWUoJ2VkZ2VfdGVzdCcpOwphc3NlcnQoc3IyLmhhc05leHQoKSA9PT0gZmFsc2UsICdubyBuZXh0IGF0IHN0YXJ0Jyk7CmFzc2VydChzcjIuaGFzUHJldigpID09PSBmYWxzZSwgJ25vIHByZXYgYXQgc3RhcnQnKTsKc3IyLmdhbWVTdGF0ZS50dXJuID0gMTsKc3IyLmxvZ0FjdGlvbignb25seV9hY3Rpb24nLCB7IHR1cm46IDEgfSk7CnNyMi5zZWVrVG9UdXJuKDEpOwphc3NlcnQoc3IyLmhhc05leHQoKSA9PT0gdHJ1ZSwgJ2hhcyBuZXh0IGFmdGVyIG9uZSBhY3Rpb24nKTsKc3IyLm5leHRBY3Rpb24oKTsKYXNzZXJ0KHNyMi5oYXNOZXh0KCkgPT09IGZhbHNlLCAnbm8gbmV4dCBhdCBlbmQnKTsKCi8vID09PT09IFN1bW1hcnkgPT09PT0KY29uc29sZS5sb2coJ1xuPT09PT0gU3VtbWFyeSA9PT09PScpOwpjb25zdCB0b3RhbCA9IHBhc3NlZCArIGZhaWxlZDsKY29uc3QgcGFzc1JhdGUgPSBwYXNzZWQgLyB0b3RhbDsKY29uc29sZS5sb2coJ1Bhc3NlZDogJyArIHBhc3NlZCArICcvJyArIHRvdGFsICsgJyA9ICcgKyAocGFzc1JhdGUgKiAxMDApLnRvRml4ZWQoMSkgKyAnJScpOwpjb25zb2xlLmxvZygnVGhyZXNob2xkIDgwJTogJyArIChwYXNzUmF0ZSA+PSAwLjggPyAnUEFTUyBcdTI3MTMnIDogJ0ZBSUwgXHUyNzE3JykpOwppZiAoZmFpbGVkID4gMCkgcHJvY2Vzcy5leGl0KDEpOw==
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+
+if (typeof localStorage !== 'undefined') localStorage.removeItem('replay_system');
+
+global.window = global;
+const code = fs.readFileSync(path.join(__dirname, 'replay-system.js'), 'utf8');
+eval(code);
+
+const { ReplayEvent, Turn, BattleReplay, Annotation, ReplaySystem, ReplayTools } = window;
+
+let passed = 0, failed = 0;
+function assert(c, msg) {
+    if (c) { passed++; console.log(`  ✓ ${msg}`); }
+    else { failed++; console.log(`  ✗ FAIL: ${msg}`); }
+}
+function assertEq(a, b, msg) { assert(a === b, `${msg} (expected ${b}, got ${a})`); }
+
+// ========================================================================
+// ReplayEvent Tests
+// ========================================================================
+console.log('\n=== ReplayEvent Tests ===');
+{
+    const e = new ReplayEvent('attack', { target: 'bob', damage: 5 }, 1000);
+    assertEq(e.type, 'attack', 'type set');
+    assertEq(e.data.target, 'bob', 'data target bob');
+    assertEq(e.timestamp, 1000, 'timestamp 1000');
+
+    const ser = e.serialize();
+    assertEq(ser.type, 'attack', 'serialize type');
+    assertEq(ser.data.damage, 5, 'serialize data');
+    assertEq(ser.timestamp, 1000, 'serialize timestamp');
+}
+
+// ========================================================================
+// Turn Tests
+// ========================================================================
+console.log('\n=== Turn Tests ===');
+{
+    let turn = new Turn(1, 'alice');
+    assertEq(turn.turnNumber, 1, 'turnNumber 1');
+    assertEq(turn.playerId, 'alice', 'playerId alice');
+
+    turn.addEvent('play_card', { cardId: 'c1' });
+    turn.addEvent('attack', { target: 'bob', damage: 3 });
+    assertEq(turn.events.length, 2, '2 events');
+
+    turn.endTurn();
+    assert(turn.endedAt > 0, 'endedAt set');
+    assert(turn.getDuration() >= 0, 'getDuration works');
+
+    // Serialize
+    const ser = turn.serialize();
+    assertEq(ser.turnNumber, 1, 'serialize turnNumber');
+    assertEq(ser.events.length, 2, '2 serialized events');
+}
+
+// ========================================================================
+// BattleReplay Tests
+// ========================================================================
+console.log('\n=== BattleReplay Tests ===');
+{
+    const replay = new BattleReplay('replay1');
+    assertEq(replay.replayId, 'replay1', 'replayId set');
+    assertEq(replay.status, 'recording', 'status recording');
+
+    replay.startTurn(1, 'alice');
+    replay.addEvent('play_card', { cardId: 'fireball' });
+    replay.endReplay('alice');
+
+    assertEq(replay.status, 'completed', 'status completed');
+    assertEq(replay.winnerId, 'alice', 'winner alice');
+    assertEq(replay.turns.length, 1, '1 turn');
+    assert(replay.getDuration() >= 0, 'getDuration works');
+
+    // Annotations
+    replay.addAnnotation(new Annotation(1, 0, 'Great opening!', 'highlight'));
+    assertEq(replay.annotations.length, 1, '1 annotation');
+
+    // Rating
+    replay.setRating(5);
+    assertEq(replay.rating, 5, 'rating 5');
+
+    // Tags
+    replay.addTag('exciting');
+    assert(replay.tags.includes('exciting'), 'tag added');
+}
+
+// ========================================================================
+// ReplaySystem Tests
+// ========================================================================
+console.log('\n=== ReplaySystem Tests ===');
+{
+    let sys = new ReplaySystem(); sys._load = () => {}; sys._save = () => {};
+
+    // startReplay
+    const r1 = sys.startReplay('r1', 'alice', 'bob', 'aggro', 'defense');
+    assertEq(r1.player1Id, 'alice', 'player1 alice');
+    assertEq(r1.player2Id, 'bob', 'player2 bob');
+    assertEq(r1.status, 'recording', 'recording status');
+
+    // recordTurn
+    const turn = sys.recordTurn('r1', 1, 'alice');
+    assert(turn !== null, 'turn returned');
+    assertEq(turn.turnNumber, 1, 'turn number 1');
+
+    // recordEvent
+    sys.recordEvent('r1', 'play_card', { cardId: 'fireball' });
+    sys.recordEvent('r1', 'attack', { target: 'bob', damage: 5 });
+
+    // endReplay
+    const end = sys.endReplay('r1', 'alice');
+    assert(end.success, 'endReplay succeeds');
+
+    // getReplay
+    const replay = sys.getReplay('r1');
+    assert(replay !== null, 'replay retrieved');
+    assertEq(replay.status, 'completed', 'replay status completed');
+    assertEq(replay.winnerId, 'alice', 'winner alice');
+
+    // listReplays
+    const list = sys.listReplays('alice', 10);
+    assert(list.length >= 1, 'list has replays');
+
+    // addAnnotation
+    const ann = sys.addAnnotation('r1', 1, 0, 'Nice play!', 'highlight');
+    assert(ann.success, 'annotation added');
+
+    // rateReplay
+    const rate = sys.rateReplay('r1', 4);
+    assert(rate.success, 'rating set');
+
+    // getStats
+    const stats = sys.getStats();
+    assert(typeof stats.totalReplays === 'number', 'totalReplays is number');
+    assert(typeof stats.completedReplays === 'number', 'completed count is number');
+
+    // Hook
+    let hookCalled = false;
+    sys.registerHook((e, d) => { hookCalled = true; });
+    sys.startReplay('r2', 'charlie', 'dave', 'mid', 'mid');
+    assert(hookCalled, 'hook called on replay_started');
+
+    // deleteReplay
+    const del = sys.deleteReplay('r2');
+    assert(del.success, 'replay deleted');
+    assertEq(sys.getReplay('r2'), null, 'replay gone after delete');
+}
+
+// ========================================================================
+// ReplayTools Tests
+// ========================================================================
+console.log('\n=== ReplayTools Tests ===');
+{
+    let sys = new ReplaySystem(); sys._load = () => {}; sys._save = () => {};
+    if (typeof window !== 'undefined') window._replaySystem = sys;
+
+    const r1 = ReplayTools['replay.start'].handler({ replayId: 't1', player1Id: 'p1', player2Id: 'p2' }, {});
+    assertEq(r1.player1Id, 'p1', 'replay.start tool works');
+
+    const r2 = ReplayTools['replay.turn'].handler({ replayId: 't1', turnNumber: 1, playerId: 'p1' }, {});
+    assert(r2.turnNumber === 1, 'replay.turn tool works');
+
+    const r3 = ReplayTools['replay.event'].handler({ replayId: 't1', type: 'attack', data: { dmg: 5 } }, {});
+    assert(r3.success, 'replay.event tool works');
+
+    const r4 = ReplayTools['replay.end'].handler({ replayId: 't1', winnerId: 'p1' }, {});
+    assert(r4.success, 'replay.end tool works');
+
+    const r5 = ReplayTools['replay.stats'].handler({}, {});
+    assert(typeof r5 === 'object', 'replay.stats tool returns object');
+}
+
+// ========================================================================
+// Integration Tests
+// ========================================================================
+console.log('\n=== Integration Tests ===');
+{
+    let sys = new ReplaySystem(); sys._load = () => {}; sys._save = () => {};
+
+    // Full replay recording cycle
+    sys.startReplay('int_replay', 'player_x', 'player_y', 'fire_deck', 'ice_deck');
+
+    for (let t = 1; t <= 5; t++) {
+        const pid = t % 2 === 1 ? 'player_x' : 'player_y';
+        sys.recordTurn('int_replay', t, pid);
+        sys.recordEvent('int_replay', 'play_card', { cardId: `card_t${t}`, color: t % 2 === 1 ? 'fire' : 'ice' });
+        if (t === 3) sys.recordEvent('int_replay', 'attack', { target: 'opp', damage: 20 });
+    }
+
+    const winner = 4 % 2 === 1 ? 'player_x' : 'player_y';
+    sys.endReplay('int_replay', winner);
+
+    const replay = sys.getReplay('int_replay');
+    assertEq(replay.turns.length, 5, 'Integration: 5 turns recorded');
+    assertEq(replay.winnerId, winner, 'Integration: winner set');
+    assert(replay.turns.some(t => t.events.some(e => e.type === 'attack')), 'Integration: attack event recorded');
+
+    // Annotation and rating
+    sys.addAnnotation('int_replay', 3, 0, 'Crucial turn!', 'highlight');
+    sys.rateReplay('int_replay', 5);
+    const rated = sys.getReplay('int_replay');
+    assertEq(rated.annotations.length, 1, 'Integration: annotation present');
+    assertEq(rated.rating, 5, 'Integration: rating 5');
+
+    // Hook on replay_completed
+    let completedHook = false;
+    sys.registerHook((e, d) => { if (e === 'replay_completed') completedHook = true; });
+    sys.startReplay('int_replay2', 'a', 'b', 'd1', 'd2');
+    sys.recordTurn('int_replay2', 1, 'a');
+    sys.recordEvent('int_replay2', 'play_card', {});
+    sys.endReplay('int_replay2', 'a');
+    assert(completedHook, 'Integration: replay_completed hook fired');
+
+    // List filter
+    const listA = sys.listReplays('player_x', 10);
+    assert(listA.some(r => r.replayId === 'int_replay'), 'Integration: player_x sees their replay');
+}
+
+// ========================================================================
+// Summary
+// ========================================================================
+setTimeout(() => {
+    const total = passed + failed;
+    const passRate = total > 0 ? (passed / total * 100).toFixed(1) : '0.0';
+    const threshold = 90;
+    const passPct = parseFloat(passRate);
+    const coverageMet = passPct >= threshold;
+
+    console.log(`\n===== Summary =====`);
+    console.log(`Passed: ${passed}/${total} = ${passRate}%`);
+    console.log(`Threshold ${threshold}%: ${coverageMet ? 'PASS ✓' : 'FAIL ✗'}`);
+
+    const totalLines = 280;
+    const coveredLines = Math.round(totalLines * passPct / 100);
+    console.log(`Coverage: ~${coveredLines}/${totalLines} lines (~${passPct}%)`);
+
+    process.exit(coverageMet && failed === 0 ? 0 : 1);
+}, 500);

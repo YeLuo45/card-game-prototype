@@ -1,1 +1,317 @@
-J3VzZSBzdHJpY3QnOwoKLy8gPT09PT0gUmVwbGF5IFN5c3RlbSA9PT09PQovLyBEZXNpZ246IG5hbm9ib3QtZGVzaWduIChzdGF0ZSByZXBsYXkpICsgcnVmbG8tZGVzaWduIChoaXN0b3J5IHJlY29yZGluZykKLy8gRmVhdHVyZXM6IFR1cm5SZWNvcmRlciwgQWN0aW9uTG9nLCBTdGF0ZVNuYXBzaG90W10sIFJlcGxheUVuZ2luZSwgU2Vla2FibGVSZXBsYXkKCi8vID09PT09IEJST1dTRVIgR0xPQkFMUyBGT1IgVEVTVElORyA9PT09PQpjb25zdCBtb2NrR2FtZVN0YXRlID0gewogIHBsYXllcjogeyBuYW1lOiAnUGxheWVyJywgaHA6IDEwMCwgbWF4SHA6IDEwMCwgYXR0YWNrOiAxMCwgZGVmZW5zZTogNSwgZW5lcmd5OiAzLCBtYXhFbmVyZ3k6IDMsIGhhbmQ6IFtdLCBkZWNrOiBbXSwgZGlzY2FyZFBpbGU6IFtdIH0sCiAgZW5lbXk6IHsgbmFtZTogJ0VuZW15JywgaHA6IDUwLCBtYXhIcDogNTAsIGF0dGFjazogOCwgZGVmZW5zZTogMywgZW5lcmd5OiAyLCBtYXhFbmVyZ3k6IDIsIGhhbmQ6IFtdLCBkZWNrOiBbXSwgZGlzY2FyZFBpbGU6IFtdIH0sCiAgdHVybjogMSwgcGhhc2U6ICdwbGF5ZXJfdHVybicsIGdhbWVPdmVyOiBmYWxzZSwgd2lubmVyOiBudWxsLAogIGN1cnJlbnREZWNrOiBbXSwgaGFuZFNpemU6IDUsIG1heEhhbmRTaXplOiAxMAp9OwoKLy8gPT09PT0gQWN0aW9uTG9nID09PT09CmNsYXNzIEFjdGlvbkxvZyB7CiAgY29uc3RydWN0b3IoKSB7CiAgICB0aGlzLmVudHJpZXMgPSBbXTsKICAgIHRoaXMuZW50cnlJZCA9IDA7CiAgICB0aGlzLnRhZ3MgPSB7fTsKICB9CgogIGFkZChhY3Rpb24sIGRldGFpbCwgdGFncyA9IFtdKSB7CiAgICBjb25zdCBlbnRyeSA9IHsKICAgICAgaWQ6ICsrdGhpcy5lbnRyeUlkLAogICAgICB0aW1lc3RhbXA6IERhdGUubm93KCksCiAgICAgIHR1cm46IGRldGFpbC50dXJuIHx8IDAsCiAgICAgIHBoYXNlOiBkZXRhaWwucGhhc2UgfHwgJycsCiAgICAgIGFjdGlvbiwKICAgICAgZGV0YWlsOiB7IC4uLmRldGFpbCB9LAogICAgICB0YWdzOiBbLi4udGFnc10sCiAgICAgIGR1cmF0aW9uOiBkZXRhaWwuZHVyYXRpb24gfHwgMCwKICAgICAgbWV0YWRhdGE6IGRldGFpbC5tZXRhZGF0YSB8fCB7fQogICAgfTsKICAgIHRoaXMuZW50cmllcy5wdXNoKGVudHJ5KTsKICAgIGlmICh0YWdzLmxlbmd0aCkgewogICAgICBmb3IgKGNvbnN0IHRhZyBvZiB0YWdzKSB7CiAgICAgICAgaWYgKCF0aGlzLnRhZ3NbdGFnXSkgdGhpcy50YWdzW3RhZ10gPSBbXTsKICAgICAgICB0aGlzLnRhZ3NbdGFnXS5wdXNoKGVudHJ5LmlkKTsKICAgICAgfQogICAgfQogICAgcmV0dXJuIGVudHJ5LmlkOwogIH0KCiAgZ2V0KGlkKSB7CiAgICByZXR1cm4gdGhpcy5lbnRyaWVzLmZpbmQoZSA9PiBlLmlkID09PSBpZCkgfHwgbnVsbDsKICB9CgogIGdldEJ5VGFnKHRhZykgewogICAgY29uc3QgaWRzID0gdGhpcy50YWdzW3RhZ10gfHwgW107CiAgICByZXR1cm4gaWRzLm1hcChpZCA9PiB0aGlzLmdldChpZCkpLmZpbHRlcihCb29sZWFuKTsKICB9CgogIGZpbHRlcihjcml0ZXJpYSkgewogICAgcmV0dXJuIHRoaXMuZW50cmllcy5maWx0ZXIoZSA9PiB7CiAgICAgIGlmIChjcml0ZXJpYS5hY3Rpb24gJiYgZS5hY3Rpb24gIT09IGNyaXRlcmlhLmFjdGlvbikgcmV0dXJuIGZhbHNlOwogICAgICBpZiAoY3JpdGVyaWEudHVybiAmJiBlLnR1cm4gIT09IGNyaXRlcmlhLnR1cm4pIHJldHVybiBmYWxzZTsKICAgICAgaWYgKGNyaXRlcmlhLnBoYXNlICYmIGUucGhhc2UgIT09IGNyaXRlcmlhLnBoYXNlKSByZXR1cm4gZmFsc2U7CiAgICAgIGlmIChjcml0ZXJpYS50YWdzICYmICFjcml0ZXJpYS50YWdzLmV2ZXJ5KHQgPT4gZS50YWdzLmluY2x1ZGVzKHQpKSkgcmV0dXJuIGZhbHNlOwogICAgICByZXR1cm4gdHJ1ZTsKICAgIH0pOwogIH0KCiAgc2VhcmNoKHF1ZXJ5KSB7CiAgICBjb25zdCBxID0gcXVlcnkudG9Mb3dlckNhc2UoKTsKICAgIHJldHVybiB0aGlzLmVudHJpZXMuZmlsdGVyKGUgPT4KICAgICAgZS5hY3Rpb24udG9Mb3dlckNhc2UoKS5pbmNsdWRlcyhxKSB8fAogICAgICBKU09OLnN0cmluZ2lmeShlLmRldGFpbCkudG9Mb3dlckNhc2UoKS5pbmNsdWRlcyhxKQogICAgKTsKICB9CgogIGNsZWFyKCkgewogICAgdGhpcy5lbnRyaWVzID0gW107CiAgICB0aGlzLmVudHJ5SWQgPSAwOwogICAgdGhpcy50YWdzID0ge307CiAgfQoKICBleHBvcnQoKSB7CiAgICByZXR1cm4geyBlbnRyaWVzOiBbLi4udGhpcy5lbnRyaWVzXSwgZW50cnlJZDogdGhpcy5lbnRyeUlkLCB0YWdDb3VudDogT2JqZWN0LmtleXModGhpcy50YWdzKS5sZW5ndGggfTsKICB9CgogIGltcG9ydChkYXRhKSB7CiAgICB0aGlzLmVudHJpZXMgPSBkYXRhLmVudHJpZXMgfHwgW107CiAgICB0aGlzLmVudHJ5SWQgPSBkYXRhLmVudHJ5SWQgfHwgMDsKICAgIHRoaXMudGFncyA9IHt9OwogICAgZm9yIChjb25zdCBlbnRyeSBvZiB0aGlzLmVudHJpZXMpIHsKICAgICAgZm9yIChjb25zdCB0YWcgb2YgZW50cnkudGFncykgewogICAgICAgIGlmICghdGhpcy50YWdzW3RhZ10pIHRoaXMudGFnc1t0YWddID0gW107CiAgICAgICAgdGhpcy50YWdzW3RhZ10ucHVzaChlbnRyeS5pZCk7CiAgICAgIH0KICAgIH0KICB9Cn0KCi8vID09PT09IFJlcGxheUVuZ2luZSA9PT09PQpjbGFzcyBSZXBsYXlFbmdpbmUgewogIGNvbnN0cnVjdG9yKGdhbWVTdGF0ZSA9IG51bGwpIHsKICAgIHRoaXMuZ2FtZVN0YXRlID0gZ2FtZVN0YXRlIHx8IG1vY2tHYW1lU3RhdGU7CiAgICB0aGlzLmFjdGlvbkxvZyA9IG5ldyBBY3Rpb25Mb2coKTsKICAgIHRoaXMuc3RhdGVTbmFwc2hvdHMgPSBbXTsgLy8gc3BhcnNlOiBvbmx5IGF0IGtleSB0dXJucwogICAgdGhpcy5rZXlUdXJuSW50ZXJ2YWwgPSA1OwogICAgdGhpcy5tZXRhZGF0YSA9IHsgZ2FtZUlkOiAnJywgc3RhcnRUaW1lOiAwLCBlbmRUaW1lOiAwLCBwbGF5ZXJzOiBbXSB9OwogICAgdGhpcy5fcGF1c2VkID0gZmFsc2U7CiAgICB0aGlzLl9wbGF5YmFja1NwZWVkID0gMS4wOwogIH0KCiAgcmVzZXQoKSB7CiAgICB0aGlzLmFjdGlvbkxvZy5jbGVhcigpOwogICAgdGhpcy5zdGF0ZVNuYXBzaG90cyA9IFtdOwogICAgdGhpcy5tZXRhZGF0YSA9IHsgZ2FtZUlkOiAnJywgc3RhcnRUaW1lOiAwLCBlbmRUaW1lOiAwLCBwbGF5ZXJzOiBbXSB9OwogICAgdGhpcy5fcGF1c2VkID0gZmFsc2U7CiAgICB0aGlzLl9wbGF5YmFja1NwZWVkID0gMS4wOwogIH0KCiAgc2V0R2FtZVN0YXRlKGdzKSB7IHRoaXMuZ2FtZVN0YXRlID0gZ3M7IH0KICBzZXRLZXlUdXJuSW50ZXJ2YWwobikgeyB0aGlzLmtleVR1cm5JbnRlcnZhbCA9IG47IH0KCiAgc3RhcnRHYW1lKGdhbWVJZCA9ICcnKSB7CiAgICB0aGlzLnJlc2V0KCk7CiAgICB0aGlzLm1ldGFkYXRhLmdhbWVJZCA9IGdhbWVJZCB8fCAnZ2FtZV8nICsgRGF0ZS5ub3coKTsKICAgIHRoaXMubWV0YWRhdGEuc3RhcnRUaW1lID0gRGF0ZS5ub3coKTsKICAgIHRoaXMuY2FwdHVyZVNuYXBzaG90KCdnYW1lX3N0YXJ0Jyk7CiAgfQoKICBjYXB0dXJlU25hcHNob3QocmVhc29uID0gJycpIHsKICAgIGNvbnN0IHNuYXBzaG90ID0gewogICAgICBpZDogdGhpcy5zdGF0ZVNuYXBzaG90cy5sZW5ndGgsCiAgICAgIHR1cm46IHRoaXMuZ2FtZVN0YXRlLnR1cm4sCiAgICAgIHBoYXNlOiB0aGlzLmdhbWVTdGF0ZS5waGFzZSwKICAgICAgdGltZXN0YW1wOiBEYXRlLm5vdygpLAogICAgICByZWFzb246IHJlYXNvbiwKICAgICAgc3RhdGU6IHRoaXMuX2Nsb25lU3RhdGUodGhpcy5nYW1lU3RhdGUpCiAgICB9OwogICAgdGhpcy5zdGF0ZVNuYXBzaG90cy5wdXNoKHNuYXBzaG90KTsKICAgIHJldHVybiBzbmFwc2hvdC5pZDsKICB9CgogIF9jbG9uZVN0YXRlKGdzKSB7CiAgICByZXR1cm4gSlNPTi5wYXJzZShKU09OLnN0cmluZ2lmeShncykpOwogIH0KCiAgX3Nob3VsZENhcHR1cmVTbmFwc2hvdCgpIHsKICAgIGNvbnN0IGxhc3QgPSB0aGlzLnN0YXRlU25hcHNob3RzW3RoaXMuc3RhdGVTbmFwc2hvdHMubGVuZ3RoIC0gMV07CiAgICBpZiAoIWxhc3QpIHJldHVybiB0cnVlOwogICAgcmV0dXJuIHRoaXMuZ2FtZVN0YXRlLnR1cm4gLSBsYXN0LnR1cm4gPj0gdGhpcy5rZXlUdXJuSW50ZXJ2YWw7CiAgfQoKICBsb2dBY3Rpb24oYWN0aW9uLCBkZXRhaWwgPSB7fSwgdGFncyA9IFtdKSB7CiAgICBjb25zdCBlbnRyeSA9IHRoaXMuYWN0aW9uTG9nLmFkZChhY3Rpb24sIHsKICAgICAgLi4uZGV0YWlsLAogICAgICB0dXJuOiB0aGlzLmdhbWVTdGF0ZS50dXJuLAogICAgICBwaGFzZTogdGhpcy5nYW1lU3RhdGUucGhhc2UKICAgIH0sIHRhZ3MpOwogICAgaWYgKHRoaXMuX3Nob3VsZENhcHR1cmVTbmFwc2hvdCgpKSB7CiAgICAgIHRoaXMuY2FwdHVyZVNuYXBzaG90KCdhdXRvXycgKyBhY3Rpb24pOwogICAgfQogICAgcmV0dXJuIGVudHJ5OwogIH0KCiAgcGF1c2UoKSB7IHRoaXMuX3BhdXNlZCA9IHRydWU7IH0KICByZXN1bWUoKSB7IHRoaXMuX3BhdXNlZCA9IGZhbHNlOyB9CiAgaXNQYXVzZWQoKSB7IHJldHVybiB0aGlzLl9wYXVzZWQ7IH0KICBzZXRQbGF5YmFja1NwZWVkKHMpIHsgdGhpcy5fcGxheWJhY2tTcGVlZCA9IE1hdGgubWF4KDAuMjUsIE1hdGgubWluKDQuMCwgcykpOyB9CiAgZ2V0UGxheWJhY2tTcGVlZCgpIHsgcmV0dXJuIHRoaXMuX3BsYXliYWNrU3BlZWQ7IH0KCiAgZW5kR2FtZSgpIHsKICAgIHRoaXMubWV0YWRhdGEuZW5kVGltZSA9IERhdGUubm93KCk7CiAgICB0aGlzLmNhcHR1cmVTbmFwc2hvdCgnZ2FtZV9lbmQnKTsKICAgIHRoaXMubG9nQWN0aW9uKCdnYW1lX2VuZCcsIHsgd2lubmVyOiB0aGlzLmdhbWVTdGF0ZS53aW5uZXIsIGdhbWVPdmVyOiB0cnVlIH0sIFsnZ2FtZV9lbmQnXSk7CiAgfQoKICBnZXRTbmFwc2hvdEF0KHR1cm4pIHsKICAgIC8vIEZpbmQgc25hcHNob3QgYXQgb3IgYmVmb3JlIHRhcmdldCB0dXJuCiAgICBsZXQgYmVzdCA9IG51bGw7CiAgICBmb3IgKGNvbnN0IHNuYXAgb2YgdGhpcy5zdGF0ZVNuYXBzaG90cykgewogICAgICBpZiAoc25hcC50dXJuIDw9IHR1cm4pIHsKICAgICAgICBpZiAoIWJlc3QgfHwgc25hcC50dXJuID4gYmVzdC50dXJuKSBiZXN0ID0gc25hcDsKICAgICAgfQogICAgfQogICAgcmV0dXJuIGJlc3Q7CiAgfQoKICBnZXRBY3Rpb25CZXR3ZWVuKGZyb21UdXJuLCB0b1R1cm4pIHsKICAgIHJldHVybiB0aGlzLmFjdGlvbkxvZy5maWx0ZXIoeyB0dXJuOiB7IG1pbjogZnJvbVR1cm4sIG1heDogdG9UdXJuIH0gfSk7CiAgfQoKICByZXBsYXkoZnJvbVR1cm4gPSAxLCB0b1R1cm4gPSBudWxsLCBvbkFjdGlvbiA9IG51bGwsIG9uU25hcHNob3QgPSBudWxsKSB7CiAgICBjb25zdCBzdGFydFNuYXAgPSB0aGlzLmdldFNuYXBzaG90QXQoZnJvbVR1cm4pOwogICAgY29uc3QgZW5kVHVybiA9IHRvVHVybiB8fCB0aGlzLmdhbWVTdGF0ZS50dXJuOwogICAgY29uc3QgZXZlbnRzID0gW107CiAgICBmb3IgKGNvbnN0IGVudHJ5IG9mIHRoaXMuYWN0aW9uTG9nLmVudHJpZXMpIHsKICAgICAgaWYgKGVudHJ5LnR1cm4gPj0gZnJvbVR1cm4gJiYgKHRvVHVybiA9PT0gbnVsbCB8fCBlbnRyeS50dXJuIDw9IGVuZFR1cm4pKSB7CiAgICAgICAgZXZlbnRzLnB1c2goeyB0eXBlOiAnYWN0aW9uJywgZW50cnkgfSk7CiAgICAgIH0KICAgIH0KICAgIGZvciAoY29uc3Qgc25hcCBvZiB0aGlzLnN0YXRlU25hcHNob3RzKSB7CiAgICAgIGlmIChzbmFwLnR1cm4gPj0gZnJvbVR1cm4gJiYgKHRvVHVybiA9PT0gbnVsbCB8fCBzbmFwLnR1cm4gPD0gZW5kVHVybikpIHsKICAgICAgICBldmVudHMucHVzaCh7IHR5cGU6ICdzbmFwc2hvdCcsIHNuYXAgfSk7CiAgICAgIH0KICAgIH0KICAgIGV2ZW50cy5zb3J0KChhLCBiKSA9PiB7CiAgICAgIGlmIChhLnR5cGUgPT09ICdzbmFwc2hvdCcgJiYgYi50eXBlID09PSAnYWN0aW9uJykgcmV0dXJuIC0xOwogICAgICBpZiAoYS50eXBlID09PSAnYWN0aW9uJyAmJiBiLnR5cGUgPT09ICdzbmFwc2hvdCcpIHJldHVybiAxOwogICAgICByZXR1cm4gKGEuZW50cnk/LnR1cm4gfHwgYS5zbmFwPy50dXJuKSAtIChiLmVudHJ5Py50dXJuIHx8IGIuc25hcD8udHVybik7CiAgICB9KTsKICAgIGxldCBpZHggPSAwOwogICAgY29uc3QgdGljayA9ICgpID0+IHsKICAgICAgaWYgKGlkeCA+PSBldmVudHMubGVuZ3RoKSByZXR1cm4gZXZlbnRzLmxlbmd0aDsKICAgICAgY29uc3QgZXYgPSBldmVudHNbaWR4KytdOwogICAgICBpZiAoZXYudHlwZSA9PT0gJ2FjdGlvbicgJiYgb25BY3Rpb24pIG9uQWN0aW9uKGV2LmVudHJ5KTsKICAgICAgaWYgKGV2LnR5cGUgPT09ICdzbmFwc2hvdCcgJiYgb25TbmFwc2hvdCkgb25TbmFwc2hvdChldi5zbmFwKTsKICAgICAgcmV0dXJuIGlkeCA8IGV2ZW50cy5sZW5ndGg7CiAgICB9OwogICAgcmV0dXJuIHsgZXZlbnRzLCB0aWNrLCB0b3RhbDogZXZlbnRzLmxlbmd0aCB9OwogIH0KCiAgZ2V0U3RhdGUoKSB7CiAgICByZXR1cm4gewogICAgICBnYW1lSWQ6IHRoaXMubWV0YWRhdGEuZ2FtZUlkLAogICAgICBkdXJhdGlvbjogdGhpcy5tZXRhZGF0YS5lbmRUaW1lID8gdGhpcy5tZXRhZGF0YS5lbmRUaW1lIC0gdGhpcy5tZXRhZGF0YS5zdGFydFRpbWUgOiBEYXRlLm5vdygpIC0gdGhpcy5tZXRhZGF0YS5zdGFydFRpbWUsCiAgICAgIGFjdGlvbkNvdW50OiB0aGlzLmFjdGlvbkxvZy5lbnRyaWVzLmxlbmd0aCwKICAgICAgc25hcHNob3RDb3VudDogdGhpcy5zdGF0ZVNuYXBzaG90cy5sZW5ndGgsCiAgICAgIHR1cm5SYW5nZTogdGhpcy5zdGF0ZVNuYXBzaG90cy5sZW5ndGggPiAwCiAgICAgICAgPyBbdGhpcy5zdGF0ZVNuYXBzaG90c1swXS50dXJuLCB0aGlzLnN0YXRlU25hcHNob3RzW3RoaXMuc3RhdGVTbmFwc2hvdHMubGVuZ3RoIC0gMV0udHVybl0KICAgICAgICA6IFswLCAwXSwKICAgICAgbWV0YWRhdGE6IHsgLi4udGhpcy5tZXRhZGF0YSB9CiAgICB9OwogIH0KCiAgZXhwb3J0UmVwbGF5KCkgewogICAgcmV0dXJuIHsKICAgICAgbWV0YWRhdGE6IHsgLi4udGhpcy5tZXRhZGF0YSB9LAogICAgICBlbnRyaWVzOiB0aGlzLmFjdGlvbkxvZy5leHBvcnQoKS5lbnRyaWVzLAogICAgICBzbmFwc2hvdHM6IHRoaXMuc3RhdGVTbmFwc2hvdHMubWFwKHMgPT4gKHsgaWQ6IHMuaWQsIHR1cm46IHMudHVybiwgcGhhc2U6IHMucGhhc2UsIHRpbWVzdGFtcDogcy50aW1lc3RhbXAsIHJlYXNvbjogcy5yZWFzb24gfSkpCiAgICB9OwogIH0KCiAgbG9hZFJlcGxheShkYXRhKSB7CiAgICB0aGlzLm1ldGFkYXRhID0geyAuLi50aGlzLm1ldGFkYXRhLCAuLi5kYXRhLm1ldGFkYXRhIH07CiAgICB0aGlzLmFjdGlvbkxvZy5pbXBvcnQoeyBlbnRyaWVzOiBkYXRhLmVudHJpZXMsIGVudHJ5SWQ6IGRhdGEuZW50cmllcy5sZW5ndGggfSk7CiAgICB0aGlzLnN0YXRlU25hcHNob3RzID0gKGRhdGEuc25hcHNob3RzIHx8IFtdKS5tYXAocyA9PiAoewogICAgICBpZDogcy5pZCwgdHVybjogcy50dXJuLCBwaGFzZTogcy5waGFzZSwgdGltZXN0YW1wOiBzLnRpbWVzdGFtcCwgcmVhc29uOiBzLnJlYXNvbiwgc3RhdGU6IHt9CiAgICB9KSk7CiAgfQp9CgovLyA9PT09PSBTZWVrYWJsZVJlcGxheSA9PT09PQpjbGFzcyBTZWVrYWJsZVJlcGxheSBleHRlbmRzIFJlcGxheUVuZ2luZSB7CiAgY29uc3RydWN0b3IoZ2FtZVN0YXRlID0gbnVsbCkgewogICAgc3VwZXIoZ2FtZVN0YXRlKTsKICAgIHRoaXMuX2N1cnJlbnRQb2ludGVyID0gMDsKICAgIHRoaXMuX2V2ZW50UXVldWUgPSBbXTsKICB9CgogIHNlZWtUb1R1cm4odHVybikgewogICAgY29uc3Qgc25hcCA9IHRoaXMuZ2V0U25hcHNob3RBdCh0dXJuKTsKICAgIGlmIChzbmFwKSB7CiAgICAgIHRoaXMuZ2FtZVN0YXRlID0gdGhpcy5fY2xvbmVTdGF0ZShzbmFwLnN0YXRlKTsKICAgIH0KICAgIGNvbnN0IGFjdGlvbnMgPSB0aGlzLmFjdGlvbkxvZy5maWx0ZXIoeyB0dXJuOiB7IG1pbjogMCwgbWF4OiB0dXJuIH0gfSk7CiAgICB0aGlzLl9jdXJyZW50UG9pbnRlciA9IGFjdGlvbnMubGVuZ3RoOwogICAgdGhpcy5fZXZlbnRRdWV1ZSA9IFtdOwogICAgcmV0dXJuIHsgc25hcHNob3Q6IHNuYXAsIGFjdGlvbnNMb2FkZWQ6IGFjdGlvbnMubGVuZ3RoIH07CiAgfQoKICBnZXRBY3Rpb25BdCh0dXJuKSB7CiAgICByZXR1cm4gdGhpcy5hY3Rpb25Mb2cuZmlsdGVyKHsgdHVybjogdHVybiB9KTsKICB9CgogIHNlZWtUb0VudHJ5KGVudHJ5SWQpIHsKICAgIGNvbnN0IGVudHJ5ID0gdGhpcy5hY3Rpb25Mb2cuZ2V0KGVudHJ5SWQpOwogICAgaWYgKCFlbnRyeSkgcmV0dXJuIG51bGw7CiAgICBjb25zdCByZXN1bHQgPSB0aGlzLnNlZWtUb1R1cm4oZW50cnkudHVybik7CiAgICByZXR1cm4geyBlbnRyeSwgLi4ucmVzdWx0IH07CiAgfQoKICBuZXh0QWN0aW9uKCkgewogICAgY29uc3QgYWxsRW50cmllcyA9IHRoaXMuYWN0aW9uTG9nLmVudHJpZXM7CiAgICBpZiAodGhpcy5fY3VycmVudFBvaW50ZXIgPj0gYWxsRW50cmllcy5sZW5ndGgpIHJldHVybiBudWxsOwogICAgcmV0dXJuIGFsbEVudHJpZXNbdGhpcy5fY3VycmVudFBvaW50ZXIrK107CiAgfQoKICBwcmV2QWN0aW9uKCkgewogICAgaWYgKHRoaXMuX2N1cnJlbnRQb2ludGVyIDw9IDApIHJldHVybiBudWxsOwogICAgcmV0dXJuIHRoaXMuYWN0aW9uTG9nLmVudHJpZXNbLS10aGlzLl9jdXJyZW50UG9pbnRlcl07CiAgfQoKICBjdXJyZW50UG9pbnRlcigpIHsgcmV0dXJuIHRoaXMuX2N1cnJlbnRQb2ludGVyOyB9CiAgdG90YWxBY3Rpb25zKCkgeyByZXR1cm4gdGhpcy5hY3Rpb25Mb2cuZW50cmllcy5sZW5ndGg7IH0KICBoYXNOZXh0KCkgeyByZXR1cm4gdGhpcy5fY3VycmVudFBvaW50ZXIgPCB0aGlzLmFjdGlvbkxvZy5lbnRyaWVzLmxlbmd0aDsgfQogIGhhc1ByZXYoKSB7IHJldHVybiB0aGlzLl9jdXJyZW50UG9pbnRlciA+IDA7IH0KfQoKbW9kdWxlLmV4cG9ydHMgPSB7IEFjdGlvbkxvZywgUmVwbGF5RW5naW5lLCBTZWVrYWJsZVJlcGxheSB9Ow==
+// ============================================================================
+// Card Battle Replay System — V132 Direction Z
+// ============================================================================
+// Record, annotate, and share battle replays with turn-by-turn playback.
+// thunderbolt offline-first (replay storage) + generic-agent L0-L4 (replay memory).
+// ============================================================================
+
+'use strict';
+
+class ReplayEvent {
+  constructor(type, data, timestamp) {
+    this.type = type; // 'play_card' | 'attack' | 'defend' | 'use_ability' | 'turn_end' | 'game_over'
+    this.data = data || {};
+    this.timestamp = timestamp || Date.now();
+  }
+
+  serialize() {
+    return { type: this.type, data: this.data, timestamp: this.timestamp };
+  }
+}
+
+class Turn {
+  constructor(turnNumber, playerId) {
+    this.turnNumber = turnNumber;
+    this.playerId = playerId;
+    this.events = [];
+    this.startedAt = Date.now();
+    this.endedAt = null;
+  }
+
+  addEvent(type, data) {
+    this.events.push(new ReplayEvent(type, data));
+  }
+
+  endTurn() { this.endedAt = Date.now(); }
+
+  getDuration() { return (this.endedAt || Date.now()) - this.startedAt; }
+
+  serialize() {
+    return {
+      turnNumber: this.turnNumber,
+      playerId: this.playerId,
+      events: this.events.map(e => e.serialize()),
+      startedAt: this.startedAt,
+      endedAt: this.endedAt
+    };
+  }
+}
+
+class BattleReplay {
+  constructor(replayId) {
+    this.replayId = replayId;
+    this.player1Id = null;
+    this.player2Id = null;
+    this.player1Deck = null;
+    this.player2Deck = null;
+    this.winnerId = null;
+    this.turns = [];
+    this.currentTurn = null;
+    this.status = 'recording'; // 'recording' | 'completed' | 'annotated' | 'shared'
+    this.createdAt = Date.now();
+    this.annotations = []; // Annotation[]
+    this.rating = null;
+    this.tags = [];
+  }
+
+  startTurn(turnNumber, playerId) {
+    if (this.currentTurn) this.currentTurn.endTurn();
+    this.currentTurn = new Turn(turnNumber, playerId);
+    this.turns.push(this.currentTurn);
+    return this.currentTurn;
+  }
+
+  addEvent(type, data) {
+    if (this.currentTurn) this.currentTurn.addEvent(type, data);
+  }
+
+  endReplay(winnerId) {
+    if (this.currentTurn) this.currentTurn.endTurn();
+    this.winnerId = winnerId;
+    this.status = 'completed';
+  }
+
+  addAnnotation(annotation) { this.annotations.push(annotation); }
+  setRating(rating) { this.rating = rating; }
+  addTag(tag) { this.tags.push(tag); }
+
+  getDuration() {
+    if (this.turns.length === 0) return 0;
+    const first = this.turns[0];
+    const last = this.turns[this.turns.length - 1];
+    return (last.endedAt || Date.now()) - first.startedAt;
+  }
+
+  serialize() {
+    return {
+      replayId: this.replayId,
+      player1Id: this.player1Id,
+      player2Id: this.player2Id,
+      player1Deck: this.player1Deck,
+      player2Deck: this.player2Deck,
+      winnerId: this.winnerId,
+      turns: this.turns.map(t => t.serialize()),
+      status: this.status,
+      createdAt: this.createdAt,
+      annotations: this.annotations,
+      rating: this.rating,
+      tags: this.tags
+    };
+  }
+}
+
+class Annotation {
+  constructor(turnNumber, eventIndex, text, type) {
+    this.turnNumber = turnNumber;
+    this.eventIndex = eventIndex;
+    this.text = text; // 'highlight' | 'mistake' | 'tip' | 'comment'
+    this.type = type || 'comment';
+    this.createdAt = Date.now();
+  }
+}
+
+class ReplaySystem {
+  constructor() {
+    this.replays = new Map(); // replayId → BattleReplay
+    this.hooks = [];
+    this._load();
+  }
+
+  _load() {
+    try {
+      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('replay_system') : null;
+      if (raw) {
+        const data = JSON.parse(raw);
+        for (const [rid, rdata] of Object.entries(data.replays || {})) {
+          const replay = new BattleReplay(rid);
+          replay.player1Id = rdata.player1Id;
+          replay.player2Id = rdata.player2Id;
+          replay.player1Deck = rdata.player1Deck;
+          replay.player2Deck = rdata.player2Deck;
+          replay.winnerId = rdata.winnerId;
+          replay.status = rdata.status;
+          replay.createdAt = rdata.createdAt;
+          replay.annotations = rdata.annotations || [];
+          replay.rating = rdata.rating;
+          replay.tags = rdata.tags || [];
+          replay.turns = (rdata.turns || []).map(t => {
+            const turn = new Turn(t.turnNumber, t.playerId);
+            turn.startedAt = t.startedAt;
+            turn.endedAt = t.endedAt;
+            turn.events = (t.events || []).map(e => new ReplayEvent(e.type, e.data, e.timestamp));
+            return turn;
+          });
+          this.replays.set(rid, replay);
+        }
+      }
+    } catch {}
+  }
+
+  _save() {
+    if (typeof localStorage !== 'undefined') {
+      const data = {
+        replays: Object.fromEntries(Array.from(this.replays.entries()).map(([k, v]) => [k, v.serialize()]))
+      };
+      localStorage.setItem('replay_system', JSON.stringify(data));
+    }
+  }
+
+  registerHook(cb) { this.hooks.push(cb); }
+  _emit(event, data) { for (const h of this.hooks) { try { h(event, data); } catch {} } }
+
+  startReplay(replayId, player1Id, player2Id, player1Deck, player2Deck) {
+    const replay = new BattleReplay(replayId);
+    replay.player1Id = player1Id;
+    replay.player2Id = player2Id;
+    replay.player1Deck = player1Deck;
+    replay.player2Deck = player2Deck;
+    this.replays.set(replayId, replay);
+    this._save();
+    this._emit('replay_started', { replayId });
+    return replay;
+  }
+
+  recordTurn(replayId, turnNumber, playerId) {
+    const replay = this.replays.get(replayId);
+    if (!replay) return null;
+    return replay.startTurn(turnNumber, playerId);
+  }
+
+  recordEvent(replayId, type, data) {
+    const replay = this.replays.get(replayId);
+    if (!replay) return;
+    replay.addEvent(type, data);
+    this._save();
+  }
+
+  endReplay(replayId, winnerId) {
+    const replay = this.replays.get(replayId);
+    if (!replay) return { error: 'replay_not_found' };
+    replay.endReplay(winnerId);
+    this._save();
+    this._emit('replay_completed', { replayId, winnerId });
+    return { success: true };
+  }
+
+  getReplay(replayId) {
+    const replay = this.replays.get(replayId);
+    if (!replay) return null;
+    return replay.serialize();
+  }
+
+  listReplays(playerId, limit) {
+    const all = Array.from(this.replays.values())
+      .filter(r => r.player1Id === playerId || r.player2Id === playerId)
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, limit || 20);
+    return all.map(r => r.serialize());
+  }
+
+  addAnnotation(replayId, turnNumber, eventIndex, text, type) {
+    const replay = this.replays.get(replayId);
+    if (!replay) return { error: 'replay_not_found' };
+    const annotation = new Annotation(turnNumber, eventIndex, text, type);
+    replay.addAnnotation(annotation);
+    this._save();
+    return { success: true };
+  }
+
+  rateReplay(replayId, rating) {
+    const replay = this.replays.get(replayId);
+    if (!replay) return { error: 'replay_not_found' };
+    replay.setRating(rating);
+    this._save();
+    return { success: true };
+  }
+
+  getStats() {
+    return {
+      totalReplays: this.replays.size,
+      completedReplays: Array.from(this.replays.values()).filter(r => r.status === 'completed').length,
+      annotatedReplays: Array.from(this.replays.values()).filter(r => r.annotations.length > 0).length
+    };
+  }
+
+  deleteReplay(replayId) {
+    if (this.replays.has(replayId)) {
+      this.replays.delete(replayId);
+      this._save();
+      return { success: true };
+    }
+    return { error: 'replay_not_found' };
+  }
+}
+
+const ReplayTools = {
+  'replay.start': {
+    description: 'Start recording a battle replay',
+    parameters: { type: 'object', properties: { replayId: { type: 'string' }, player1Id: { type: 'string' }, player2Id: { type: 'string' }, player1Deck: { type: 'string' }, player2Deck: { type: 'string' } }, required: ['replayId', 'player1Id', 'player2Id'] },
+    handler(args) {
+      if (!window._replaySystem) window._replaySystem = new ReplaySystem();
+      return window._replaySystem.startReplay(args.replayId, args.player1Id, args.player2Id, args.player1Deck || 'unknown', args.player2Deck || 'unknown');
+    }
+  },
+  'replay.turn': {
+    description: 'Record a turn in a replay',
+    parameters: { type: 'object', properties: { replayId: { type: 'string' }, turnNumber: { type: 'number' }, playerId: { type: 'string' } }, required: ['replayId', 'turnNumber', 'playerId'] },
+    handler(args) {
+      if (!window._replaySystem) return { error: 'not_init' };
+      return window._replaySystem.recordTurn(args.replayId, args.turnNumber, args.playerId);
+    }
+  },
+  'replay.event': {
+    description: 'Record an event in the current turn',
+    parameters: { type: 'object', properties: { replayId: { type: 'string' }, type: { type: 'string' }, data: { type: 'object' } }, required: ['replayId', 'type'] },
+    handler(args) {
+      if (!window._replaySystem) return { error: 'not_init' };
+      window._replaySystem.recordEvent(args.replayId, args.type, args.data || {});
+      return { success: true };
+    }
+  },
+  'replay.end': {
+    description: 'End and finalize a replay',
+    parameters: { type: 'object', properties: { replayId: { type: 'string' }, winnerId: { type: 'string' } }, required: ['replayId', 'winnerId'] },
+    handler(args) {
+      if (!window._replaySystem) return { error: 'not_init' };
+      return window._replaySystem.endReplay(args.replayId, args.winnerId);
+    }
+  },
+  'replay.get': {
+    description: 'Get replay details',
+    parameters: { type: 'object', properties: { replayId: { type: 'string' } }, required: ['replayId'] },
+    handler(args) {
+      if (!window._replaySystem) window._replaySystem = new ReplaySystem();
+      return window._replaySystem.getReplay(args.replayId);
+    }
+  },
+  'replay.stats': {
+    description: 'Get replay system stats',
+    parameters: { type: 'object', properties: {} },
+    handler() {
+      if (!window._replaySystem) window._replaySystem = new ReplaySystem();
+      return window._replaySystem.getStats();
+    }
+  }
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { ReplayEvent, Turn, BattleReplay, Annotation, ReplaySystem, ReplayTools };
+}
+if (typeof window !== 'undefined') {
+  window.ReplayEvent = ReplayEvent;
+  window.Turn = Turn;
+  window.BattleReplay = BattleReplay;
+  window.Annotation = Annotation;
+  window.ReplaySystem = ReplaySystem;
+  window.ReplayTools = ReplayTools;
+}
