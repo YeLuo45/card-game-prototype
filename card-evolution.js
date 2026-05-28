@@ -1,249 +1,288 @@
 // ============================================================================
-// Card Evolution System — V101 Direction U
+// Card Evolution — V159 Direction U
+// Auto-evolving cards that gain strength through battle experience
+// nanobot self-improving agent + generic-agent autonomous growth
 // ============================================================================
-// Cards auto-evolve by gaining XP from battles. Each card has an XP bar,
-// and upon reaching thresholds, evolves into stronger versions.
-// ============================================================================
-
 'use strict';
 
-class CardEvolutionEngine {
-  constructor(config = {}) {
-    this.xpPerWin = config.xpPerWin || 30;
-    this.xpPerLoss = config.xpPerLoss || 10;
-    this.xpPerDamageDealt = config.xpPerDamageDealt || 0.5;
-    this.xpPerBlock = config.xpPerBlock || 0.3;
-    this.evolutionTiers = config.evolutionTiers || [
-      { xp: 0,    name: 'I',   statBonus: 0 },
-      { xp: 100,  name: 'II',  statBonus: 0.1 },
-      { xp: 250,  name: 'III', statBonus: 0.2 },
-      { xp: 500,  name: 'IV',  statBonus: 0.35 },
-      { xp: 1000, name: 'V',   statBonus: 0.5 }
-    ];
-    this.totalEvolutions = 0;
+(function () {
+  // --------------------------------------------------------------------===
+  // EvolutionPath: Defines how a card can evolve
+  // ========================================================================
+  function EvolutionPath(id, fromCardId, toCardId, experienceRequired, statBoosts, newAbilities) {
+    this.id = id || '';
+    this.fromCardId = fromCardId || '';
+    this.toCardId = toCardId || '';
+    this.experienceRequired = experienceRequired || 0;
+    this.statBoosts = statBoosts || {}; // e.g. { attack: 5, health: 10 }
+    this.newAbilities = newAbilities || [];
   }
 
-  // Award XP to a card after a game
-  awardXP(card, gameResult) {
-    if (!card || !card.id) return null;
-    const result = {
-      xpGained: 0,
-      previousXP: card.evolutionXP || 0,
-      newXP: card.evolutionXP || 0
+  EvolutionPath.prototype.canEvolve = function (card) {
+    return card.experience >= this.experienceRequired;
+  };
+
+  // --------------------------------------------------------------------===
+  // EvolvableCard: A card that can gain experience and evolve
+  // ========================================================================
+  function EvolvableCard(id, name, type, baseAttack, baseHealth, abilities, rarity) {
+    this.id = id || '';
+    this.name = name || '';
+    this.type = type || 'creature';
+    this.baseAttack = baseAttack || 0;
+    this.baseHealth = baseHealth || 0;
+    this.currentAttack = baseAttack || 0;
+    this.currentHealth = baseHealth || 0;
+    this.maxHealth = baseHealth || 0;
+    this.abilities = abilities || [];
+    this.rarity = rarity || 'common'; // common | uncommon | rare | epic | legendary
+    this.experience = 0;
+    this.level = 1;
+    this.evolutionStage = 0; // 0 = base, 1 = stage 1, etc.
+    this.evolvedFrom = null;
+    this.isEvolved = false;
+  }
+
+  EvolvableCard.prototype.addExperience = function (amount) {
+    this.experience += amount || 10;
+    return this.experience;
+  };
+
+  EvolvableCard.prototype.resetToBase = function () {
+    this.currentAttack = this.baseAttack;
+    this.currentHealth = this.baseHealth;
+    this.maxHealth = this.baseHealth;
+  };
+
+  EvolvableCard.prototype.getStats = function () {
+    return {
+      attack: this.currentAttack,
+      health: this.currentHealth,
+      maxHealth: this.maxHealth,
+      level: this.level,
+      experience: this.experience
     };
+  };
 
-    if (gameResult.outcome === 'win') {
-      result.xpGained += this.xpPerWin;
-    } else if (gameResult.outcome === 'loss') {
-      result.xpGained += this.xpPerLoss;
+  // --------------------------------------------------------------------===
+  // CardEvolution: Main evolution system manager
+  // ========================================================================
+  function CardEvolution(storageKey) {
+    this.storageKey = storageKey || 'card_evolution';
+    this._cards = {}; // cardId -> EvolvableCard
+    this._evolutionPaths = {}; // pathId -> EvolutionPath
+    this._evolvedCards = []; // history of evolutions
+    this._stats = { totalEvolutions: 0, totalExperienceGained: 0 };
+    this._init();
+  }
+
+  CardEvolution.prototype._init = function () {
+    this._load();
+    if (Object.keys(this._cards).length === 0) this._generateDefaultEvolution();
+  };
+
+  CardEvolution.prototype._load = function () {
+    try {
+      if (typeof localStorage !== 'undefined' && localStorage) {
+        var raw = localStorage.getItem(this.storageKey);
+        if (raw) {
+          var data = JSON.parse(raw);
+          this._cards = data.cards || {};
+          this._evolutionPaths = data.evolutionPaths || {};
+          this._evolvedCards = data.evolvedCards || [];
+          this._stats = data.stats || this._stats;
+          // Reconstruct EvolvableCard instances
+          for (var cid in this._cards) {
+            var cardData = this._cards[cid];
+            var card = new EvolvableCard(cardData.id, cardData.name, cardData.type,
+              cardData.baseAttack, cardData.baseHealth, cardData.abilities, cardData.rarity);
+            card.experience = cardData.experience || 0;
+            card.level = cardData.level || 1;
+            card.evolutionStage = cardData.evolutionStage || 0;
+            card.currentAttack = cardData.currentAttack || cardData.baseAttack;
+            card.currentHealth = cardData.currentHealth || cardData.baseHealth;
+            card.maxHealth = cardData.maxHealth || cardData.baseHealth;
+            card.evolvedFrom = cardData.evolvedFrom || null;
+            card.isEvolved = cardData.isEvolved || false;
+            this._cards[cid] = card;
+          }
+        }
+      }
+    } catch (e) {}
+  };
+
+  CardEvolution.prototype._save = function () {
+    try {
+      if (typeof localStorage !== 'undefined' && localStorage) {
+        localStorage.setItem(this.storageKey, JSON.stringify({
+          cards: this._cards,
+          evolutionPaths: this._evolutionPaths,
+          evolvedCards: this._evolvedCards,
+          stats: this._stats
+        }));
+      }
+    } catch (e) {}
+  };
+
+  CardEvolution.prototype._log = function (msg) {
+    if (typeof console !== 'undefined' && console.log) console.log('[CardEvolution] ' + msg);
+  };
+
+  CardEvolution.prototype._generateDefaultEvolution = function () {
+    // Create base cards
+    var sparky = new EvolvableCard('sparky', 'Sparky', 'creature', 3, 4, ['lightning'], 'common');
+    sparky.experience = 0;
+    this._cards['sparky'] = sparky;
+
+    var flamey = new EvolvableCard('flamey', 'Flamey', 'creature', 4, 3, ['fire'], 'uncommon');
+    this._cards['flamey'] = flamey;
+
+    var icefy = new EvolvableCard('icefy', 'Icefy', 'creature', 2, 5, ['ice'], 'uncommon');
+    this._cards['icefy'] = icefy;
+
+    // Create evolution paths
+    // Sparky -> Sparky+ (100 xp, +2 attack)
+    this._evolutionPaths['sparky_evo'] = new EvolutionPath('sparky_evo', 'sparky', 'sparky_plus', 100, { attack: 2, health: 1 }, []);
+
+    // Flamey -> Inferno (150 xp, +3 attack, +1 ability)
+    this._evolutionPaths['flamey_evo'] = new EvolutionPath('flamey_evo', 'flamey', 'flamey_plus', 150, { attack: 3, health: 0 }, ['inferno']);
+
+    // Icefy -> Glacier (120 xp, +0 attack, +3 health, new ability)
+    this._evolutionPaths['icefy_evo'] = new EvolutionPath('icefy_evo', 'icefy', 'icefy_plus', 120, { attack: 0, health: 3 }, ['frost_armor']);
+
+    // Store evolved forms (target cards)
+    var sparkyPlus = new EvolvableCard('sparky_plus', 'Sparky+', 'creature', 5, 5, ['lightning', 'charge'], 'rare');
+    sparkyPlus.evolutionStage = 1;
+    sparkyPlus.evolvedFrom = 'sparky';
+    sparkyPlus.isEvolved = true;
+    this._cards['sparky_plus'] = sparkyPlus;
+
+    var flameyPlus = new EvolvableCard('flamey_plus', 'Flamey+', 'creature', 7, 3, ['fire', 'inferno'], 'rare');
+    flameyPlus.evolutionStage = 1;
+    flameyPlus.evolvedFrom = 'flamey';
+    flameyPlus.isEvolved = true;
+    this._cards['flamey_plus'] = flameyPlus;
+
+    var icefyPlus = new EvolvableCard('icefy_plus', 'Icefy+', 'creature', 2, 8, ['ice', 'frost_armor'], 'rare');
+    icefyPlus.evolutionStage = 1;
+    icefyPlus.evolvedFrom = 'icefy';
+    icefyPlus.isEvolved = true;
+    this._cards['icefy_plus'] = icefyPlus;
+
+    this._log('Generated default evolution system');
+  };
+
+  // Register a card
+  CardEvolution.prototype.registerCard = function (card) {
+    this._cards[card.id] = card;
+    this._save();
+    return { success: true };
+  };
+
+  // Add evolution path
+  CardEvolution.prototype.addEvolutionPath = function (id, fromCardId, toCardId, experienceRequired, statBoosts, newAbilities) {
+    if (this._evolutionPaths[id]) return { error: 'path_exists' };
+    this._evolutionPaths[id] = new EvolutionPath(id, fromCardId, toCardId, experienceRequired, statBoosts, newAbilities);
+    this._save();
+    return { success: true };
+  };
+
+  // Get card
+  CardEvolution.prototype.getCard = function (cardId) {
+    return this._cards[cardId] || null;
+  };
+
+  // Add experience to card
+  CardEvolution.prototype.addExperience = function (cardId, amount) {
+    var card = this._cards[cardId];
+    if (!card) return { error: 'card_not_found' };
+    card.addExperience(amount || 10);
+    this._stats.totalExperienceGained += amount || 10;
+    this._save();
+    return { success: true, experience: card.experience, level: card.level };
+  };
+
+  // Check if card can evolve
+  CardEvolution.prototype.canEvolve = function (cardId) {
+    var card = this._cards[cardId];
+    if (!card) return { error: 'card_not_found' };
+    for (var pid in this._evolutionPaths) {
+      var path = this._evolutionPaths[pid];
+      if (path.fromCardId === cardId && path.canEvolve(card)) return { canEvolve: true, pathId: pid };
+    }
+    return { canEvolve: false };
+  };
+
+  // Evolve a card
+  CardEvolution.prototype.evolve = function (cardId, pathId) {
+    var card = this._cards[cardId];
+    if (!card) return { error: 'card_not_found' };
+    var path = this._evolutionPaths[pathId];
+    if (!path) return { error: 'path_not_found' };
+    if (path.fromCardId !== cardId) return { error: 'wrong_source_card' };
+    if (!path.canEvolve(card)) return { error: 'insufficient_experience' };
+
+    var targetCard = this._cards[path.toCardId];
+    if (!targetCard) return { error: 'target_card_not_found' };
+
+    // Perform evolution: apply stat boosts to target card
+    for (var stat in path.statBoosts) {
+      targetCard.currentAttack += path.statBoosts.attack || 0;
+      targetCard.currentHealth += path.statBoosts.health || 0;
+      targetCard.maxHealth += path.statBoosts.health || 0;
+    }
+    for (var j = 0; j < path.newAbilities.length; j++) {
+      if (targetCard.abilities.indexOf(path.newAbilities[j]) < 0) {
+        targetCard.abilities.push(path.newAbilities[j]);
+      }
     }
 
-    if (gameResult.damageDealt) {
-      result.xpGained += Math.floor(gameResult.damageDealt * this.xpPerDamageDealt);
-    }
-    if (gameResult.blockGenerated) {
-      result.xpGained += Math.floor(gameResult.blockGenerated * this.xpPerBlock);
-    }
+    this._evolvedCards.push({ from: cardId, to: path.toCardId, at: Date.now() });
+    this._stats.totalEvolutions++;
+    this._save();
+    return { success: true, evolvedCard: targetCard };
+  };
 
-    result.newXP += result.xpGained;
+  // Get evolution paths for a card
+  CardEvolution.prototype.getEvolutionPaths = function (cardId) {
+    var result = [];
+    for (var pid in this._evolutionPaths) {
+      if (this._evolutionPaths[pid].fromCardId === cardId) result.push(this._evolutionPaths[pid]);
+    }
     return result;
-  }
+  };
 
-  // Check if card should evolve
-  checkEvolution(card) {
-    const xp = card.evolutionXP || 0;
-    const currentTier = this.getTier(card);
-    const nextTier = this.evolutionTiers[currentTier + 1];
-    if (!nextTier) return { shouldEvolve: false, reason: 'max_tier' };
+  // List all cards
+  CardEvolution.prototype.listCards = function () {
+    var result = [];
+    for (var id in this._cards) result.push(this._cards[id]);
+    return result;
+  };
 
-    if (xp >= nextTier.xp) {
-      return { shouldEvolve: true, currentTier, nextTier };
+  // Get evolvable cards (those that have evolution paths)
+  CardEvolution.prototype.getEvolvableCards = function () {
+    var result = [];
+    for (var pid in this._evolutionPaths) {
+      var fromId = this._evolutionPaths[pid].fromCardId;
+      if (this._cards[fromId]) result.push(this._cards[fromId]);
     }
-    return { shouldEvolve: false, reason: 'xp_insufficient' };
-  }
+    return result;
+  };
 
-  // Execute evolution
-  evolve(card) {
-    // For pre-evolved cards (with explicit evolutionTier), advance tier directly
-    if (card.evolutionTier != null) {
-      const currentTierIndex = Math.min(card.evolutionTier - 1, this.evolutionTiers.length - 2);
-      const nextTier = this.evolutionTiers[currentTierIndex + 1];
-      if (!nextTier) return null; // already at max tier
-      const bonus = nextTier.statBonus;
-      this.totalEvolutions++;
-      return {
-        ...card,
-        evolutionXP: 0,
-        evolutionTier: card.evolutionTier + 1,
-        evolutionName: `${card.name}[${nextTier.name}]`,
-        damage: card.damage ? Math.round(card.damage * (1 + bonus)) : undefined,
-        block: card.block ? Math.round(card.block * (1 + bonus)) : undefined,
-        cost: card.cost ? Math.max(1, card.cost + (bonus > 0.3 ? 1 : 0)) : undefined,
-        cardDraw: card.cardDraw ? card.cardDraw + (bonus > 0.4 ? 1 : 0) : undefined,
-        description: card.description ? `${card.description} [进化${nextTier.name}]` : `[进化${nextTier.name}]`,
-        tags: [...(card.tags || []), `evolved_tier_${card.evolutionTier + 1}`]
-      };
-    }
-
-    // For XP-based evolution
-    const check = this.checkEvolution(card);
-    if (!check.shouldEvolve) return null;
-
-    const currentTierData = this.evolutionTiers[check.currentTier];
-    const nextTier = check.nextTier;
-    const bonus = nextTier.statBonus;
-
-    this.totalEvolutions++;
-    const evolved = {
-      ...card,
-      evolutionXP: 0, // reset XP bar after evolution
-      evolutionTier: check.currentTier + 2,
-      evolutionName: `${card.name}[${nextTier.name}]`,
-      damage: card.damage ? Math.round(card.damage * (1 + bonus)) : undefined,
-      block: card.block ? Math.round(card.block * (1 + bonus)) : undefined,
-      cost: card.cost ? Math.max(1, card.cost + (bonus > 0.3 ? 1 : 0)) : undefined,
-      cardDraw: card.cardDraw ? card.cardDraw + (bonus > 0.4 ? 1 : 0) : undefined,
-      description: card.description ? `${card.description} [进化${nextTier.name}]` : `[进化${nextTier.name}]`,
-      tags: [...(card.tags || []), `evolved_tier_${check.currentTier + 2}`]
-    };
-    return evolved;
-  }
-
-  getTier(card) {
-    // If card was already evolved, use evolutionTier - 1 (tier index)
-    if (card.evolutionTier != null) {
-      return Math.min((card.evolutionTier || 1) - 1, this.evolutionTiers.length - 1);
-    }
-    const xp = card.evolutionXP || 0;
-    for (let i = this.evolutionTiers.length - 1; i >= 0; i--) {
-      if (xp >= this.evolutionTiers[i].xp) return i;
-    }
-    return 0;
-  }
-
-  getXPProgress(card) {
-    const xp = card.evolutionXP || 0;
-    const tier = this.getTier(card);
-    const currentThreshold = this.evolutionTiers[tier].xp;
-    const nextThreshold = this.evolutionTiers[tier + 1]
-      ? this.evolutionTiers[tier + 1].xp
-      : currentThreshold;
-    const progress = nextThreshold > currentThreshold
-      ? (xp - currentThreshold) / (nextThreshold - currentThreshold)
-      : 1;
+  // Get stats
+  CardEvolution.prototype.getStats = function () {
     return {
-      xp,
-      tier: this.evolutionTiers[tier].name,
-      progress: Math.min(progress, 1),
-      nextTier: this.evolutionTiers[tier + 1]?.name || null
+      totalEvolutions: this._stats.totalEvolutions,
+      totalExperienceGained: this._stats.totalExperienceGained,
+      totalCards: Object.keys(this._cards).length,
+      totalPaths: Object.keys(this._evolutionPaths).length
     };
-  }
+  };
 
-  getStatMultiplier(tierIndex) {
-    return this.evolutionTiers[tierIndex]?.statBonus || 0;
-  }
-}
-
-class CardEvolutionInventory {
-  constructor() {
-    this.cardXP = new Map();    // cardId → { xp, tier, lastUpdated }
-    this.evolutionHistory = [];
-  }
-
-  addXP(cardId, xp) {
-    const current = this.cardXP.get(cardId) || { xp: 0, tier: 0 };
-    const newXP = current.xp + xp;
-    const tier = this._calcTier(newXP);
-    this.cardXP.set(cardId, { xp: newXP, tier, lastUpdated: Date.now() });
-    return { xp: newXP, tier };
-  }
-
-  getXP(cardId) {
-    return this.cardXP.get(cardId) || { xp: 0, tier: 0 };
-  }
-
-  getAllCards() {
-    return Array.from(this.cardXP.entries()).map(([id, data]) => ({ cardId: id, ...data }));
-  }
-
-  _calcTier(xp) {
-    const thresholds = [0, 100, 250, 500, 1000];
-    for (let i = thresholds.length - 1; i >= 0; i--) {
-      if (xp >= thresholds[i]) return i;
-    }
-    return 0;
-  }
-}
-
-class EvolutionPanel {
-  constructor(engine, inventory) {
-    this.engine = engine;
-    this.inventory = inventory;
-    this.isOpen = false;
-    this.panel = null;
-  }
-
-  open() { this.isOpen = true; this._render(); }
-  close() { this.isOpen = false; if (this.panel) { this.panel.remove(); this.panel = null; } }
-  toggle() { if (this.isOpen) this.close(); else this.open(); }
-
-  _render() {
-    if (typeof document === 'undefined') return;
-    this.panel = document.createElement('div');
-    this.panel.id = 'evolution-panel';
-    this.panel.style.cssText = [
-      'position:fixed;bottom:80px;right:20px;width:300px;background:rgba(10,25,10,0.95);',
-      'border:2px solid #2ecc71;border-radius:12px;padding:16px;z-index:9998;',
-      'font-family:monospace;font-size:13px;color:#ecf0f1;'
-    ].join('');
-    this.panel.innerHTML = '<div style="color:#2ecc71;font-weight:bold;margin-bottom:8px;">🌱 卡牌进化</div>';
-    document.body.appendChild(this.panel);
-  }
-
-  getStats() {
-    const cards = this.inventory.getAllCards();
-    return {
-      open: this.isOpen,
-      trackedCards: cards.length,
-      evolutions: this.engine.totalEvolutions,
-      xpProgress: cards.map(c => ({ cardId: c.cardId, xp: c.xp, tier: c.tier }))
-    };
-  }
-}
-
-const EvolutionTools = {
-  'evolution.check': {
-    description: 'Check if a card should evolve',
-    parameters: { type: 'object', properties: { card: { type: 'object' } }, required: ['card'] },
-    handler(args) {
-      const engine = new CardEvolutionEngine();
-      return engine.checkEvolution(args.card);
-    }
-  },
-  'evolution.evolve': {
-    description: 'Evolve a card to its next tier',
-    parameters: { type: 'object', properties: { card: { type: 'object' } }, required: ['card'] },
-    handler(args) {
-      const engine = new CardEvolutionEngine();
-      return engine.evolve(args.card) || { error: 'cannot_evolve' };
-    }
-  },
-  'evolution.award': {
-    description: 'Award XP to a card after a game',
-    parameters: { type: 'object', properties: { card: { type: 'object' }, result: { type: 'object' } }, required: ['card', 'result'] },
-    handler(args) {
-      const engine = new CardEvolutionEngine();
-      return engine.awardXP(args.card, args.result);
-    }
-  }
-};
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { CardEvolutionEngine, CardEvolutionInventory, EvolutionPanel, EvolutionTools };
-}
-if (typeof window !== 'undefined') {
-  window.CardEvolutionEngine = CardEvolutionEngine;
-  window.CardEvolutionInventory = CardEvolutionInventory;
-  window.EvolutionPanel = EvolutionPanel;
-  window.EvolutionTools = EvolutionTools;
-}
+  // --------------------------------------------------------------------===
+  // Exports
+  // ----------------------------------------------------------------=======
+  window.EvolutionPath = EvolutionPath;
+  window.EvolvableCard = EvolvableCard;
+  window.CardEvolution = CardEvolution;
+})();
