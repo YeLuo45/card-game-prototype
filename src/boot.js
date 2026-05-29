@@ -175,8 +175,15 @@ var CARD_SYSTEMS = [
   'card-packs/ironclad.js'
 ];
 
-// ─── 依次加载 ───────────────────────────────────────────────────────────────
-var ALL = [].concat(SHARED, INFRA, CARD_SYSTEMS);
+// ─── 合并全部 + 去重 ────────────────────────────────────────────────────────
+var ALL = [].concat(SHARED, INFRA, CARD_SYSTEMS, GUILD, META, PROGRESSION, SOCIAL, BATTLE, CARD_SERVICES_OTHER, UI, USECASES, PACKS);
+
+var seen = {};
+var unique = ALL.filter(function(src) {
+  if (seen[src]) return false;
+  seen[src] = true;
+  return true;
+});
 
 function loadAll(queue) {
   return queue.reduce(function(promise, src) {
@@ -188,8 +195,8 @@ function loadAll(queue) {
 window.Boot = {
   start: function() {
     console.log('[boot] Starting DBG Card Game...');
-    return loadAll(ALL).then(function() {
-      console.log('[boot] All scripts loaded. Initializing...');
+return loadAll(unique).then(function() {
+      console.log('[boot] All ' + unique.length + ' scripts loaded.');
       if (window.EventBus) window.EventBus.emit('game:ready', {});
       if (window.Router) window.Router.init();
       console.log('[boot] Done.');
