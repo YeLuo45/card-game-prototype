@@ -1,174 +1,127 @@
 // ============================================================================
-// Card Elemental Nexus — V196 Direction A
-// Elemental nexus with convergence points, elemental chains and synergy effects
-// nanobot distributed mesh + thunderbolt feedback loops
+// Card Elemental Nexus — V231 Direction J
+// Elemental nexus with elemental cores, resonance bonds, and catalyst fusion
+// claude-code feedback + nanobot mesh
 // ============================================================================
 'use strict';
 
 (function () {
   // -----------------------------------------------------------------------
-  // ConvergencePoint: A point where elements converge
+  // ElementalCore: Core element with affinity
   // -----------------------------------------------------------------------
-  function ConvergencePoint(pointId, name, position, capacity, active) {
-    this.pointId = pointId;
-    this.name = name || pointId;
-    this.position = position || { x: 0, y: 0 };
-    this.capacity = capacity || 5;
-    this.active = active !== undefined ? active : true;
-    this.boundElements = [];
-    this.synergyLevel = 0;
+  function ElementalCore(coreId, name, elementType, coreStrength) {
+    this.coreId = coreId;
+    this.name = name || coreId;
+    this.elementType = (elementType !== undefined) ? elementType : 'Fire'; // nullish coalescing
+    this.coreStrength = (coreStrength !== undefined) ? coreStrength : 50; // nullish coalescing
+    this.activated = false;
+    this.affinityBonus = 0;
   }
 
-  ConvergencePoint.prototype.bindElement = function (elementType) {
-    if (!this.active) return { error: 'point_inactive' };
-    if (this.boundElements.length >= this.capacity) return { error: 'capacity_reached' };
-    if (this.boundElements.indexOf(elementType) !== -1) return { error: 'already_bound' };
-    this.boundElements.push(elementType);
-    this._recalculateSynergy();
-    return { success: true, synergyLevel: this.synergyLevel };
+  ElementalCore.prototype.activate = function () {
+    if (this.activated) return { error: 'already_activated' };
+    this.activated = true;
+    this.affinityBonus = Math.floor(this.coreStrength / 10);
+    return { success: true, bonus: this.affinityBonus };
   };
 
-  ConvergencePoint.prototype._recalculateSynergy = function () {
-    // synergy = number of unique elements * average element value
-    var elementValues = { fire: 10, water: 8, earth: 7, wind: 9, lightning: 12, shadow: 11, light: 10, neutral: 1 };
-    var total = 0;
-    for (var i = 0; i < this.boundElements.length; i++) {
-      total += elementValues[this.boundElements[i]] || 1;
-    }
-    this.synergyLevel = Math.floor(this.boundElements.length * (total / Math.max(1, this.boundElements.length)));
+  ElementalCore.prototype.getCorePower = function () {
+    if (!this.activated) return 0;
+    return this.coreStrength + this.affinityBonus * 5;
   };
-
-  ConvergencePoint.prototype.unbindElement = function (elementType) {
-    var idx = this.boundElements.indexOf(elementType);
-    if (idx === -1) return { error: 'element_not_bound' };
-    this.boundElements.splice(idx, 1);
-    this._recalculateSynergy();
-    return { success: true, synergyLevel: this.synergyLevel };
-  };
-
-  ConvergencePoint.prototype.getBoundCount = function () { return this.boundElements.length; };
 
   // -----------------------------------------------------------------------
-  // ElementalChain: A chain of connected elements
+  // ResonanceBond: Bond between elemental cores
   // -----------------------------------------------------------------------
-  function ElementalChain(chainId, name, chainType) {
-    this.chainId = chainId;
-    this.name = name || chainId;
-    this.chainType = chainType || 'linear'; // linear, circular, radial, star
-    this.links = []; // array of { element, order, power }
-    this.chainPower = 0;
-    this.active = false;
+  function ResonanceBond(bondId, name, bondStrength, bondedCores) {
+    this.bondId = bondId;
+    this.name = name || bondId;
+    this.bondStrength = (bondStrength !== undefined) ? bondStrength : 40; // nullish coalescing
+    this.bondedCores = bondedCores || [];
+    this.bondActive = false;
   }
 
-  ElementalChain.prototype.addLink = function (element, power) {
-    if (this.links.length >= 8) return { error: 'chain_max_length' };
-    var order = this.links.length;
-    this.links.push({ element: element, order: order, power: power || 5 });
-    this._recalculatePower();
-    return { success: true, chainPower: this.chainPower };
-  };
-
-  ElementalChain.prototype._recalculatePower = function () {
-    var basePower = 0;
-    for (var i = 0; i < this.links.length; i++) {
-      basePower += this.links[i].power;
+  ResonanceBond.prototype.addCore = function (coreId) {
+    for (var i = 0; i < this.bondedCores.length; i++) {
+      if (this.bondedCores[i] === coreId) return { error: 'core_already_bonded' };
     }
-    this.chainPower = Math.floor(basePower * (1 + (this.links.length - 1) * 0.2));
+    this.bondedCores.push(coreId);
+    return { success: true, count: this.bondedCores.length };
   };
 
-  ElementalChain.prototype.activate = function () {
-    if (this.links.length < 2) return { error: 'insufficient_links' };
-    this.active = true;
-    return { success: true, chainPower: this.chainPower };
+  ResonanceBond.prototype.form = function () {
+    if (this.bondedCores.length < 2) return { error: 'insufficient_cores' };
+    this.bondActive = true;
+    return { success: true, power: this.getBondPower() };
   };
 
-  ElementalChain.prototype.getLinkCount = function () { return this.links.length; };
-
-  ElementalChain.prototype.getChainPower = function () { return this.chainPower; };
+  ResonanceBond.prototype.getBondPower = function () {
+    if (!this.bondActive) return 0;
+    return this.bondStrength * this.bondedCores.length;
+  };
 
   // -----------------------------------------------------------------------
-  // SynergyEffect: An effect generated by elemental synergy
+  // CatalystFusion: Fusion of catalysts
   // -----------------------------------------------------------------------
-  function SynergyEffect(effectId, name, primaryElement, secondaryElements, power, duration) {
-    this.effectId = effectId;
-    this.name = name || effectId;
-    this.primaryElement = primaryElement || 'neutral';
-    this.secondaryElements = secondaryElements || [];
-    this.power = power || 1;
-    this.duration = duration || 0; // 0 = permanent
-    this.active = false;
-    this.elapsed = 0;
+  function CatalystFusion(fusionId, name, catalystPurity, fusedCatalysts) {
+    this.fusionId = fusionId;
+    this.name = name || fusionId;
+    this.catalystPurity = (catalystPurity !== undefined) ? catalystPurity : 60; // nullish coalescing
+    this.fusedCatalysts = (fusedCatalysts !== undefined) ? fusedCatalysts : 0; // nullish coalescing
+    this.fusionActive = false;
+    this.fusionPower = 0;
   }
 
-  SynergyEffect.prototype.activate = function () {
-    this.active = true;
-    this.elapsed = 0;
-    return { success: true };
+  CatalystFusion.prototype.addCatalyst = function (purity) {
+    this.catalystPurity = Math.min(100, (this.catalystPurity + purity) / 2);
+    this.fusedCatalysts++;
+    this.fusionPower = this.fusedCatalysts * this.catalystPurity;
+    return { success: true, purity: this.catalystPurity, catalysts: this.fusedCatalysts };
   };
 
-  SynergyEffect.prototype.tick = function (delta) {
-    if (!this.active) return { active: false };
-    this.elapsed += delta;
-    if (this.duration > 0 && this.elapsed >= this.duration) {
-      this.active = false;
-      return { active: false, expired: true, elapsed: this.elapsed };
-    }
-    return { active: true, elapsed: this.elapsed };
-  };
-
-  SynergyEffect.prototype.getRemainingTime = function () {
-    if (this.duration === 0) return Infinity;
-    return Math.max(0, this.duration - this.elapsed);
+  CatalystFusion.prototype.getFusionPower = function () {
+    if (!this.fusionActive) return 0;
+    return this.fusionPower;
   };
 
   // -----------------------------------------------------------------------
-  // ElementalNexus: Main nexus manager
+  // ElementalNexus: Main nexus system
   // -----------------------------------------------------------------------
-  function ElementalNexus(nexusId, name) {
-    this.nexusId = nexusId || ('nexus_' + Math.random().toString(36).substr(2, 6));
+  function ElementalNexus(nexusId, name, nexusRank) {
+    this.nexusId = nexusId;
     this.name = name || 'Elemental Nexus';
-    this.points = {};
-    this.chains = {};
-    this.effects = {};
-    this.pointCounter = 0;
-    this.chainCounter = 0;
-    this.effectCounter = 0;
-    this._seedDefault();
+    this.nexusRank = nexusRank || 1;
+    this.cores = {};
+    this.bonds = {};
+    this.fusions = {};
   }
 
-  ElementalNexus.prototype._seedDefault = function () {
-    var cp = new ConvergencePoint('point_default', 'Central Nexus', { x: 0, y: 0 }, 4, true);
-    this.points['point_default'] = cp;
+  ElementalNexus.prototype.addCore = function (c) {
+    this.cores[c.coreId] = c;
+    return { success: true, count: Object.keys(this.cores).length };
   };
 
-  ElementalNexus.prototype.addPoint = function (point) {
-    this.points[point.pointId] = point;
-    return { success: true, count: Object.keys(this.points).length };
+  ElementalNexus.prototype.addBond = function (b) {
+    this.bonds[b.bondId] = b;
+    return { success: true, count: Object.keys(this.bonds).length };
   };
 
-  ElementalNexus.prototype.addChain = function (chain) {
-    this.chains[chain.chainId] = chain;
-    return { success: true, count: Object.keys(this.chains).length };
+  ElementalNexus.prototype.addFusion = function (f) {
+    this.fusions[f.fusionId] = f;
+    return { success: true, count: Object.keys(this.fusions).length };
   };
 
-  ElementalNexus.prototype.addEffect = function (effect) {
-    this.effects[effect.effectId] = effect;
-    return { success: true, count: Object.keys(this.effects).length };
+  ElementalNexus.prototype.getNexusPower = function () {
+    var total = 0;
+    for (var id in this.cores) total += this.cores[id].getCorePower();
+    for (var id in this.bonds) total += this.bonds[id].getBondPower();
+    for (var id in this.fusions) total += this.fusions[id].getFusionPower();
+    total += this.nexusRank * 20;
+    return total;
   };
 
-  ElementalNexus.prototype.getPoint = function (id) { return this.points[id] || null; };
-  ElementalNexus.prototype.getChain = function (id) { return this.chains[id] || null; };
-  ElementalNexus.prototype.getEffect = function (id) { return this.effects[id] || null; };
-
-  ElementalNexus.prototype.getAllPoints = function () {
-    return Object.keys(this.points).map(function (k) { return this.points[k]; }.bind(this));
-  };
-
-  // -----------------------------------------------------------------------
-  // Exports
-  // -----------------------------------------------------------------------
-  window.ConvergencePoint = ConvergencePoint;
-  window.ElementalChain = ElementalChain;
-  window.SynergyEffect = SynergyEffect;
+  window.ElementalCore = ElementalCore;
+  window.ResonanceBond = ResonanceBond;
+  window.CatalystFusion = CatalystFusion;
   window.ElementalNexus = ElementalNexus;
 })();
