@@ -1,0 +1,1 @@
+../../../src/domain/guild/services/guild-hall.service.js
