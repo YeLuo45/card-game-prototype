@@ -125,6 +125,7 @@ var CARD_SYSTEMS = [
   'src/domain/card/systems/sanctum/shadow-conclave.js',
   'src/domain/card/systems/sanctum/crystal-sanctum.js',
   'src/domain/card/systems/sanctum/runic-sanctum.js',
+  'src/domain/card/systems/sanctum/ethereal-sanctum.js',
   'src/domain/card/systems/gacha/gacha.js',
   'src/domain/card/systems/rune/rune-system.js',
   'src/domain/guild/services/guild.service.js',
