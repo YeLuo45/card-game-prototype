@@ -16,9 +16,9 @@ global.localStorage = {
 global.window = global;
 eval(fs.readFileSync(path.join(__dirname, 'card-arcane-library.js'), 'utf8'));
 
-var ArcaneBook = window.ArcaneBook;
-var SpellResearch = window.SpellResearch;
-var KnowledgeArchive = window.KnowledgeArchive;
+var SpellTome = window.SpellTome;
+var KnowledgeNode = window.KnowledgeNode;
+var Grimoire = window.Grimoire;
 var ArcaneLibrary = window.ArcaneLibrary;
 
 var passed = 0, failed = 0;
@@ -29,258 +29,169 @@ function assert(c, msg) {
 function assertEq(a, b, msg) { assert(a === b, msg + ' (expected ' + b + ', got ' + a + ')'); }
 
 // ========================================================================
-// ArcaneBook Initialization
+// SpellTome Initialization
 // ========================================================================
-console.log('\n=== ArcaneBook Initialization ===');
+console.log('\n=== SpellTome Initialization ===');
 {
-    var book = new ArcaneBook('book1', 'Grimoire of Fire', 'Merlin', 250, 'legendary', 'spell');
-    assertEq(book.bookId, 'book1', 'id');
-    assertEq(book.title, 'Grimoire of Fire', 'title');
-    assertEq(book.author, 'Merlin', 'author');
-    assertEq(book.pages, 250, '250 pages');
-    assertEq(book.rarity, 'legendary', 'legendary');
-    assertEq(book.subject, 'spell', 'spell');
-    assertEq(book.readCount, 0, '0 reads');
-    assert(!book.digitized, 'not digitized');
+    var st = new SpellTome('st1', 'Book of Flames', 'fire', 40, 15);
+    assertEq(st.tomeId, 'st1', 'id');
+    assertEq(st.name, 'Book of Flames', 'name');
+    assertEq(st.school, 'fire', 'fire school');
+    assertEq(st.power, 40, '40 power');
+    assertEq(st.pages, 15, '15 pages');
+    assert(!st.inscribed, 'not inscribed');
 }
 
 // ========================================================================
-// ArcaneBook Read
+// SpellTome Inscribe
 // ========================================================================
-console.log('\n=== ArcaneBook Read ===');
+console.log('\n=== SpellTome Inscribe ===');
 {
-    var book = new ArcaneBook('book1', 'T', 'T', 100, 'common', 'general');
-    var r = book.read();
-    assert(r.success, 'read success');
-    assertEq(book.readCount, 1, '1 read');
-    assert(typeof book.lastReadAt === 'number', 'has lastReadAt');
-    // knowledge = floor(100 * 1 * 0.1) = 10
-    assertEq(r.knowledge, 10, '10 knowledge');
+    var st = new SpellTome('st1', 'T', 'arcane', 20, 10);
+    var r = st.inscribe('fireball');
+    assert(r.success, 'inscribe success');
+    assert(st.inscribed, 'inscribed');
+    assertEq(r.spellId, 'fireball', 'spell fireball');
+    var r2 = st.inscribe('another');
+    assertEq(r2.error, 'already_inscribed', 'already_inscribed');
 }
 
 // ========================================================================
-// ArcaneBook Read Multiple
+// SpellTome Get Power
 // ========================================================================
-console.log('\n=== ArcaneBook Read Multiple ===');
+console.log('\n=== SpellTome Get Power ===');
 {
-    var book = new ArcaneBook('book2', 'T', 'T', 100, 'rare', 'general');
-    book.read();
-    book.read();
-    book.read();
-    assertEq(book.readCount, 3, '3 reads');
+    var st1 = new SpellTome('st1', 'T', 'arcane', 20, 10);
+    var st2 = new SpellTome('st2', 'T', 'arcane', 20, 10);
+    st2.inscribe('spell');
+    assertEq(st1.getPower(), 20, '20 not inscribed');
+    assertEq(st2.getPower(), 40, '40 inscribed (20*2)');
 }
 
 // ========================================================================
-// ArcaneBook Get Knowledge Yield
+// SpellTome Copy
 // ========================================================================
-console.log('\n=== ArcaneBook Get Knowledge Yield ===');
+console.log('\n=== SpellTome Copy ===');
 {
-    var book = new ArcaneBook('book1', 'T', 'T', 100, 'epic', 'general');
-    // knowledge = floor(100 * 8 * 0.1) = 80
-    assertEq(book.getKnowledgeYield(), 80, '80 yield');
+    var st = new SpellTome('st1', 'Original Tome', 'water', 30, 12);
+    var copy = st.copy();
+    assertEq(copy.tomeId, 'st1_copy', 'copy id');
+    assertEq(copy.name, 'Original Tome (Copy)', 'copy name');
+    assertEq(copy.school, 'water', 'copy school');
+    assertEq(copy.power, 30, 'copy power');
+    assert(!copy.inscribed, 'copy not inscribed');
+    assertEq(copy.copiedFrom, 'st1', 'copied from st1');
 }
 
 // ========================================================================
-// ArcaneBook Digitize
+// KnowledgeNode Initialization
 // ========================================================================
-console.log('\n=== ArcaneBook Digitize ===');
+console.log('\n=== KnowledgeNode Initialization ===');
 {
-    var book = new ArcaneBook('book1', 'T', 'T', 100, 'common', 'general');
-    var r = book.digitize();
-    assert(r.success, 'digitize success');
-    assert(book.digitized, 'digitized');
-    var r2 = book.digitize();
-    assertEq(r2.error, 'already_digitized', 'already_digitized');
+    var kn = new KnowledgeNode('kn1', 'Elemental Theory', 3, true);
+    assertEq(kn.nodeId, 'kn1', 'id');
+    assertEq(kn.name, 'Elemental Theory', 'name');
+    assertEq(kn.tier, 3, '3 tier');
+    assert(kn.unlocked, 'unlocked');
+    assertEq(kn.research, 0, '0 research');
+    assertEq(kn.connections.length, 0, '0 connections');
 }
 
 // ========================================================================
-// SpellResearch Initialization
+// KnowledgeNode Unlock
 // ========================================================================
-console.log('\n=== SpellResearch Initialization ===');
+console.log('\n=== KnowledgeNode Unlock ===');
 {
-    var sr = new SpellResearch('sr1', 'Fire Magic', 5, 500, 0);
-    assertEq(sr.researchId, 'sr1', 'id');
-    assertEq(sr.topic, 'Fire Magic', 'topic');
-    assertEq(sr.priority, 5, '5 priority');
-    assertEq(sr.funding, 500, '500 funding');
-    assertEq(sr.progress, 0, '0 progress');
-    assert(sr.active, 'active');
-    assert(!sr.completed, 'not completed');
-    assertEq(sr.findings.length, 0, '0 findings');
+    var kn = new KnowledgeNode('kn1', 'T', 2, false);
+    var r = kn.unlock('r1');
+    assert(r.success, 'unlock success');
+    assert(kn.unlocked, 'unlocked');
+    assertEq(kn.discoveredBy[0], 'r1', 'discovered by r1');
+    var r2 = kn.unlock('r2');
+    assertEq(r2.error, 'already_unlocked', 'already_unlocked');
 }
 
 // ========================================================================
-// SpellResearch Allocate Funds
+// KnowledgeNode Add Research
 // ========================================================================
-console.log('\n=== SpellResearch Allocate Funds ===');
+console.log('\n=== KnowledgeNode Add Research ===');
 {
-    var sr = new SpellResearch('sr1', 'T', 1, 100, 0);
-    var r = sr.allocateFunds(200);
-    assert(r.success, 'allocate success');
-    assertEq(sr.funding, 300, '300 total');
+    var kn = new KnowledgeNode('kn1', 'T', 2, true);
+    var r = kn.addResearch(50);
+    assertEq(kn.research, 50, '50 research');
+    assertEq(r.research, 50, '50 returned');
 }
 
 // ========================================================================
-// SpellResearch Conduct
+// KnowledgeNode Connect
 // ========================================================================
-console.log('\n=== SpellResearch Conduct ===');
+console.log('\n=== KnowledgeNode Connect ===');
 {
-    var sr = new SpellResearch('sr1', 'T', 2, 100, 0);
-    var r = sr.conduct(2);
-    assert(r.success, 'conduct success');
-    // increment = floor(100 * 0.05 * 2 * 2) = 20
-    assertEq(sr.progress, 20, '20 progress');
-    assert(!sr.completed, 'not completed');
+    var kn = new KnowledgeNode('kn1', 'T', 2, true);
+    var r = kn.connect('kn2');
+    assert(r.success, 'connect success');
+    assertEq(kn.connections.length, 1, '1 connection');
+    var r2 = kn.connect('kn2');
+    assertEq(kn.connections.length, 1, 'still 1 (no duplicate)');
 }
 
 // ========================================================================
-// SpellResearch Conduct Multiple Cycles Complete
+// KnowledgeNode Get Influence
 // ========================================================================
-console.log('\n=== SpellResearch Conduct Multiple Cycles Complete ===');
+console.log('\n=== KnowledgeNode Get Influence ===');
 {
-    var sr = new SpellResearch('sr1', 'T', 1, 1000, 0);
-    var r = sr.conduct(10);
-    assert(sr.completed, 'completed');
-    assert(!sr.active, 'inactive');
-    assertEq(r.completed, true, 'completed flag');
-    assertEq(sr.progress, 100, '100 progress');
+    var kn1 = new KnowledgeNode('kn1', 'T', 3, false);
+    var kn2 = new KnowledgeNode('kn2', 'T', 3, true);
+    kn2.addResearch(20);
+    assertEq(kn1.getInfluence(), 0, '0 influence (locked)');
+    assertEq(kn2.getInfluence(), 40, '40 influence (3*10+20*0.5)');
 }
 
 // ========================================================================
-// SpellResearch Add Finding
+// Grimoire Initialization
 // ========================================================================
-console.log('\n=== SpellResearch Add Finding ===');
+console.log('\n=== Grimoire Initialization ===');
 {
-    var sr = new SpellResearch('sr1', 'T', 1, 100, 0);
-    var r = sr.addFinding('Fire beats Ice');
+    var g = new Grimoire('g1', 'Fire Grimoire', 8);
+    assertEq(g.grimoireId, 'g1', 'id');
+    assertEq(g.name, 'Fire Grimoire', 'name');
+    assertEq(g.maxTomes, 8, '8 max');
+    assertEq(g.knowledgeLevel, 1, 'level 1');
+    assertEq(g.spellsResearched, 0, '0 spells');
+    assert(typeof g.addTome === 'function', 'addTome');
+}
+
+// ========================================================================
+// Grimoire Add Tome
+// ========================================================================
+console.log('\n=== Grimoire Add Tome ===');
+{
+    var g = new Grimoire('g1', 'T', 3);
+    var r = g.addTome(new SpellTome('st1', 'T', 'fire', 20, 10));
     assert(r.success, 'add success');
-    assertEq(sr.findings.length, 1, '1 finding');
-    assertEq(r.findingCount, 1, '1 count');
+    assertEq(g.getTomeCount(), 1, '1 tome');
+    var g2 = new Grimoire('g2', 'T', 2);
+    g2.addTome(new SpellTome('st1', 'T', 'fire', 10, 5));
+    g2.addTome(new SpellTome('st2', 'T', 'fire', 10, 5));
+    var r2 = g2.addTome(new SpellTome('st3', 'T', 'fire', 10, 5));
+    assertEq(r2.error, 'max_tomes', 'max_tomes');
 }
 
 // ========================================================================
-// SpellResearch Get Completion Percent
+// Grimoire Research Spell
 // ========================================================================
-console.log('\n=== SpellResearch Get Completion Percent ===');
+console.log('\n=== Grimoire Research Spell ===');
 {
-    var sr = new SpellResearch('sr1', 'T', 1, 100, 50);
-    assertEq(sr.getCompletionPercent(), 50, '50%');
-}
-
-// ========================================================================
-// KnowledgeArchive Initialization
-// ========================================================================
-console.log('\n=== KnowledgeArchive Initialization ===');
-{
-    var ka = new KnowledgeArchive('ka1', 'Mystical Archive', 200, 1000);
-    assertEq(ka.archiveId, 'ka1', 'id');
-    assertEq(ka.name, 'Mystical Archive', 'name');
-    assertEq(ka.maxCapacity, 200, '200 capacity');
-    assertEq(ka.accessionNumber, 1000, '1000 accession');
-    assertEq(Object.keys(ka.catalog).length, 0, '0 catalog');
-    assertEq(ka.totalKnowledge, 0, '0 knowledge');
-}
-
-// ========================================================================
-// KnowledgeArchive Add Book
-// ========================================================================
-console.log('\n=== KnowledgeArchive Add Book ===');
-{
-    var ka = new KnowledgeArchive('ka1', 'T', 10, 0);
-    var before = Object.keys(ka.catalog).length;
-    var r = ka.addBook(new ArcaneBook('b1', 'Book One', 'Author 1', 100, 'common', 'general'));
-    assert(r.success, 'add success');
-    assertEq(ka.accessionNumber, 1, '1 accession');
-    assertEq(Object.keys(ka.catalog).length, before + 1, 'added 1');
-}
-
-// ========================================================================
-// KnowledgeArchive Add Book Archive Full
-// ========================================================================
-console.log('\n=== KnowledgeArchive Add Book Archive Full ===');
-{
-    var ka = new KnowledgeArchive('ka1', 'T', 2, 0);
-    ka.addBook(new ArcaneBook('b1'));
-    ka.addBook(new ArcaneBook('b2'));
-    var r = ka.addBook(new ArcaneBook('b3'));
-    assertEq(r.error, 'archive_full', 'archive_full');
-    assertEq(Object.keys(ka.catalog).length, 2, '2 books');
-}
-
-// ========================================================================
-// KnowledgeArchive Checkout Book
-// ========================================================================
-console.log('\n=== KnowledgeArchive Checkout Book ===');
-{
-    var ka = new KnowledgeArchive('ka1', 'T', 10, 0);
-    ka.addBook(new ArcaneBook('b1', 'Test Book', 'Author', 100, 'common', 'general'));
-    var r = ka.checkoutBook('b1');
-    assert(r.success, 'checkout success');
-    assertEq(r.title, 'Test Book', 'Test Book');
-    var r2 = ka.checkoutBook('b1');
-    assertEq(r2.error, 'already_checked_out', 'already_checked_out');
-}
-
-// ========================================================================
-// KnowledgeArchive Checkout Book Not Found
-// ========================================================================
-console.log('\n=== KnowledgeArchive Checkout Book Not Found ===');
-{
-    var ka = new KnowledgeArchive('ka1', 'T', 10, 0);
-    var r = ka.checkoutBook('nonexistent');
-    assertEq(r.error, 'book_not_found', 'book_not_found');
-}
-
-// ========================================================================
-// KnowledgeArchive Return Book
-// ========================================================================
-console.log('\n=== KnowledgeArchive Return Book ===');
-{
-    var ka = new KnowledgeArchive('ka1', 'T', 10, 0);
-    ka.addBook(new ArcaneBook('b1'));
-    ka.checkoutBook('b1');
-    var r = ka.returnBook('b1');
-    assert(r.success, 'return success');
-    var r2 = ka.returnBook('b1');
-    assertEq(r2.error, 'not_checked_out', 'not_checked_out');
-}
-
-// ========================================================================
-// KnowledgeArchive Read Book
-// ========================================================================
-console.log('\n=== KnowledgeArchive Read Book ===');
-{
-    var ka = new KnowledgeArchive('ka1', 'T', 10, 0);
-    ka.addBook(new ArcaneBook('b1', 'T', 'T', 100, 'rare', 'general'));
-    ka.checkoutBook('b1');
-    ka.readBook('b1');
-    assertEq(ka.totalKnowledge, 40, '40 knowledge (100*4*0.1=40)');
-}
-
-// ========================================================================
-// KnowledgeArchive Read Book Not Checked Out
-// ========================================================================
-console.log('\n=== KnowledgeArchive Read Book Not Checked Out ===');
-{
-    var ka = new KnowledgeArchive('ka1', 'T', 10, 0);
-    ka.addBook(new ArcaneBook('b1'));
-    var r = ka.readBook('b1');
-    assertEq(r.error, 'not_checked_out', 'not_checked_out');
-}
-
-// ========================================================================
-// KnowledgeArchive Get Total Knowledge
-// ========================================================================
-console.log('\n=== KnowledgeArchive Get Total Knowledge ===');
-{
-    var ka = new KnowledgeArchive('ka1', 'T', 10, 0);
-    ka.addBook(new ArcaneBook('b1', 'T', 'T', 100, 'common', 'general'));
-    ka.addBook(new ArcaneBook('b2', 'T', 'T', 100, 'common', 'general'));
-    ka.checkoutBook('b1');
-    ka.checkoutBook('b2');
-    ka.readBook('b1');
-    ka.readBook('b2');
-    assertEq(ka.getTotalKnowledge(), 20, '20 total (10+10)');
+    var g = new Grimoire('g1', 'T', 5);
+    g.addTome(new SpellTome('st1', 'T', 'fire', 30, 15));
+    var r = g.researchSpell('st1');
+    assert(r.success, 'research success');
+    assert(g.getTome('st1').inscribed, 'tome inscribed');
+    assertEq(g.spellsResearched, 1, '1 spell researched');
+    var r2 = g.researchSpell('st1');
+    assertEq(r2.error, 'already_researched', 'already_researched');
+    var r3 = g.researchSpell('nonexistent');
+    assertEq(r3.error, 'tome_not_found', 'tome_not_found');
 }
 
 // ========================================================================
@@ -288,69 +199,64 @@ console.log('\n=== KnowledgeArchive Get Total Knowledge ===');
 // ========================================================================
 console.log('\n=== ArcaneLibrary Initialization ===');
 {
-    var lib = new ArcaneLibrary('lib1', 'Grand Library');
-    assertEq(lib.libraryId, 'lib1', 'id');
+    var lib = new ArcaneLibrary('lib1', 'Grand Library', 20);
+    assertEq(lib.libId, 'lib1', 'id');
     assertEq(lib.name, 'Grand Library', 'name');
-    assert(typeof lib.addBookToCatalog === 'function', 'addBookToCatalog');
-    assert(typeof lib.addArchive === 'function', 'addArchive');
+    assertEq(lib.maxNodes, 20, '20 max');
+    assert(typeof lib.createGrimoire === 'function', 'createGrimoire');
 }
 
 // ========================================================================
-// ArcaneLibrary Add Book To Catalog
+// ArcaneLibrary Create Grimoire
 // ========================================================================
-console.log('\n=== ArcaneLibrary Add Book To Catalog ===');
+console.log('\n=== ArcaneLibrary Create Grimoire ===');
 {
     var lib = new ArcaneLibrary('lib1');
-    var before = Object.keys(lib.books).length;
-    lib.addBookToCatalog(new ArcaneBook('b_x', 'New Book', 'New Author', 150, 'rare', 'lore'));
-    assertEq(Object.keys(lib.books).length, before + 1, 'added 1');
+    var r = lib.createGrimoire(new Grimoire('g1', 'Grimoire 1', 10));
+    assert(r.success, 'create success');
+    assert(lib.getGrimoire('g1') !== null, 'get g1');
 }
 
 // ========================================================================
-// ArcaneLibrary Add Archive
+// ArcaneLibrary Register Researcher
 // ========================================================================
-console.log('\n=== ArcaneLibrary Add Archive ===');
+console.log('\n=== ArcaneLibrary Register Researcher ===');
 {
     var lib = new ArcaneLibrary('lib1');
-    var before = Object.keys(lib.archives).length;
-    lib.addArchive(new KnowledgeArchive('ka_x', 'New Archive', 50, 0));
-    assertEq(Object.keys(lib.archives).length, before + 1, 'added 1');
+    var r = lib.registerResearcher('res1', 'Wizard Alaric');
+    assert(r.success, 'register success');
+    var r2 = lib.addXP('res1', 50);
+    assertEq(r2.rank, 'apprentice', 'apprentice at 50');
+    assertEq(r2.xp, 50, '50 xp');
 }
 
 // ========================================================================
-// ArcaneLibrary Add Research
+// ArcaneLibrary Add XP Rank Up
 // ========================================================================
-console.log('\n=== ArcaneLibrary Add Research ===');
+console.log('\n=== ArcaneLibrary Add XP Rank Up ===');
 {
     var lib = new ArcaneLibrary('lib1');
-    var before = Object.keys(lib.researchProjects).length;
-    lib.addResearch(new SpellResearch('sr_x', 'Dark Arts', 3, 200, 10));
-    assertEq(Object.keys(lib.researchProjects).length, before + 1, 'added 1');
+    lib.registerResearcher('res1', 'T');
+    lib.addXP('res1', 100);
+    assertEq(lib.getResearcher('res1').rank, 'scholar', 'scholar at 100');
+    lib.addXP('res1', 200); // total 300
+    assertEq(lib.getResearcher('res1').rank, 'sage', 'sage at 300');
+    lib.addXP('res1', 300); // total 600
+    assertEq(lib.getResearcher('res1').rank, 'archmage', 'archmage at 600');
+    lib.addXP('res1', 400); // total 1000
+    assertEq(lib.getResearcher('res1').rank, 'legend', 'legend at 1000');
 }
 
 // ========================================================================
-// ArcaneLibrary Get All Archives
+// ArcaneLibrary Create Node
 // ========================================================================
-console.log('\n=== ArcaneLibrary Get All Archives ===');
+console.log('\n=== ArcaneLibrary Create Node ===');
 {
     var lib = new ArcaneLibrary('lib1');
-    lib.addArchive(new KnowledgeArchive('ka1', 'A1', 50, 0));
-    lib.addArchive(new KnowledgeArchive('ka2', 'A2', 50, 0));
-    var all = lib.getAllArchives();
-    assertEq(all.length, 3, '3 archives (1 default + 2)');
-}
-
-// ========================================================================
-// ArcaneBook Default Values
-// ========================================================================
-console.log('\n=== ArcaneBook Default Values ===');
-{
-    var book = new ArcaneBook('book1');
-    assertEq(book.title, 'book1', 'title=id');
-    assertEq(book.author, 'Unknown', 'Unknown');
-    assertEq(book.pages, 100, '100');
-    assertEq(book.rarity, 'common', 'common');
-    assertEq(book.subject, 'general', 'general');
+    var r = lib.createNode(new KnowledgeNode('kn1', 'Node 1', 3, true));
+    assert(r.success, 'create success');
+    assertEq(lib.getNodeCount(), 1, '1 node');
+    assert(lib.getNode('kn1') !== null, 'get kn1');
 }
 
 // ========================================================================
