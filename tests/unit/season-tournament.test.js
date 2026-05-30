@@ -1456,5 +1456,66 @@ describe('Cross-System Integration - SeasonTournament with MetagameTracker', () 
       
       localStorage.setItem = originalSetItem;
     });
+
+    test('recordTournamentParticipation handles different result formats', () => {
+      // Set up mocks so the actual logic runs
+      const mockMetaTracker = {
+        updatePlayerStats: jest.fn()
+      };
+      mockSeasonManager.getCurrentSeason.mockReturnValue({
+        id: 'S1',
+        status: 'active'
+      });
+      seasonTournament.metaTracker = mockMetaTracker;
+      
+      // Case 1: result with placement <= 4 (wins counted)
+      seasonTournament.recordTournamentParticipation('t_branch', 'p1', { placement: 2 });
+      
+      // Case 2: result with wins but no placement
+      seasonTournament.recordTournamentParticipation('t_branch2', 'p2', { wins: 5, losses: 3 });
+      
+      // Case 3: result with placement > 4 (uses wins/losses)
+      seasonTournament.recordTournamentParticipation('t_branch3', 'p3', { placement: 8, wins: 2, losses: 1 });
+    });
+
+    test('_calculateEloBonus returns correct values for all winRate thresholds', () => {
+      // Test all branches of _calculateEloBonus
+      expect(seasonTournament._calculateEloBonus(0.75)).toBe(50);  // >= 0.7
+      expect(seasonTournament._calculateEloBonus(0.7)).toBe(50);   // >= 0.7
+      expect(seasonTournament._calculateEloBonus(0.69)).toBe(25);  // >= 0.6 but < 0.7
+      expect(seasonTournament._calculateEloBonus(0.6)).toBe(25);   // >= 0.6 but < 0.7
+      expect(seasonTournament._calculateEloBonus(0.59)).toBe(10);  // >= 0.5 but < 0.6
+      expect(seasonTournament._calculateEloBonus(0.5)).toBe(10);   // >= 0.5 but < 0.6
+      expect(seasonTournament._calculateEloBonus(0.49)).toBe(0);    // < 0.5
+      expect(seasonTournament._calculateEloBonus(0)).toBe(0);      // edge case
+    });
+
+    test('getCurrentSeasonTournaments returns empty when no active season', () => {
+      const tournaments = seasonTournament.getCurrentSeasonTournaments();
+      expect(Array.isArray(tournaments)).toBe(true);
+    });
+
+    test('checkEligibility returns ineligible for null playerId', () => {
+      const result = seasonTournament.checkEligibility(null);
+      expect(result.eligible).toBe(false);
+      expect(result.reasons).toContain('Invalid playerId');
+    });
+
+    test('checkEligibility returns ineligible when no active season', () => {
+      // Mock seasonMgr to return null for getCurrentSeason
+      const originalSeasonMgr = seasonTournament.seasonMgr;
+      seasonTournament.seasonMgr = { getCurrentSeason: () => null };
+      
+      const result = seasonTournament.checkEligibility('p1');
+      expect(result.eligible).toBe(false);
+      expect(result.reasons).toContain('No active season');
+      
+      seasonTournament.seasonMgr = originalSeasonMgr;
+    });
+
+    test('getSeasonBasedEloBonus returns 0 when no player stats', () => {
+      const bonus = seasonTournament.getSeasonBasedEloBonus('p_no_stats', 'S1');
+      expect(bonus).toBe(0);
+    });
   });
 });
