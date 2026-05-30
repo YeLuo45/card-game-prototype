@@ -1017,6 +1017,14 @@ describe('AdaptiveDifficultyEngine', () => {
       expect(result).toBe(1500);
     });
 
+    test('getPlayerELO handles localStorage error', () => {
+      localStorage.getItem.mockImplementationOnce(() => {
+        throw new Error('Storage error');
+      });
+      const result = engine.getPlayerELO('player_ls_error');
+      expect(result).toBe(1500);
+    });
+
     test('getSeasonProgress returns 0 without system', () => {
       const result = engine.getSeasonProgress();
       expect(result).toBe(0);
@@ -1044,11 +1052,46 @@ describe('AdaptiveDifficultyEngine', () => {
       expect(result).toBe(2);
     });
 
+    test('getChapterProgress with storyMemory', () => {
+      engine.storyMemory = {
+        loadStoryProgress: jest.fn(() => ({ completedChapters: ['a', 'b', 'c'] }))
+      };
+      const result = engine.getChapterProgress('player_story');
+      expect(result).toBe(3);
+      expect(engine.storyMemory.loadStoryProgress).toHaveBeenCalledWith('player_story');
+    });
+
     test('getArchetypeLevel returns archetype count', () => {
       engine.playerProgression.unlockArchetype('player_arch', 'arch1');
       engine.playerProgression.unlockArchetype('player_arch', 'arch2');
       const result = engine.getArchetypeLevel('player_arch');
       expect(result).toBe(2);
+    });
+  });
+
+  describe('getEnemyBehaviorAdjustment branch coverage', () => {
+    test('handles low difficulty (<=3) attack tendency', () => {
+      engine.currentDifficulty = 2;
+      const result = engine.getEnemyBehaviorAdjustment('player_low_diff');
+      expect(result.attackTendency).toBeLessThan(0.5);
+    });
+
+    test('handles high difficulty (>=7) attack tendency', () => {
+      engine.currentDifficulty = 8;
+      const result = engine.getEnemyBehaviorAdjustment('player_high_diff');
+      expect(result.attackTendency).toBeGreaterThan(0.5);
+    });
+
+    test('handles normal difficulty tempo control', () => {
+      engine.currentDifficulty = 4;
+      const result = engine.getEnemyBehaviorAdjustment('player_normal');
+      expect(result.tempoControl).toBe('normal');
+    });
+
+    test('handles high difficulty tempo control', () => {
+      engine.currentDifficulty = 7;
+      const result = engine.getEnemyBehaviorAdjustment('player_aggressive');
+      expect(result.tempoControl).toBe('aggressive');
     });
   });
 });
