@@ -41,7 +41,7 @@ class MetagameTracker {
     try {
       localStorage.setItem(key, JSON.stringify(updated));
     } catch (e) {
-      console.warn('MetagameTracker save failed:', e);
+      console.warn('[MetagameTracker] trackCardUsage save failed:', e);
     }
   }
 
@@ -67,7 +67,7 @@ class MetagameTracker {
     try {
       localStorage.setItem(key, JSON.stringify(updated));
     } catch (e) {
-      console.warn('MetagameTracker deck save failed:', e);
+      console.warn('[MetagameTracker] trackDeckUsage save failed:', e);
     }
   }
 
@@ -131,7 +131,7 @@ class MetagameTracker {
         }
       }
     } catch (e) {
-      console.warn('MetagameTracker getAllCardStats failed:', e);
+      console.warn('[MetagameTracker] getAllCardStats failed:', e);
     }
     return result;
   }
