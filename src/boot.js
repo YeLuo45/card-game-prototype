@@ -225,5 +225,3 @@ return loadAll(unique).then(function() {
     return window._loadScript(src);
   }
 };
-
-module.exports = window.Boot;

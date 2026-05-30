@@ -20,6 +20,77 @@
   if (typeof refreshCardsFromRegistry === 'function') {
     refreshCardsFromRegistry();
   }
+
+  // 填充卡牌数据（延迟到 CARDS 填充后）
+  const _poolCard = function(id) {
+    const c = CARDS[id];
+    if (!c) console.warn('[remote-cardpack] CARDS missing:', id);
+    return c;
+  };
+
+  const NEW_CARDS_POOL = [
+    _poolCard('consecutiveStrike'),
+    _poolCard('painfulStrike'),
+    _poolCard('behead'),
+    _poolCard('ironWall'),
+    _poolCard('firstAid'),
+    _poolCard('warCry'),
+    _poolCard('counterStance'),
+    _poolCard('spikeShell'),
+    _poolCard('burningFist'),
+    _poolCard('demonContract'),
+    _poolCard('lightningReflex'),
+    _poolCard('meditation'),
+    _poolCard('deadlyPrecision'),
+    _poolCard('vampiricTouch'),
+  ];
+
+  const SHOP_CARD_POOL = [
+    { ...(_poolCard('consecutiveStrike')), price: 15 },
+    { ...(_poolCard('painfulStrike')), price: 22 },
+    { ...(_poolCard('behead')), price: 30 },
+    { ...(_poolCard('burningFist')), price: 25 },
+    { ...(_poolCard('ironWall')), price: 18 },
+    { ...(_poolCard('firstAid')), price: 25 },
+    { ...(_poolCard('warCry')), price: 20 },
+    { ...(_poolCard('harden')), price: 15 },
+    { ...(_poolCard('counterStance')), price: 28 },
+    { ...(_poolCard('spikeShell')), price: 30 },
+    { ...(_poolCard('meditation')), price: 35 },
+    { ...(_poolCard('deadlyPrecision')), price: 32 },
+    { ...(_poolCard('demonContract')), price: 40 },
+    { ...(_poolCard('lightningReflex')), price: 25 },
+    { ...(_poolCard('vampiricTouch')), price: 30 },
+    { ...(_poolCard('executionerBlade')), price: 28 },
+    { ...(_poolCard('piercingStrike')), price: 24 },
+    { ...(_poolCard('flameSlash')), price: 22 },
+    { ...(_poolCard('bloodSword')), price: 32 },
+    { ...(_poolCard('voidStrike')), price: 25 },
+    { ...(_poolCard('savageBlow')), price: 26 },
+    { ...(_poolCard('ironGuard')), price: 20 },
+    { ...(_poolCard('bloodPact')), price: 18 },
+    { ...(_poolCard('blazingAura')), price: 30 },
+    { ...(_poolCard('bloodRage')), price: 35 },
+    { ...(_poolCard('quickening')), price: 28 },
+    { ...(_poolCard('executeStrike')), price: 26 },
+    { ...(_poolCard('enrageStrike')), price: 24 },
+    { ...(_poolCard('reflectStrike')), price: 22 },
+    { ...(_poolCard('chainStrike')), price: 28 },
+    { ...(_poolCard('lastStandStrike')), price: 18 },
+    { ...(_poolCard('fortifyDefense')), price: 24 },
+    { ...(_poolCard('evasionStance')), price: 20 },
+    { ...(_poolCard('weakenTouch')), price: 18 },
+    { ...(_poolCard('silenceMark')), price: 26 },
+    { ...(_poolCard('burningShield')), price: 24 },
+    { ...(_poolCard('enrageAura')), price: 30 },
+    { ...(_poolCard('reflectAura')), price: 28 },
+    { ...(_poolCard('fortifyAura')), price: 30 },
+    { ...(_poolCard('evasionAura')), price: 26 },
+  ];
+
+  // 暴露到 window（供其他模块使用）
+  window.NEW_CARDS_POOL = NEW_CARDS_POOL;
+  window.SHOP_CARD_POOL = SHOP_CARD_POOL;
 })();
 
 // ===== V32 流派协同系统 =====
@@ -251,6 +322,7 @@ function getArchetypeDisplayData() {
   });
 }
 
+/* 注释掉 — 已迁移到 async IIFE 内部（延迟到 CARDS 填充后）
 const NEW_CARDS_POOL = [
   CARDS.consecutiveStrike,
   CARDS.painfulStrike,
@@ -319,6 +391,7 @@ const SHOP_CARD_POOL = [
   { ...CARDS.evasionAura, price: 26 },
   { ...CARDS.weakenAura, price: 28 },
 ];
+*/
 
 // 遗物商店价格表
 const RELIC_SHOP_PRICES = {
