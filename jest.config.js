@@ -3,6 +3,7 @@ module.exports = {
   testMatch: ['**/tests/**/*.test.js'],
   collectCoverageFrom: [
     'metagame-evolution.js',
+    'season-tournament.js',
     'synergy-cascade.js',
     'replay-analysis.js',
     'chronicle-campaign.js',
