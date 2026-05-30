@@ -56,7 +56,7 @@ const mockDocument = {
 };
 global.document = mockDocument;
 
-const { SynergyRegistry, CascadeEngine, SynergyHooks, SynergyPanel } = require('../../synergy-cascade.js');
+const { SynergyRegistry, CascadeEngine, SynergyHooks, SynergyPanel, SynergyBoostByELO, ChronicleSynergyUnlock } = require('../../synergy-cascade.js');
 
 describe('SynergyRegistry', () => {
   let registry;
@@ -1475,6 +1475,342 @@ describe('SynergyPanel init branches', () => {
       
       const result = panel.renderSynergyList();
       expect(result).toContain('test_synergy');
+    });
+  });
+});
+
+describe('SynergyBoostByELO', () => {
+  let synergyBoost;
+  let mockEloRating;
+
+  beforeEach(() => {
+    mockEloRating = {
+      getPlayerRating: jest.fn((playerId) => {
+        const ratings = { 'p_high': 1900, 'p_medium': 1550, 'p_low': 1200 };
+        return ratings[playerId] || 1500;
+      })
+    };
+    synergyBoost = new SynergyBoostByELO(mockEloRating);
+  });
+
+  describe('constructor', () => {
+    test('initializes with provided elo rating', () => {
+      expect(synergyBoost.eloRating).toBe(mockEloRating);
+    });
+
+    test('initializes with default values when no elo rating', () => {
+      const boostNoElo = new SynergyBoostByELO(null);
+      expect(boostNoElo.eloRating).toBeNull();
+    });
+  });
+
+  describe('setELORating', () => {
+    test('should set elo rating reference', () => {
+      const newEloRating = { getPlayerRating: jest.fn(() => 1700) };
+      synergyBoost.setELORating(newEloRating);
+      expect(synergyBoost.eloRating).toBe(newEloRating);
+    });
+  });
+
+  describe('calculateBoost', () => {
+    test('should return null for null playerId', () => {
+      expect(synergyBoost.calculateBoost(null)).toBeNull();
+    });
+
+    test('should return default boost for medium elo player', () => {
+      const boost = synergyBoost.calculateBoost('p_medium');
+      
+      expect(boost).not.toBeNull();
+      expect(boost.playerId).toBe('p_medium');
+      expect(boost.rating).toBe(1550);
+      expect(boost.multiplier).toBeGreaterThan(1.0);
+    });
+
+    test('should calculate higher boost for high elo player', () => {
+      const highEloBoost = synergyBoost.calculateBoost('p_high');
+      const mediumEloBoost = synergyBoost.calculateBoost('p_medium');
+      
+      expect(highEloBoost.multiplier).toBeGreaterThan(mediumEloBoost.multiplier);
+    });
+
+    test('should apply win streak bonus', () => {
+      const boost = synergyBoost.calculateBoost('p_medium', { winStreak: 5 });
+      
+      expect(boost.multiplier).toBeGreaterThan(1.0);
+      expect(boost.boostReasons.some(r => r.includes('连胜'))).toBe(true);
+    });
+
+    test('should apply tournament performance bonus', () => {
+      const boost = synergyBoost.calculateBoost('p_medium', { tournamentPerformance: 'top4' });
+      
+      expect(boost.boostReasons.some(r => r.includes('锦标赛前4'))).toBe(true);
+    });
+
+    test('should cap multiplier at 1.5', () => {
+      const boost = synergyBoost.calculateBoost('p_high', { winStreak: 10, tournamentPerformance: 'top4' });
+      
+      expect(boost.multiplier).toBeLessThanOrEqual(1.5);
+    });
+  });
+
+  describe('getCardSynergyBoost', () => {
+    test('should return 0 for null boostInfo', () => {
+      expect(synergyBoost.getCardSynergyBoost('card1', null)).toBe(0);
+    });
+
+    test('should calculate boost based on multiplier', () => {
+      const boostInfo = { multiplier: 1.2 };
+      const cardBoost = synergyBoost.getCardSynergyBoost('card1', boostInfo);
+      
+      expect(cardBoost).toBe(2); // (1.2 - 1) * 10 = 2
+    });
+  });
+
+  describe('hasSynergyTierAccess', () => {
+    test('should return true for legendary tier with rating >= 2000', () => {
+      expect(synergyBoost.hasSynergyTierAccess('p_high', 'legendary')).toBe(false); // 1900 < 2000
+    });
+
+    test('should return true for epic tier with rating >= 1700', () => {
+      expect(synergyBoost.hasSynergyTierAccess('p_high', 'epic')).toBe(true); // 1900 >= 1700
+    });
+
+    test('should return true for rare tier with rating >= 1400', () => {
+      expect(synergyBoost.hasSynergyTierAccess('p_medium', 'rare')).toBe(true); // 1550 >= 1400
+    });
+
+    test('should return true for unknown tier', () => {
+      expect(synergyBoost.hasSynergyTierAccess('p_low', 'unknown')).toBe(true);
+    });
+  });
+
+  describe('getPlayerBoost', () => {
+    test('should return null for unknown player', () => {
+      expect(synergyBoost.getPlayerBoost('unknown')).toBeNull();
+    });
+
+    test('should return cached boost after calculation', () => {
+      synergyBoost.calculateBoost('p_medium');
+      const cached = synergyBoost.getPlayerBoost('p_medium');
+      
+      expect(cached).not.toBeNull();
+      expect(cached.playerId).toBe('p_medium');
+    });
+  });
+
+  describe('clearPlayerBoost', () => {
+    test('should clear specific player boost', () => {
+      synergyBoost.calculateBoost('p_medium');
+      synergyBoost.clearPlayerBoost('p_medium');
+      
+      expect(synergyBoost.getPlayerBoost('p_medium')).toBeNull();
+    });
+
+    test('should clear all boosts when playerId is null', () => {
+      synergyBoost.calculateBoost('p_medium');
+      synergyBoost.calculateBoost('p_high');
+      synergyBoost.clearPlayerBoost(null);
+      
+      expect(synergyBoost.getPlayerBoost('p_medium')).toBeNull();
+      expect(synergyBoost.getPlayerBoost('p_high')).toBeNull();
+    });
+  });
+});
+
+describe('ChronicleSynergyUnlock', () => {
+  let chronicleUnlock;
+
+  beforeEach(() => {
+    chronicleUnlock = new ChronicleSynergyUnlock();
+  });
+
+  describe('constructor', () => {
+    test('initializes with empty maps', () => {
+      expect(chronicleUnlock.unlockedSynergies.size).toBe(0);
+      expect(chronicleUnlock.chapterSynergyMap.size).toBe(0);
+      expect(chronicleUnlock.requirementCache.size).toBe(0);
+    });
+  });
+
+  describe('registerChapterSynergy', () => {
+    test('should return false for invalid input', () => {
+      expect(chronicleUnlock.registerChapterSynergy(null, 'ch1')).toBe(false);
+      expect(chronicleUnlock.registerChapterSynergy('syn1', null)).toBe(false);
+    });
+
+    test('should register synergy to chapter mapping', () => {
+      expect(chronicleUnlock.registerChapterSynergy('syn1', 'ch1', 'card1')).toBe(true);
+      expect(chronicleUnlock.chapterSynergyMap.get('syn1')).toBe('ch1');
+    });
+
+    test('should add to chapter synergy set', () => {
+      chronicleUnlock.registerChapterSynergy('syn1', 'ch1');
+      chronicleUnlock.registerChapterSynergy('syn2', 'ch1');
+      
+      const synergies = chronicleUnlock.unlockedSynergies.get('ch1');
+      expect(synergies.size).toBe(2);
+    });
+  });
+
+  describe('isSynergyUnlocked', () => {
+    test('should return true for synergy without chapter mapping', () => {
+      expect(chronicleUnlock.isSynergyUnlocked('any_synergy', 'player1')).toBe(true);
+    });
+
+    test('should return false for locked chapter synergy', () => {
+      chronicleUnlock.registerChapterSynergy('syn1', 'ch1');
+      expect(chronicleUnlock.isSynergyUnlocked('syn1', 'player1')).toBe(false);
+    });
+
+    test('should return true after chapter is unlocked', () => {
+      chronicleUnlock.registerChapterSynergy('syn1', 'ch1');
+      chronicleUnlock.unlockChapterSynergies('ch1', 'player1');
+      
+      expect(chronicleUnlock.isSynergyUnlocked('syn1', 'player1')).toBe(true);
+    });
+  });
+
+  describe('unlockChapterSynergies', () => {
+    test('should do nothing for invalid input', () => {
+      expect(() => chronicleUnlock.unlockChapterSynergies(null, 'player1')).not.toThrow();
+      expect(() => chronicleUnlock.unlockChapterSynergies('ch1', null)).not.toThrow();
+    });
+
+    test('should unlock chapter for player', () => {
+      chronicleUnlock.registerChapterSynergy('syn1', 'ch1');
+      chronicleUnlock.unlockChapterSynergies('ch1', 'player1');
+      
+      expect(chronicleUnlock.isChapterUnlocked('player1', 'ch1')).toBe(true);
+    });
+  });
+
+  describe('getUnlockedSynergies', () => {
+    test('should return empty array when no synergies registered', () => {
+      const unlocked = chronicleUnlock.getUnlockedSynergies('ch1', 'player1');
+      expect(unlocked).toEqual([]);
+    });
+
+    test('should return unlocked synergies for chapter and player', () => {
+      chronicleUnlock.registerChapterSynergy('syn1', 'ch1');
+      chronicleUnlock.registerChapterSynergy('syn2', 'ch1');
+      chronicleUnlock.unlockChapterSynergies('ch1', 'player1');
+      
+      const unlocked = chronicleUnlock.getUnlockedSynergies('ch1', 'player1');
+      expect(unlocked).toContain('syn1');
+      expect(unlocked).toContain('syn2');
+    });
+
+    test('should not return locked synergies', () => {
+      chronicleUnlock.registerChapterSynergy('syn1', 'ch1');
+      chronicleUnlock.registerChapterSynergy('syn2', 'ch2');
+      
+      const unlocked = chronicleUnlock.getUnlockedSynergies('ch1', 'player1');
+      expect(unlocked).not.toContain('syn2');
+    });
+  });
+
+  describe('getAllPlayerUnlockedSynergies', () => {
+    test('should return all unlocked synergies for player', () => {
+      chronicleUnlock.registerChapterSynergy('syn1', 'ch1');
+      chronicleUnlock.registerChapterSynergy('syn2', 'ch2');
+      chronicleUnlock.unlockChapterSynergies('ch1', 'player1');
+      chronicleUnlock.unlockChapterSynergies('ch2', 'player1');
+      
+      const allUnlocked = chronicleUnlock.getAllPlayerUnlockedSynergies('player1');
+      
+      expect(allUnlocked).toContain('syn1');
+      expect(allUnlocked).toContain('syn2');
+    });
+
+    test('should return empty array for player with no unlocks', () => {
+      const allUnlocked = chronicleUnlock.getAllPlayerUnlockedSynergies('player1');
+      expect(allUnlocked).toEqual([]);
+    });
+  });
+
+  describe('getChapterProgress', () => {
+    test('should return 100% for empty required chapters', () => {
+      const progress = chronicleUnlock.getChapterProgress('player1', []);
+      expect(progress.percentage).toBe(100);
+    });
+
+    test('should return correct progress', () => {
+      chronicleUnlock.registerChapterSynergy('syn1', 'ch1');
+      chronicleUnlock.registerChapterSynergy('syn2', 'ch2');
+      chronicleUnlock.unlockChapterSynergies('ch1', 'player1');
+      
+      const progress = chronicleUnlock.getChapterProgress('player1', ['ch1', 'ch2']);
+      
+      expect(progress.completed).toBe(1);
+      expect(progress.total).toBe(2);
+      expect(progress.percentage).toBe(50);
+    });
+  });
+
+  describe('checkRequirement', () => {
+    test('should return true for null requirement', () => {
+      expect(chronicleUnlock.checkRequirement('player1', null)).toBe(true);
+    });
+
+    test('should check chapter requirement', () => {
+      chronicleUnlock.unlockChapterSynergies('ch1', 'player1');
+      
+      expect(chronicleUnlock.checkRequirement('player1', { type: 'chapter', chapterId: 'ch1' })).toBe(true);
+      expect(chronicleUnlock.checkRequirement('player1', { type: 'chapter', chapterId: 'ch2' })).toBe(false);
+    });
+
+    test('should check chapters requirement', () => {
+      chronicleUnlock.unlockChapterSynergies('ch1', 'player1');
+      
+      expect(chronicleUnlock.checkRequirement('player1', { type: 'chapters', chapters: ['ch1'] })).toBe(true);
+      expect(chronicleUnlock.checkRequirement('player1', { type: 'chapters', chapters: ['ch1', 'ch2'] })).toBe(false);
+    });
+  });
+
+  describe('isChapterUnlocked', () => {
+    test('should return false for locked chapter', () => {
+      expect(chronicleUnlock.isChapterUnlocked('player1', 'ch1')).toBe(false);
+    });
+
+    test('should return true for unlocked chapter', () => {
+      chronicleUnlock.unlockChapterSynergies('ch1', 'player1');
+      expect(chronicleUnlock.isChapterUnlocked('player1', 'ch1')).toBe(true);
+    });
+  });
+
+  describe('getChapterSynergies', () => {
+    test('should return empty array for unknown chapter', () => {
+      const synergies = chronicleUnlock.getChapterSynergies('unknown');
+      expect(synergies).toEqual([]);
+    });
+
+    test('should return synergies for chapter', () => {
+      chronicleUnlock.registerChapterSynergy('syn1', 'ch1');
+      chronicleUnlock.registerChapterSynergy('syn2', 'ch1');
+      
+      const synergies = chronicleUnlock.getChapterSynergies('ch1');
+      expect(synergies).toHaveLength(2);
+    });
+  });
+
+  describe('resetPlayerData', () => {
+    test('should reset specific player data', () => {
+      chronicleUnlock.unlockChapterSynergies('ch1', 'player1');
+      chronicleUnlock.resetPlayerData('player1');
+      
+      expect(chronicleUnlock.isChapterUnlocked('player1', 'ch1')).toBe(false);
+    });
+  });
+
+  describe('clear', () => {
+    test('should clear all data', () => {
+      chronicleUnlock.registerChapterSynergy('syn1', 'ch1');
+      chronicleUnlock.unlockChapterSynergies('ch1', 'player1');
+      chronicleUnlock.clear();
+      
+      expect(chronicleUnlock.unlockedSynergies.size).toBe(0);
+      expect(chronicleUnlock.chapterSynergyMap.size).toBe(0);
+      expect(chronicleUnlock.requirementCache.size).toBe(0);
     });
   });
 });

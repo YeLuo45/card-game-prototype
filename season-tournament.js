@@ -4,7 +4,15 @@
  * 
  * 概念：扩展赛季锦标赛功能，增加锦标赛bracket、选手ELO积分、淘汰赛制
  * 设计来源：generic-agent Self-Evolution | thunderbolt feedback loops | chatdev multi-agent
+ * 
+ * 跨系统协同 (Cross-System Integration):
+ * - 集成MetagameTracker感知Tournament参与情况，动态调整赛季等级阈值
+ * - 向SynergyRegistry提供ELO评分变化，触发卡牌协同增益
+ * - SeasonTournament使用赛季数据作为参赛条件
  */
+
+// Forward declarations for cross-system integration (avoids circular dependency)
+class MetagameTracker {}
 
 // ===== TournamentBracket - 锦标赛Bracket管理 =====
 //import { ELORating } from './season-tournament.js';
@@ -1001,6 +1009,256 @@ class SeasonTournament {
   _playerInTournament(tournamentId, playerId) {
     const key = this.TOURNAMENT_KEY + tournamentId + '_player_' + playerId;
     return localStorage.getItem(key) !== null;
+  }
+
+  // ===== 跨系统协同：与MetagameTracker集成 =====
+
+  /**
+   * 设置MetagameTracker引用（用于感知Tournament参与情况）
+   * @param {object} metagameTracker - MetagameTracker实例
+   */
+  setMetagameTracker(metagameTracker) {
+    this.metaTracker = metagameTracker;
+  }
+
+  /**
+   * 获取动态赛季等级阈值（基于MetagameTracker数据调整）
+   * @param {string} seasonId - 赛季ID
+   * @returns {object} 阈值配置 { minGames, minWinRate, eloBonus }
+   */
+  getDynamicThresholds(seasonId) {
+    const defaultThresholds = {
+      minGames: 10,
+      minWinRate: 0.45,
+      eloBonus: 0
+    };
+
+    if (!this.metaTracker) {
+      return defaultThresholds;
+    }
+
+    // 从MetagameTracker获取赛季统计数据
+    const season = this.seasonMgr?.getSeasonStats(seasonId);
+    if (!season) {
+      return defaultThresholds;
+    }
+
+    // 基于赛季参与度动态调整阈值
+    const totalGames = season.stats?.totalGames || 0;
+    const winRate = season.stats?.winRate || 0.5;
+
+    // 如果赛季参与度高，提高阈值以筛选高质量玩家
+    let adjustedMinGames = defaultThresholds.minGames;
+    let adjustedMinWinRate = defaultThresholds.minWinRate;
+
+    if (totalGames > 100) {
+      adjustedMinGames = 15; // 提高最低游戏数要求
+      adjustedMinWinRate = 0.48; // 提高最低胜率要求
+    } else if (totalGames > 50) {
+      adjustedMinGames = 12;
+      adjustedMinWinRate = 0.47;
+    }
+
+    return {
+      minGames: adjustedMinGames,
+      minWinRate: adjustedMinWinRate,
+      eloBonus: this._calculateEloBonus(winRate),
+      totalSeasonGames: totalGames,
+      seasonWinRate: winRate
+    };
+  }
+
+  /**
+   * 计算ELO奖励加成（基于赛季表现）
+   * @param {number} winRate - 赛季胜率
+   * @returns {number} ELO加成值
+   */
+  _calculateEloBonus(winRate) {
+    if (winRate >= 0.7) return 50;  // 高胜率玩家额外ELO
+    if (winRate >= 0.6) return 25;
+    if (winRate >= 0.5) return 10;
+    return 0;
+  }
+
+  /**
+   * 检查玩家是否满足参赛条件（基于赛季数据）
+   * @param {string} playerId - 玩家ID
+   * @param {object} options - 选项 { seasonId, useDynamicThresholds }
+   * @returns {object} 检查结果 { eligible, reasons, thresholds }
+   */
+  checkEligibility(playerId, options = {}) {
+    const seasonId = options.seasonId || this.seasonMgr?.getCurrentSeason()?.id;
+    const useDynamic = options.useDynamicThresholds !== false;
+
+    if (!playerId) {
+      return { eligible: false, reasons: ['Invalid playerId'], thresholds: null };
+    }
+
+    const reasons = [];
+    let eligible = true;
+
+    // 检查是否有活跃赛季
+    const season = this.seasonMgr?.getCurrentSeason();
+    if (!season) {
+      eligible = false;
+      reasons.push('No active season');
+    }
+
+    // 获取阈值
+    const thresholds = useDynamic 
+      ? this.getDynamicThresholds(seasonId)
+      : { minGames: 10, minWinRate: 0.45, eloBonus: 0 };
+
+    // 检查MetagameTracker中的玩家数据
+    if (this.metaTracker && seasonId) {
+      const playerStats = this._getPlayerSeasonStats(playerId, seasonId);
+      
+      if (playerStats) {
+        if (playerStats.gamesPlayed < thresholds.minGames) {
+          eligible = false;
+          reasons.push(`Games played (${playerStats.gamesPlayed}) < minimum (${thresholds.minGames})`);
+        }
+        
+        if (playerStats.winRate < thresholds.minWinRate) {
+          eligible = false;
+          reasons.push(`Win rate (${(playerStats.winRate * 100).toFixed(1)}%) < minimum (${(thresholds.minWinRate * 100).toFixed(1)}%)`);
+        }
+      }
+    }
+
+    return { eligible, reasons, thresholds };
+  }
+
+  /**
+   * 获取玩家在特定赛季的统计数据
+   * @param {string} playerId - 玩家ID
+   * @param {string} seasonId - 赛季ID
+   * @returns {object|null} 统计数据
+   */
+  _getPlayerSeasonStats(playerId, seasonId) {
+    if (!this.metaTracker) return null;
+
+    try {
+      const key = 'metagame_player_' + playerId + '_' + seasonId;
+      const data = localStorage.getItem(key);
+      if (data) {
+        return JSON.parse(data);
+      }
+    } catch (e) {
+      console.warn('[SeasonTournament] _getPlayerSeasonStats failed:', e);
+    }
+
+    return null;
+  }
+
+  /**
+   * 记录锦标赛参与情况到MetagameTracker
+   * @param {string} tournamentId - 锦标赛ID
+   * @param {string} playerId - 玩家ID
+   * @param {object} result - 比赛结果 { placement, wins, losses }
+   */
+  recordTournamentParticipation(tournamentId, playerId, result = {}) {
+    if (!this.metaTracker) return;
+
+    const season = this.seasonMgr?.getCurrentSeason();
+    if (!season) return;
+
+    // 记录到MetagameTracker
+    try {
+      const key = 'metagame_player_' + playerId + '_' + season.id;
+      const existing = localStorage.getItem(key);
+      const stats = existing ? JSON.parse(existing) : {
+        gamesPlayed: 0,
+        wins: 0,
+        losses: 0,
+        winRate: 0
+      };
+
+      // 更新统计
+      stats.gamesPlayed = (stats.gamesPlayed || 0) + 1;
+      if (result.placement && result.placement <= 4) {
+        stats.wins = (stats.wins || 0) + 1; // 前4名算作胜利
+      } else if (result.wins) {
+        stats.wins = (stats.wins || 0) + result.wins;
+      }
+      if (result.losses) {
+        stats.losses = (stats.losses || 0) + result.losses;
+      }
+
+      // 计算胜率
+      if (stats.gamesPlayed > 0) {
+        stats.winRate = stats.wins / stats.gamesPlayed;
+      }
+
+      stats.lastTournamentId = tournamentId;
+      stats.lastUpdated = Date.now();
+
+      localStorage.setItem(key, JSON.stringify(stats));
+    } catch (e) {
+      console.warn('[SeasonTournament] recordTournamentParticipation failed:', e);
+    }
+  }
+
+  /**
+   * 获取基于赛季参与度的ELO加成
+   * @param {string} playerId - 玩家ID
+   * @param {string} seasonId - 赛季ID
+   * @returns {number} ELO加成值
+   */
+  getSeasonBasedEloBonus(playerId, seasonId) {
+    const thresholds = this.getDynamicThresholds(seasonId);
+    const playerStats = this._getPlayerSeasonStats(playerId, seasonId);
+
+    if (!playerStats) return 0;
+
+    let bonus = thresholds.eloBonus;
+
+    // 额外加成：赛季高胜率
+    if (playerStats.winRate >= 0.7) {
+      bonus += 25;
+    } else if (playerStats.winRate >= 0.6) {
+      bonus += 15;
+    }
+
+    return bonus;
+  }
+
+  /**
+   * 获取锦标赛的赛季统计
+   * @param {string} tournamentId - 锦标赛ID
+   * @returns {object} 赛季统计数据
+   */
+  getTournamentSeasonStats(tournamentId) {
+    const players = this.getRegisteredPlayers(tournamentId);
+    const season = this.seasonMgr?.getCurrentSeason();
+    
+    if (!season) {
+      return { totalParticipants: players.length, seasonActive: false };
+    }
+
+    // 统计有多少参与者在赛季中有记录
+    let withSeasonRecord = 0;
+    let totalSeasonGames = 0;
+    let totalSeasonWins = 0;
+
+    for (const player of players) {
+      const stats = this._getPlayerSeasonStats(player.playerId, season.id);
+      if (stats) {
+        withSeasonRecord++;
+        totalSeasonGames += stats.gamesPlayed || 0;
+        totalSeasonWins += stats.wins || 0;
+      }
+    }
+
+    return {
+      totalParticipants: players.length,
+      participantsWithSeasonRecord: withSeasonRecord,
+      seasonActive: true,
+      seasonId: season.id,
+      totalSeasonGames,
+      totalSeasonWins,
+      averageSeasonWinRate: totalSeasonGames > 0 ? (totalSeasonWins / totalSeasonGames) : 0
+    };
   }
 }
 

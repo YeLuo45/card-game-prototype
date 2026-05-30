@@ -4,7 +4,14 @@
  * 
  * 概念：卡牌间动态触发协同效果（连锁协同），hooks追踪协同依赖，mesh广播协同事件
  * 设计来源：ruflo Hook System | nanobot distributed mesh | thunderbolt feedback loops
+ * 
+ * 跨系统协同 (Cross-System Integration):
+ * - 感知Tournament的ELO评分变化，触发卡牌协同增益
+ * - 感知Chronicle Campaign的章节进度，解锁章节限定卡协同
  */
+
+// Forward declaration for cross-system integration (avoids circular dependency)
+class ELORating {}
 
 /**
  * SynergyRegistry - 协同效果注册表
@@ -970,12 +977,350 @@ class SynergyPanel {
   }
 }
 
+/**
+ * SynergyBoostByELO - 基于ELO评分的协同增益系统
+ * 感知Tournament的ELO评分变化，触发卡牌协同增益
+ */
+class SynergyBoostByELO {
+  constructor(eloRating) {
+    this.eloRating = eloRating || null;
+    this.ELO_BOOST_THRESHOLDS = {
+      HIGH: 1800,      // 高ELO阈值
+      MEDIUM: 1500,   // 中等ELO阈值
+      LOW: 1200       // 低ELO阈值
+    };
+    this.BOOST_MULTIPLIERS = {
+      WIN_STREAK: 1.2,    // 连胜加成
+      HIGH_ELO: 1.15,     // 高ELO加成
+      MEDIUM_ELO: 1.05    // 中等ELO加成
+    };
+    this.playerBoostCache = new Map(); // playerId -> boost info
+  }
+
+  /**
+   * 设置ELO评分系统引用
+   * @param {object} eloRating - ELORating实例
+   */
+  setELORating(eloRating) {
+    this.eloRating = eloRating;
+  }
+
+  /**
+   * 计算玩家的协同增益
+   * @param {string} playerId - 玩家ID
+   * @param {object} context - 上下文 { winStreak, tournamentPerformance }
+   * @returns {object} 增益信息 { multiplier, eligibleCards, boostReason }
+   */
+  calculateBoost(playerId, context = {}) {
+    if (!playerId) return null;
+
+    const rating = this.eloRating 
+      ? this.eloRating.getPlayerRating(playerId) 
+      : 1500; // 默认中等评分
+
+    let multiplier = 1.0;
+    const eligibleCards = [];
+    const boostReasons = [];
+
+    // 基于ELO等级的计算
+    if (rating >= this.ELO_BOOST_THRESHOLDS.HIGH) {
+      multiplier *= this.BOOST_MULTIPLIERS.HIGH_ELO;
+      boostReasons.push(`高ELO (${rating})`);
+    } else if (rating >= this.ELO_BOOST_THRESHOLDS.MEDIUM) {
+      multiplier *= this.BOOST_MULTIPLIERS.MEDIUM_ELO;
+      boostReasons.push(`中等ELO (${rating})`);
+    }
+
+    // 基于连胜的加成
+    if (context.winStreak && context.winStreak >= 3) {
+      multiplier *= Math.min(this.BOOST_MULTIPLIERS.WIN_STREAK, 1 + (context.winStreak - 2) * 0.1);
+      boostReasons.push(`连胜 ${context.winStreak}`);
+    }
+
+    // 高水平比赛表现加成
+    if (context.tournamentPerformance === 'top4') {
+      multiplier *= 1.1;
+      boostReasons.push('锦标赛前4');
+    }
+
+    const boostInfo = {
+      playerId,
+      rating,
+      multiplier: Math.min(multiplier, 1.5), // 最大150%加成
+      boostReasons,
+      calculatedAt: Date.now()
+    };
+
+    this.playerBoostCache.set(playerId, boostInfo);
+    return boostInfo;
+  }
+
+  /**
+   * 获取卡牌协同增益
+   * @param {string} cardId - 卡牌ID
+   * @param {object} boostInfo - 增益信息
+   * @returns {number} 增益数值
+   */
+  getCardSynergyBoost(cardId, boostInfo) {
+    if (!boostInfo) return 0;
+    // 基础协同增益 = (增益倍数 - 1) * 10
+    return Math.round((boostInfo.multiplier - 1) * 10);
+  }
+
+  /**
+   * 检查玩家是否有资格获得高级协同
+   * @param {string} playerId - 玩家ID
+   * @param {string} synergyTier - 协同等级 'legendary' | 'epic' | 'rare'
+   * @returns {boolean} 是否有资格
+   */
+  hasSynergyTierAccess(playerId, synergyTier) {
+    const rating = this.eloRating 
+      ? this.eloRating.getPlayerRating(playerId) 
+      : 1500;
+
+    switch (synergyTier) {
+      case 'legendary':
+        return rating >= 2000;
+      case 'epic':
+        return rating >= 1700;
+      case 'rare':
+        return rating >= 1400;
+      default:
+        return true;
+    }
+  }
+
+  /**
+   * 获取玩家的当前增益信息
+   * @param {string} playerId - 玩家ID
+   * @returns {object|null} 增益信息
+   */
+  getPlayerBoost(playerId) {
+    return this.playerBoostCache.get(playerId) || null;
+  }
+
+  /**
+   * 清除玩家增益缓存
+   * @param {string} playerId - 玩家ID
+   */
+  clearPlayerBoost(playerId) {
+    if (playerId) {
+      this.playerBoostCache.delete(playerId);
+    } else {
+      this.playerBoostCache.clear();
+    }
+  }
+}
+
+/**
+ * ChronicleSynergyUnlock - 章节限定协同解锁系统
+ * 感知Chronicle Campaign的章节进度，解锁章节限定卡协同
+ */
+class ChronicleSynergyUnlock {
+  constructor() {
+    this.unlockedSynergies = new Map(); // chapterId -> Set of synergyIds
+    this.chapterSynergyMap = new Map(); // synergyId -> chapterId
+    this.requirementCache = new Map(); // playerId -> { chapterId -> unlocked }
+  }
+
+  /**
+   * 注册章节限定协同
+   * @param {string} synergyId - 协同效果ID
+   * @param {string} chapterId - 章节ID
+   * @param {string} cardId - 卡牌ID（可选）
+   */
+  registerChapterSynergy(synergyId, chapterId, cardId = null) {
+    if (!synergyId || !chapterId) return false;
+
+    // 建立协同->章节的映射
+    this.chapterSynergyMap.set(synergyId, chapterId);
+
+    // 建立章节->协同的映射
+    if (!this.unlockedSynergies.has(chapterId)) {
+      this.unlockedSynergies.set(chapterId, new Set());
+    }
+    this.unlockedSynergies.get(chapterId).add(synergyId);
+
+    return true;
+  }
+
+  /**
+   * 检查协同是否已解锁
+   * @param {string} synergyId - 协同效果ID
+   * @param {string} playerId - 玩家ID
+   * @returns {boolean} 是否已解锁
+   */
+  isSynergyUnlocked(synergyId, playerId) {
+    const chapterId = this.chapterSynergyMap.get(synergyId);
+    if (!chapterId) return true; // 无章节限制，默认解锁
+
+    const playerRequirements = this.requirementCache.get(playerId) || {};
+    return !!playerRequirements[chapterId];
+  }
+
+  /**
+   * 解锁章节协同
+   * @param {string} chapterId - 章节ID
+   * @param {string} playerId - 玩家ID
+   */
+  unlockChapterSynergies(chapterId, playerId) {
+    if (!chapterId || !playerId) return;
+
+    if (!this.requirementCache.has(playerId)) {
+      this.requirementCache.set(playerId, {});
+    }
+
+    const playerRequirements = this.requirementCache.get(playerId);
+    playerRequirements[chapterId] = true;
+
+    // 触发协同解锁事件
+    this._onSynergyUnlocked(chapterId, playerId);
+  }
+
+  /**
+   * 获取章节已解锁的协同
+   * @param {string} chapterId - 章节ID
+   * @param {string} playerId - 玩家ID
+   * @returns {string[]} 已解锁的协同ID数组
+   */
+  getUnlockedSynergies(chapterId, playerId) {
+    const synergies = this.unlockedSynergies.get(chapterId) || new Set();
+    const unlocked = [];
+
+    for (const synergyId of synergies) {
+      if (this.isSynergyUnlocked(synergyId, playerId)) {
+        unlocked.push(synergyId);
+      }
+    }
+
+    return unlocked;
+  }
+
+  /**
+   * 获取玩家所有已解锁的协同
+   * @param {string} playerId - 玩家ID
+   * @returns {string[]} 已解锁的协同ID数组
+   */
+  getAllPlayerUnlockedSynergies(playerId) {
+    const allUnlocked = [];
+
+    for (const [chapterId, synergies] of this.unlockedSynergies) {
+      for (const synergyId of synergies) {
+        if (this.isSynergyUnlocked(synergyId, playerId)) {
+          allUnlocked.push(synergyId);
+        }
+      }
+    }
+
+    return allUnlocked;
+  }
+
+  /**
+   * 获取章节要求的完成进度
+   * @param {string} playerId - 玩家ID
+   * @param {string[]} requiredChapters - 需要的章节ID数组
+   * @returns {object} 进度信息 { completed, total, percentage }
+   */
+  getChapterProgress(playerId, requiredChapters) {
+    if (!requiredChapters || requiredChapters.length === 0) {
+      return { completed: 0, total: 0, percentage: 100 };
+    }
+
+    const playerRequirements = this.requirementCache.get(playerId) || {};
+    let completed = 0;
+
+    for (const chapterId of requiredChapters) {
+      if (playerRequirements[chapterId]) {
+        completed++;
+      }
+    }
+
+    return {
+      completed,
+      total: requiredChapters.length,
+      percentage: Math.round((completed / requiredChapters.length) * 100)
+    };
+  }
+
+  /**
+   * 检查是否满足章节条件
+   * @param {string} playerId - 玩家ID
+   * @param {object} requirement - 要求对象 { type, chapterId, chapters[] }
+   * @returns {boolean} 是否满足
+   */
+  checkRequirement(playerId, requirement) {
+    if (!requirement) return true;
+
+    if (requirement.type === 'chapter') {
+      return this.isChapterUnlocked(playerId, requirement.chapterId);
+    }
+
+    if (requirement.type === 'chapters') {
+      const progress = this.getChapterProgress(playerId, requirement.chapters);
+      return progress.percentage === 100;
+    }
+
+    return true;
+  }
+
+  /**
+   * 检查章节是否解锁
+   * @param {string} playerId - 玩家ID
+   * @param {string} chapterId - 章节ID
+   * @returns {boolean} 是否解锁
+   */
+  isChapterUnlocked(playerId, chapterId) {
+    const playerRequirements = this.requirementCache.get(playerId) || {};
+    return !!playerRequirements[chapterId];
+  }
+
+  /**
+   * 获取章节限定的协同效果定义
+   * @param {string} chapterId - 章节ID
+   * @returns {object[]} 协同效果定义数组
+   */
+  getChapterSynergies(chapterId) {
+    const synergyIds = this.unlockedSynergies.get(chapterId) || new Set();
+    return Array.from(synergyIds).map(id => ({
+      id,
+      chapterId: this.chapterSynergyMap.get(id)
+    }));
+  }
+
+  /**
+   * 重置玩家章节协同数据
+   * @param {string} playerId - 玩家ID
+   */
+  resetPlayerData(playerId) {
+    if (playerId) {
+      this.requirementCache.delete(playerId);
+    }
+  }
+
+  /**
+   * 清除所有数据
+   */
+  clear() {
+    this.unlockedSynergies.clear();
+    this.chapterSynergyMap.clear();
+    this.requirementCache.clear();
+  }
+
+  // 私有方法：协同解锁时触发
+  _onSynergyUnlocked(chapterId, playerId) {
+    const synergies = this.unlockedSynergies.get(chapterId) || new Set();
+    console.log(`[ChronicleSynergyUnlock] Player ${playerId} unlocked ${synergies.size} synergies from chapter ${chapterId}`);
+  }
+}
+
 // 导出模块
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     SynergyRegistry,
     CascadeEngine,
     SynergyHooks,
-    SynergyPanel
+    SynergyPanel,
+    SynergyBoostByELO,
+    ChronicleSynergyUnlock
   };
 }

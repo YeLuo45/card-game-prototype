@@ -729,3 +729,222 @@ describe('Integration Tests', () => {
     expect(eloRating.getPlayerRating('p1')).toBeLessThan(1500);
   });
 });
+
+describe('Cross-System Integration - SeasonTournament with MetagameTracker', () => {
+  let bracket;
+  let eloRating;
+  let seasonTournament;
+  let mockSeasonManager;
+  let mockMetagameTracker;
+
+  beforeEach(() => {
+    mockSeasonManager = {
+      getCurrentSeason: jest.fn(() => ({
+        id: 'S1',
+        status: 'active',
+        stats: { totalGames: 60, totalWins: 30, winRate: 0.5 }
+      })),
+      getSeasonStats: jest.fn(() => ({
+        id: 'S1',
+        status: 'active',
+        stats: { totalGames: 60, totalWins: 30, winRate: 0.5 }
+      })),
+      startSeason: jest.fn(),
+      endSeason: jest.fn()
+    };
+    
+    mockMetagameTracker = {
+      getCardStats: jest.fn(),
+      getDeckStats: jest.fn()
+    };
+    
+    bracket = new TournamentBracket();
+    eloRating = new ELORating();
+    seasonTournament = new SeasonTournament(mockSeasonManager, eloRating, bracket);
+    seasonTournament.setMetagameTracker(mockMetagameTracker);
+    localStorageMock._reset();
+  });
+
+  describe('setMetagameTracker', () => {
+    test('should set metagame tracker reference', () => {
+      expect(seasonTournament.metaTracker).toBe(mockMetagameTracker);
+    });
+  });
+
+  describe('getDynamicThresholds', () => {
+    test('should return default thresholds when no metaTracker', () => {
+      seasonTournament.metaTracker = null;
+      const thresholds = seasonTournament.getDynamicThresholds('S1');
+      
+      expect(thresholds.minGames).toBe(10);
+      expect(thresholds.minWinRate).toBe(0.45);
+      expect(thresholds.eloBonus).toBe(0);
+    });
+
+    test('should return default thresholds when no season', () => {
+      mockSeasonManager.getSeasonStats.mockReturnValue(null);
+      const thresholds = seasonTournament.getDynamicThresholds('S1');
+      
+      expect(thresholds.minGames).toBe(10);
+      expect(thresholds.minWinRate).toBe(0.45);
+    });
+
+    test('should adjust thresholds when season has high participation', () => {
+      mockSeasonManager.getSeasonStats.mockReturnValue({
+        id: 'S1',
+        stats: { totalGames: 120, winRate: 0.55 }
+      });
+      
+      const thresholds = seasonTournament.getDynamicThresholds('S1');
+      
+      expect(thresholds.minGames).toBe(15); // Increased from 10
+      expect(thresholds.minWinRate).toBe(0.48); // Increased from 0.45
+      expect(thresholds.totalSeasonGames).toBe(120);
+    });
+
+    test('should calculate elo bonus based on win rate', () => {
+      mockSeasonManager.getSeasonStats.mockReturnValue({
+        id: 'S1',
+        stats: { totalGames: 50, winRate: 0.75 }
+      });
+      
+      const thresholds = seasonTournament.getDynamicThresholds('S1');
+      
+      expect(thresholds.eloBonus).toBe(50); // High win rate >= 0.7
+    });
+  });
+
+  describe('checkEligibility', () => {
+    test('should return invalid for null playerId', () => {
+      const result = seasonTournament.checkEligibility(null);
+      
+      expect(result.eligible).toBe(false);
+      expect(result.reasons).toContain('Invalid playerId');
+    });
+
+    test('should return false when no active season', () => {
+      mockSeasonManager.getCurrentSeason.mockReturnValue(null);
+      
+      const result = seasonTournament.checkEligibility('p1');
+      
+      expect(result.eligible).toBe(false);
+      expect(result.reasons).toContain('No active season');
+    });
+
+    test('should return eligible when no metaTracker', () => {
+      seasonTournament.metaTracker = null;
+      
+      const result = seasonTournament.checkEligibility('p1');
+      
+      expect(result.eligible).toBe(true);
+    });
+
+    test('should check player stats against thresholds', () => {
+      // Set up player stats in localStorage
+      localStorage.setItem('metagame_player_p1_S1', JSON.stringify({
+        gamesPlayed: 8,
+        wins: 3,
+        losses: 5,
+        winRate: 0.375
+      }));
+      
+      const result = seasonTournament.checkEligibility('p1', { seasonId: 'S1' });
+      
+      expect(result.eligible).toBe(false);
+      expect(result.reasons.some(r => r.includes('Games played'))).toBe(true);
+    });
+
+    test('should return eligible when player meets thresholds', () => {
+      localStorage.setItem('metagame_player_p1_S1', JSON.stringify({
+        gamesPlayed: 15,
+        wins: 8,
+        losses: 7,
+        winRate: 0.533
+      }));
+      
+      const result = seasonTournament.checkEligibility('p1', { seasonId: 'S1' });
+      
+      expect(result.eligible).toBe(true);
+    });
+  });
+
+  describe('recordTournamentParticipation', () => {
+    test('should do nothing when no metaTracker', () => {
+      seasonTournament.metaTracker = null;
+      
+      expect(() => {
+        seasonTournament.recordTournamentParticipation('t1', 'p1', { placement: 1 });
+      }).not.toThrow();
+    });
+
+    test('should do nothing when no active season', () => {
+      mockSeasonManager.getCurrentSeason.mockReturnValue(null);
+      
+      expect(() => {
+        seasonTournament.recordTournamentParticipation('t1', 'p1', { placement: 1 });
+      }).not.toThrow();
+    });
+
+    test('should record tournament participation', () => {
+      seasonTournament.recordTournamentParticipation('t1', 'p1', { placement: 2 });
+      
+      const stored = localStorage.getItem('metagame_player_p1_S1');
+      expect(stored).not.toBeNull();
+      
+      const stats = JSON.parse(stored);
+      expect(stats.gamesPlayed).toBe(1);
+      expect(stats.wins).toBe(1); // Top 4 placement counts as win
+      expect(stats.lastTournamentId).toBe('t1');
+    });
+  });
+
+  describe('getSeasonBasedEloBonus', () => {
+    test('should return 0 when no player stats', () => {
+      const bonus = seasonTournament.getSeasonBasedEloBonus('p1', 'S1');
+      expect(bonus).toBe(0);
+    });
+
+    test('should calculate bonus based on player performance', () => {
+      localStorage.setItem('metagame_player_p1_S1', JSON.stringify({
+        gamesPlayed: 20,
+        wins: 14,
+        losses: 6,
+        winRate: 0.7
+      }));
+      
+      const bonus = seasonTournament.getSeasonBasedEloBonus('p1', 'S1');
+      
+      // base eloBonus from thresholds + extra for high win rate
+      expect(bonus).toBeGreaterThan(0);
+    });
+  });
+
+  describe('getTournamentSeasonStats', () => {
+    test('should return basic stats when no active season', () => {
+      mockSeasonManager.getCurrentSeason.mockReturnValue(null);
+      
+      const stats = seasonTournament.getTournamentSeasonStats('t1');
+      
+      expect(stats.totalParticipants).toBe(0);
+      expect(stats.seasonActive).toBe(false);
+    });
+
+    test('should aggregate season stats from participants', () => {
+      seasonTournament.registerForTournament('t1', 'p1', { name: 'Player 1' });
+      seasonTournament.registerForTournament('t1', 'p2', { name: 'Player 2' });
+      
+      localStorage.setItem('metagame_player_p1_S1', JSON.stringify({
+        gamesPlayed: 10,
+        wins: 6,
+        winRate: 0.6
+      }));
+      
+      const stats = seasonTournament.getTournamentSeasonStats('t1');
+      
+      expect(stats.totalParticipants).toBe(2);
+      expect(stats.participantsWithSeasonRecord).toBe(1);
+      expect(stats.seasonActive).toBe(true);
+      expect(stats.totalSeasonGames).toBe(10);
+    });
+  });
+});
