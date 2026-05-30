@@ -8,7 +8,8 @@ module.exports = {
     'replay-analysis.js',
     'chronicle-campaign.js',
     'energy-tuning.js',
-    'deck-archetype-evolution.js'
+    'deck-archetype-evolution.js',
+    'adaptive-difficulty.js'
   ],
   coverageThreshold: {
     global: {
