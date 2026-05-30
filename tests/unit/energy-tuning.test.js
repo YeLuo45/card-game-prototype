@@ -637,6 +637,62 @@ describe('EnergyHook', () => {
       expect(hook.hooks.onCardPlayed.length).toBe(0);
       expect(hook.hooks.onTurnEnd.length).toBe(0);
     });
+
+    test('triggerTurnEndHooks triggers handlers and catches errors', () => {
+      const handler = jest.fn();
+      hook.onTurnEnd(handler);
+      
+      hook.triggerTurnEndHooks({ turn: 3, energy: 2 });
+      
+      expect(handler).toHaveBeenCalled();
+    });
+
+    test('triggerTurnEndHooks catches handler errors', () => {
+      const errorHandler = jest.fn(() => { throw new Error('Handler error'); });
+      hook.onTurnEnd(errorHandler);
+      
+      // Should not throw, just log warning
+      hook.triggerTurnEndHooks({ turn: 3, energy: 2 });
+      
+      expect(errorHandler).toHaveBeenCalled();
+    });
+
+    test('triggerTurnStartHooks returns adjustments from handlers', () => {
+      const handler = jest.fn(() => ({ adjustment: { bonus: 1 } }));
+      hook.onTurnStart(handler);
+      
+      const adjustments = hook.triggerTurnStartHooks({ turn: 2 });
+      
+      expect(adjustments.length).toBe(1);
+      expect(adjustments[0].adjustment).toEqual({ bonus: 1 });
+    });
+
+    test('triggerTurnStartHooks handles no adjustment', () => {
+      const handler = jest.fn(() => ({}));
+      hook.onTurnStart(handler);
+      
+      const adjustments = hook.triggerTurnStartHooks({ turn: 2 });
+      
+      expect(adjustments.length).toBe(0);
+    });
+
+    test('triggerTurnStartHooks catches handler errors', () => {
+      const errorHandler = jest.fn(() => { throw new Error('Handler error'); });
+      hook.onTurnStart(errorHandler);
+      
+      hook.triggerTurnStartHooks({ turn: 2 });
+      
+      expect(errorHandler).toHaveBeenCalled();
+    });
+
+    test('getHookHistory returns actual history when limit > 0', () => {
+      hook.adjustEnergyFlow({ turn: 1, energy: 3, maxEnergy: 3 });
+      hook.adjustEnergyFlow({ turn: 2, energy: 3, maxEnergy: 3 });
+      
+      const history = hook.getHookHistory(5);
+      
+      expect(history.length).toBe(2);
+    });
   });
 });
 
@@ -1171,6 +1227,63 @@ describe('BalanceFeedback', () => {
 
       expect(adjustment.type).toBe('curve_adjustment');
       expect(adjustment.bonus).toBe(0);
+    });
+
+    test('calculateCurveAdjustment handles low_cost curve shape early turn', () => {
+      const tuner2 = new EnergyTuner();
+      const hook2 = new EnergyHook(tuner2);
+      const profile = { curveShape: 'low_cost', avgCost: '1.5' };
+      
+      const adjustment1 = hook2.calculateCurveAdjustment(profile, 2);
+      expect(adjustment1.bonus).toBe(1);
+      
+      const adjustment2 = hook2.calculateCurveAdjustment(profile, 5);
+      expect(adjustment2.bonus).toBe(0);
+      
+      const adjustment3 = hook2.calculateCurveAdjustment(profile, 7);
+      expect(adjustment3.bonus).toBe(-1);
+    });
+
+    test('calculateCurveAdjustment handles high_cost curve shape late turn', () => {
+      const tuner2 = new EnergyTuner();
+      const hook2 = new EnergyHook(tuner2);
+      const profile = { curveShape: 'high_cost', avgCost: '3.5' };
+      
+      const adjustment1 = hook2.calculateCurveAdjustment(profile, 2);
+      expect(adjustment1.bonus).toBe(-1);
+      
+      const adjustment2 = hook2.calculateCurveAdjustment(profile, 4);
+      expect(adjustment2.bonus).toBe(0);
+      
+      const adjustment3 = hook2.calculateCurveAdjustment(profile, 6);
+      expect(adjustment3.bonus).toBe(1);
+    });
+
+    test('calculateCurveAdjustment handles mid_focus curve shape', () => {
+      const tuner2 = new EnergyTuner();
+      const hook2 = new EnergyHook(tuner2);
+      const profile = { curveShape: 'mid_focus', avgCost: '2.5' };
+      
+      const adjustment1 = hook2.calculateCurveAdjustment(profile, 2);
+      expect(adjustment1.bonus).toBe(0);
+      
+      const adjustment2 = hook2.calculateCurveAdjustment(profile, 4);
+      expect(adjustment2.bonus).toBe(1);
+      expect(adjustment2.maxBonus).toBe(1);
+      
+      const adjustment3 = hook2.calculateCurveAdjustment(profile, 7);
+      expect(adjustment3.bonus).toBe(0);
+    });
+
+    test('calculateCurveAdjustment handles unknown curve shape (default)', () => {
+      const tuner2 = new EnergyTuner();
+      const hook2 = new EnergyHook(tuner2);
+      const profile = { curveShape: 'unknown_shape', avgCost: '2.0' };
+      
+      const adjustment = hook2.calculateCurveAdjustment(profile, 5);
+      
+      expect(adjustment.bonus).toBe(0);
+      expect(adjustment.curveShape).toBe('unknown_shape');
     });
   });
 });
