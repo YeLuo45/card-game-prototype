@@ -1,0 +1,18 @@
+{
+  "name": "card-game-prototype",
+  "version": "2.5.5",
+  "description": "Card game prototype with multiple system modules",
+  "main": "src/main.js",
+  "scripts": {
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage --coverageThreshold='{\"global\":{\"branches\":75,\"functions\":90,\"lines\":85,\"statements\":85}}'"
+  },
+  "keywords": ["card-game", "prototype", "game-engine"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
