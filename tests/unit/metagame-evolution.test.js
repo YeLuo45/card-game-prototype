@@ -1326,4 +1326,112 @@ describe('Integration Tests', () => {
       expect(result._evolution).toBeUndefined();
     });
   });
+
+  describe('MetagameTracker additional branches', () => {
+    test('resetCardStats without cardId resets all cards', () => {
+      tracker.trackCardUsage('card1', { gamesPlayed: 5, wins: 2 });
+      tracker.trackCardUsage('card2', { gamesPlayed: 3, wins: 1 });
+      
+      // Reset all (no cardId)
+      tracker.resetCardStats();
+      
+      const stats1 = tracker.getCardStats('card1');
+      const stats2 = tracker.getCardStats('card2');
+      expect(stats1.playCount).toBe(0);
+      expect(stats2.playCount).toBe(0);
+    });
+
+    test('getAllCardStats catches localStorage error', () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      const allStats = tracker.getAllCardStats();
+      expect(allStats).toEqual({});
+      
+      localStorage.getItem = originalGetItem;
+    });
+
+    test('trackCardUsage catches localStorage error', () => {
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      // Should not throw
+      expect(() => tracker.trackCardUsage('card_error', { gamesPlayed: 5, wins: 2 })).not.toThrow();
+      
+      localStorage.setItem = originalSetItem;
+    });
+  });
+
+  describe('SeasonManager additional branches', () => {
+    test('startSeason catches localStorage error', () => {
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      const season = seasonMgr.startSeason('S_error', 7);
+      expect(season).toBeNull();
+      
+      localStorage.setItem = originalSetItem;
+    });
+
+    test('getCurrentSeason returns expired season correctly', () => {
+      // Manually set an expired season in storage with correct key
+      const expiredSeason = {
+        id: 'S_expired',
+        status: 'active',
+        endTime: Date.now() - 1000, // already expired
+        stats: { totalGames: 10, totalWins: 5 }
+      };
+      mockStorage['metagame_season_current'] = JSON.stringify(expiredSeason);
+      
+      // Call getCurrentSeason which should detect expiry
+      const result = seasonMgr.getCurrentSeason();
+      
+      // Status should be updated to 'expired'
+      expect(result).not.toBeNull();
+      expect(result.status).toBe('expired');
+    });
+
+    test('updateSeasonStats catches localStorage error', () => {
+      seasonMgr.startSeason('S_update_error', 7);
+      
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      expect(() => seasonMgr.updateSeasonStats({ won: true })).not.toThrow();
+      
+      localStorage.setItem = originalSetItem;
+    });
+  });
+
+  describe('EvolutionEngine effect multiplier branches', () => {
+    test('applyEvolutionToCard applies effectMultiplier for buff', () => {
+      tracker.trackCardUsage('buff_card', { gamesPlayed: 20, wins: 18 }); // high win rate
+      
+      const card = { id: 'buff_card', name: 'Buff Card', damage: 10, cost: 3, effect: 'damage' };
+      const result = engine.applyEvolutionToCard('buff_card', card);
+      
+      expect(result._evolution).toBeDefined();
+      expect(result._evolution.effectMultiplier).toBeGreaterThan(1);
+    });
+
+    test('applyEvolutionToCard applies effectMultiplier for nerf', () => {
+      tracker.trackCardUsage('nerf_card', { gamesPlayed: 20, wins: 2 }); // low win rate
+      
+      const card = { id: 'nerf_card', name: 'Nerf Card', damage: 10, cost: 3, effect: 'damage' };
+      const result = engine.applyEvolutionToCard('nerf_card', card);
+      
+      expect(result._evolution).toBeDefined();
+      expect(result._evolution.effectMultiplier).toBeLessThan(1);
+    });
+
+    test('applyEvolutionToCard skips effectMultiplier when no effect', () => {
+      tracker.trackCardUsage('no_effect_card', { gamesPlayed: 20, wins: 18 });
+      
+      const card = { id: 'no_effect_card', name: 'No Effect Card', damage: 10, cost: 3 }; // no effect property
+      const result = engine.applyEvolutionToCard('no_effect_card', card);
+      
+      expect(result._evolution).toBeDefined();
+      expect(result._evolution.effectMultiplier).toBeUndefined();
+    });
+  });
 });

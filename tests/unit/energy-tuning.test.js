@@ -1285,5 +1285,103 @@ describe('BalanceFeedback', () => {
       expect(adjustment.bonus).toBe(0);
       expect(adjustment.curveShape).toBe('unknown_shape');
     });
+
+    test('generateBalanceReport handles storageCards not having cardId (branch coverage)', () => {
+      // Test the branch where storageCards has a card that is NOT in usageDataCards
+      // This exercises the if (!allCardsMap.has(card.cardId)) branch
+      feedback.collectUsageData({
+        cardId: 'card_only_in_memory',
+        gamesPlayed: 10,
+        wins: 5
+      });
+      // Add the same card to storage (simulating another instance)
+      mockStorage['balance_feedback_card_only_in_memory'] = JSON.stringify({
+        cardId: 'card_only_in_memory',
+        gamesPlayed: 5,
+        wins: 3
+      });
+      
+      const report = feedback.generateBalanceReport({ minGames: 3 });
+      expect(report.totalCardsTracked).toBeGreaterThan(0);
+    });
+
+    test('getEnergyEfficiencyReport with totalTunings = 0 skips waste calculation', () => {
+      // This exercises the branch where tuningStats.totalTunings is NOT > 0
+      tuner.resetTuningStats();
+      
+      feedback.collectUsageData({
+        cardId: 'some_card',
+        gamesPlayed: 10,
+        wins: 5,
+        damageDealt: 50
+      });
+      
+      const report = feedback.getEnergyEfficiencyReport();
+      // wastePercentage should be 0 when totalTunings is 0 (not > 0)
+      expect(report.wastePercentage).toBe(0);
+    });
+
+    test('resetUsageData catches localStorage error', () => {
+      const removeItemSpy = jest.spyOn(localStorage, 'removeItem')
+        .mockImplementationOnce(() => { throw new Error('Storage error'); });
+      
+      expect(() => feedback.resetUsageData()).not.toThrow();
+      
+      removeItemSpy.mockRestore();
+    });
+
+    test('saveUsageData catches localStorage error', () => {
+      const setItemSpy = jest.spyOn(localStorage, 'setItem')
+        .mockImplementationOnce(() => { throw new Error('Storage error'); });
+      
+      expect(() => feedback.collectUsageData({
+        cardId: 'test_card',
+        gamesPlayed: 5,
+        wins: 2
+      })).not.toThrow();
+      
+      setItemSpy.mockRestore();
+    });
+
+    test('loadUsageData catches JSON parse error', () => {
+      mockStorage['balance_feedback_test_card'] = 'invalid json{{';
+      
+      const result = feedback.loadUsageData('test_card');
+      expect(result).toBeNull();
+    });
+
+    test('loadAllTrackedCards catches localStorage error', () => {
+      const getItemSpy = jest.spyOn(localStorage, 'getItem')
+        .mockImplementationOnce(() => { throw new Error('Storage error'); });
+      
+      const cards = feedback.loadAllTrackedCards();
+      expect(cards).toEqual([]);
+      
+      getItemSpy.mockRestore();
+    });
+
+    test('onEnergySpent handler catches error (branch coverage for line 503)', () => {
+      const tuner2 = new EnergyTuner();
+      const hook2 = new EnergyHook(tuner2);
+      const errorHandler = jest.fn(() => { throw new Error('Handler error'); });
+      hook2.onEnergySpent(errorHandler);
+      
+      // Should not throw, just log warning
+      const record = hook2.recordEnergySpent({ amount: 3, cardId: 'strike', turn: 1 });
+      expect(record.amount).toBe(3);
+      expect(errorHandler).toHaveBeenCalled();
+    });
+
+    test('onCardPlayed handler catches error (branch coverage for line 528)', () => {
+      const tuner2 = new EnergyTuner();
+      const hook2 = new EnergyHook(tuner2);
+      const errorHandler = jest.fn(() => { throw new Error('Handler error'); });
+      hook2.onCardPlayed(errorHandler);
+      
+      // Should not throw, just log warning
+      const record = hook2.recordCardPlayed({ cardId: 'strike', cost: 1, turn: 1 });
+      expect(record.cardId).toBe('strike');
+      expect(errorHandler).toHaveBeenCalled();
+    });
   });
 });

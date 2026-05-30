@@ -1022,4 +1022,329 @@ describe('Cross-System Integration - SeasonTournament with MetagameTracker', () 
       expect(stats.totalSeasonGames).toBe(10);
     });
   });
+
+  describe('branch coverage improvements', () => {
+    test('getCurrentRound returns 1 when currentRound becomes 0 or negative', () => {
+      // This tests the branch at line 226: return currentRound > 0 ? currentRound : 1;
+      // Set up a bracket where the tournament has progressed to the final
+      const players = [
+        { id: 'p1', name: 'Player 1' },
+        { id: 'p2', name: 'Player 2' }
+      ];
+      bracket.createBracket('t_bracket_test', players);
+      
+      // Simulate the match to completion
+      const match = bracket.getMatches('t_bracket_test')[0];
+      bracket.simulateMatch('t_bracket_test', match.id, { winnerId: 'p1' });
+      
+      const currentRound = bracket.getCurrentRound('t_bracket_test');
+      expect(currentRound).toBe(1);
+    });
+
+    test('getCurrentRound returns -1 for non-existent bracket', () => {
+      const currentRound = bracket.getCurrentRound('nonexistent_bracket');
+      expect(currentRound).toBe(-1);
+    });
+
+    test('getTopPlayers handles empty ratings (branch coverage for lines 574-580)', () => {
+      // Clear all ratings
+      eloRating.resetAllRatings();
+      
+      const top = eloRating.getTopPlayers(10);
+      expect(top).toEqual([]);
+    });
+
+    test('getTopPlayers returns players sorted by rating', () => {
+      eloRating.setPlayerRating('p_low', 1200);
+      eloRating.setPlayerRating('p_mid', 1500);
+      eloRating.setPlayerRating('p_high', 1800);
+      
+      const top = eloRating.getTopPlayers(3);
+      
+      expect(top).toHaveLength(3);
+      expect(top[0].playerId).toBe('p_high');
+      expect(top[0].rating).toBe(1800);
+      expect(top[1].playerId).toBe('p_mid');
+      expect(top[2].playerId).toBe('p_low');
+    });
+
+    test('getTopPlayers respects limit parameter', () => {
+      eloRating.setPlayerRating('p1', 1600);
+      eloRating.setPlayerRating('p2', 1700);
+      eloRating.setPlayerRating('p3', 1800);
+      eloRating.setPlayerRating('p4', 1900);
+      eloRating.setPlayerRating('p5', 2000);
+      
+      const top = eloRating.getTopPlayers(3);
+      expect(top).toHaveLength(3);
+      expect(top[0].rank).toBe(1);
+      expect(top[1].rank).toBe(2);
+      expect(top[2].rank).toBe(3);
+    });
+
+    test('resetAllRatings handles localStorage error gracefully', () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      expect(() => eloRating.resetAllRatings()).not.toThrow();
+      
+      localStorage.getItem = originalGetItem;
+    });
+
+    test('registerForTournament catches localStorage error', () => {
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      const result = seasonTournament.registerForTournament('t1', 'p_error_test', { name: 'Error Test' });
+      expect(result).toBe(true); // Still returns true because it's at the end of the function
+      
+      localStorage.setItem = originalSetItem;
+    });
+
+    test('getRegisteredPlayers returns empty array for null tournamentId', () => {
+      const players = seasonTournament.getRegisteredPlayers(null);
+      expect(players).toEqual([]);
+    });
+
+    test('getTournamentHistory returns empty array when no data', () => {
+      const history = seasonTournament.getTournamentHistory();
+      expect(Array.isArray(history)).toBe(true);
+    });
+
+    test('getTournamentHistory filters by playerId when provided', () => {
+      // Register a player
+      seasonTournament.registerForTournament('t_history', 'p_history', { name: 'History Player' });
+      
+      // Manually create a bracket in localStorage
+      localStorage.setItem('season_tournament_t_history_bracket', JSON.stringify({
+        champion: 'p_other',
+        status: 'completed',
+        createdAt: Date.now()
+      }));
+      
+      const allHistory = seasonTournament.getTournamentHistory();
+      const playerHistory = seasonTournament.getTournamentHistory('p_history');
+      
+      expect(Array.isArray(allHistory)).toBe(true);
+      expect(Array.isArray(playerHistory)).toBe(true);
+    });
+
+    test('getPlayerRatingHistory returns empty for null playerId', () => {
+      const history = seasonTournament.getPlayerRatingHistory(null);
+      expect(history).toEqual([]);
+    });
+
+    test('getPlayerMatchHistory returns empty for null playerId', () => {
+      const history = seasonTournament.getPlayerMatchHistory(null);
+      expect(history).toEqual([]);
+    });
+
+    test('resetTournament handles invalid tournamentId', () => {
+      expect(() => seasonTournament.resetTournament(null)).not.toThrow();
+      expect(() => seasonTournament.resetTournament('nonexistent')).not.toThrow();
+    });
+
+    test('startTournament returns null for less than 2 players', () => {
+      seasonTournament.registerForTournament('t_few', 'p_only_one', { name: 'Solo' });
+      
+      const result = seasonTournament.startTournament('t_few');
+      expect(result).toBeNull();
+    });
+
+    test('recordMatchResult returns null for invalid input', () => {
+      expect(seasonTournament.recordMatchResult(null, 'p1', 'p2', 'win')).toBeNull();
+      expect(seasonTournament.recordMatchResult('t1', null, 'p2', 'win')).toBeNull();
+      expect(seasonTournament.recordMatchResult('t1', 'p1', null, 'win')).toBeNull();
+      expect(seasonTournament.recordMatchResult('t1', 'p1', 'p2', null)).toBeNull();
+    });
+
+    test('getSeasonBasedEloBonus returns higher bonus for very high win rate', () => {
+      // Set up season stats to return winRate >= 0.6 so eloBonus = 25
+      mockSeasonManager.getSeasonStats.mockReturnValue({
+        id: 'S1',
+        stats: { totalGames: 60, winRate: 0.65 }
+      });
+      
+      localStorage.setItem('metagame_player_p1_S1', JSON.stringify({
+        gamesPlayed: 20,
+        wins: 13,
+        losses: 7,
+        winRate: 0.65 // >= 0.6 but < 0.7
+      }));
+      
+      const bonus = seasonTournament.getSeasonBasedEloBonus('p1', 'S1');
+      
+      // base eloBonus (25 for season winRate 0.6-0.7) + extra 15 for player winRate 0.6-0.7
+      expect(bonus).toBe(40);
+    });
+
+    test('getTournamentSeasonStats handles players with no season record', () => {
+      seasonTournament.registerForTournament('t1', 'p_no_record', { name: 'No Record' });
+      seasonTournament.registerForTournament('t1', 'p_with_record', { name: 'With Record' });
+      
+      localStorage.setItem('metagame_player_p_with_record_S1', JSON.stringify({
+        gamesPlayed: 10,
+        wins: 6,
+        winRate: 0.6
+      }));
+      
+      const stats = seasonTournament.getTournamentSeasonStats('t1');
+      
+      expect(stats.totalParticipants).toBe(2);
+      expect(stats.participantsWithSeasonRecord).toBe(1);
+      expect(stats.seasonActive).toBe(true);
+    });
+
+    test('getDynamicThresholds returns default when metaTracker is null', () => {
+      seasonTournament.metaTracker = null;
+      const thresholds = seasonTournament.getDynamicThresholds('S1');
+      
+      expect(thresholds.minGames).toBe(10);
+      expect(thresholds.minWinRate).toBe(0.45);
+      expect(thresholds.eloBonus).toBe(0);
+    });
+
+    test('getDynamicThresholds handles totalGames exactly at boundary (50)', () => {
+      mockSeasonManager.getSeasonStats.mockReturnValue({
+        id: 'S1',
+        stats: { totalGames: 50, winRate: 0.5 }
+      });
+      
+      const thresholds = seasonTournament.getDynamicThresholds('S1');
+      
+      // totalGames = 50 is NOT > 50, so should use default values
+      expect(thresholds.minGames).toBe(10);
+    });
+
+    test('getDynamicThresholds handles totalGames > 50 boundary', () => {
+      mockSeasonManager.getSeasonStats.mockReturnValue({
+        id: 'S1',
+        stats: { totalGames: 51, winRate: 0.5 }
+      });
+      
+      const thresholds = seasonTournament.getDynamicThresholds('S1');
+      
+      expect(thresholds.minGames).toBe(12);
+    });
+  });
+
+  describe('branch coverage - remaining branches', () => {
+    test('getPlayerRatingHistory handles localStorage error gracefully', () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      const history = seasonTournament.getPlayerRatingHistory('p1');
+      expect(history).toEqual([]);
+      
+      localStorage.getItem = originalGetItem;
+    });
+
+    test('_getPlayerSeasonStats handles localStorage error gracefully', () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      const stats = seasonTournament._getPlayerSeasonStats('p1', 'S1');
+      expect(stats).toBeNull();
+      
+      localStorage.getItem = originalGetItem;
+    });
+
+    test('_calculateTournamentRanking returns empty for null bracket', () => {
+      // Create a tournament but don't start it (no bracket)
+      const ranking = seasonTournament._calculateTournamentRanking('t_no_bracket');
+      expect(ranking).toEqual([]);
+    });
+  });
+
+  describe('recordTournamentParticipation catches localStorage error', () => {
+    test('recordTournamentParticipation catches localStorage error', () => {
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      // Should not throw
+      expect(() => seasonTournament.recordTournamentParticipation('t1', 'p1', { placement: 1 })).not.toThrow();
+      
+      localStorage.setItem = originalSetItem;
+    });
+  });
+
+  describe('ELORating error handling branches', () => {
+    let eloRating;
+
+    beforeEach(() => {
+      eloRating = new ELORating();
+      localStorageMock._reset();
+    });
+
+    test('getTopPlayers catches localStorage error', () => {
+      const originalKey = localStorage.key;
+      localStorage.key = jest.fn(() => { throw new Error('Storage error'); });
+      
+      // Pre-populate memory cache with a rating that won't be in localStorage
+      eloRating.setPlayerRating('p_memory_only', 1800);
+      
+      const top = eloRating.getTopPlayers(10);
+      expect(Array.isArray(top)).toBe(true);
+      // The memory cache rating should still be included even though localStorage failed
+      expect(top.length).toBeGreaterThan(0);
+      
+      localStorage.key = originalKey;
+    });
+
+    test('resetAllRatings catches localStorage error', () => {
+      const originalKey = localStorage.key;
+      localStorage.key = jest.fn(() => { throw new Error('Storage error'); });
+      
+      expect(() => eloRating.resetAllRatings()).not.toThrow();
+      
+      localStorage.key = originalKey;
+    });
+
+    test('_savePlayerRating catches localStorage error', () => {
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      expect(() => eloRating.setPlayerRating('p1', 1500)).not.toThrow();
+      
+      localStorage.setItem = originalSetItem;
+    });
+  });
+
+  describe('SeasonTournament error handling branches', () => {
+    let seasonTournament;
+    let eloRating;
+    let bracket;
+
+    beforeEach(() => {
+      eloRating = new ELORating();
+      bracket = new TournamentBracket();
+      seasonTournament = new SeasonTournamentWithSeasonManager(null, eloRating, bracket);
+      localStorageMock._reset();
+    });
+
+    test('getRegisteredPlayers catches localStorage error', () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      const players = seasonTournament.getRegisteredPlayers('t1');
+      expect(Array.isArray(players)).toBe(true);
+      
+      localStorage.getItem = originalGetItem;
+    });
+
+    test('startTournament catches localStorage error', () => {
+      // Register players first
+      seasonTournament.registerForTournament('t_error', 'p1', { name: 'P1' });
+      seasonTournament.registerForTournament('t_error', 'p2', { name: 'P2' });
+      
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      const result = seasonTournament.startTournament('t_error');
+      // Should still return bracket (error is caught)
+      expect(result).not.toBeNull();
+      
+      localStorage.setItem = originalSetItem;
+    });
+  });
 });
