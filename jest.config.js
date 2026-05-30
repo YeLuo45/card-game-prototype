@@ -14,7 +14,8 @@ module.exports = {
     'energy-tuning.js',
     'deck-archetype-evolution.js',
     'adaptive-difficulty.js',
-    'card-portfolio-system.js'
+    'card-portfolio-system.js',
+    'src/matchmaking-system.js'
   ],
   coverageThreshold: {
     global: {
