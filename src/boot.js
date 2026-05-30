@@ -188,6 +188,7 @@ var BATTLE = [];          // battle domain — 已通过 CARD_SYSTEMS 加载
 var CARD_SERVICES_OTHER = []; // 其他服务 — 已通过 CARD_SYSTEMS 加载
 var UI = [];              // UI screens — 已通过 CARD_SYSTEMS 加载
 var USECASES = [];        // usecases — 已通过 CARD_SYSTEMS 加载
+var PACKS = [];           // card-packs — 已通过 CARD_SYSTEMS 加载（card-packs/*.js 自注册 window.CARD_PACKS）
 
 // ─── 合并全部 + 去重 ────────────────────────────────────────────────────────
 var ALL = [].concat(SHARED, INFRA, CARD_SYSTEMS, GUILD, META, PROGRESSION, SOCIAL, BATTLE, CARD_SERVICES_OTHER, UI, USECASES, PACKS);
