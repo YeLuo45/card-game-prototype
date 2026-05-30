@@ -5,7 +5,8 @@ module.exports = {
     'metagame-evolution.js',
     'synergy-cascade.js',
     'replay-analysis.js',
-    'chronicle-campaign.js'
+    'chronicle-campaign.js',
+    'energy-tuning.js'
   ],
   coverageThreshold: {
     global: {
