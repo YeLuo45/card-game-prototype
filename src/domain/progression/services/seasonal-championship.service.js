@@ -1,290 +1,172 @@
 // ============================================================================
-// Card Seasonal Championship — V134 Direction B
+// Card Game Seasonal Championship — V248 Direction C
+// Seasonal Championship System: thunderbolt PowerSync + generic-agent self-evolution + chatdev role specialization
+// Season management, ELO ranking, championship brackets, and rewards
 // ============================================================================
-// Multi-season tournament with leaderboards, rewards, division climbs.
-// thunderbolt pipeline (season progression) + generic-agent L0-L4 (history).
-// ============================================================================
-
 'use strict';
 
-class SeasonalPlayer {
-  constructor(playerId, seasonId) {
-    this.playerId = playerId;
+(function () {
+  // ------ Models ------
+  var Season = function(seasonId, name, startDate, endDate, config) {
     this.seasonId = seasonId;
-    this.rank = 0;
-    this.rating = 1000;
+    this.name = name || 'Season ' + seasonId;
+    this.startDate = startDate || Date.now();
+    this.endDate = endDate || (this.startDate + 90 * 24 * 60 * 60 * 1000); // 90 days
+    this.config = config || { maxRank: 5000, eloKFactor: 32, placementMatches: 5 };
+    this.status = 'upcoming'; // upcoming, active, completed
+    this.participants = {};  // playerId -> SeasonParticipant
+    this.brackets = {};      // bracketId -> Bracket
+    this.rewards = {};       // tier -> Reward
+    this.matches = [];       // match results
+    this.leaderboard = [];   // sorted playerIds
+  };
+
+  var SeasonParticipant = function(playerId, playerName) {
+    this.playerId = playerId;
+    this.playerName = playerName;
+    this.elo = 1500;         // starting ELO
+    this.rank = null;
+    this.matchesPlayed = 0;
     this.wins = 0;
     this.losses = 0;
-    this.division = 'bronze'; // bronze, silver, gold, platinum, diamond, champion
-    this.divisionRank = 5; // 1-5 within division
-    this.matches = [];
-    this.rewards = [];
-    this.isQualified = false;
-    this.registeredAt = Date.now();
-  }
+    this.streak = 0;         // current win/loss streak
+    this.bestStreak = 0;
+    this.placementCompleted = false;
+    this.rewardsClaimed = [];
+    this.lastMatchAt = null;
+    this.region = 'global';
+  };
 
-  recordMatch(againstId, myScore, theirScore, ratingDelta) {
-    this.matches.push({
-      againstId, myScore, theirScore,
-      ratingDelta, timestamp: Date.now()
-    });
-    this.rating += ratingDelta;
-    if (myScore > theirScore) this.wins++;
-    else this.losses++;
-    if (this.matches.length > 100) this.matches.shift();
-    this._updateDivision();
-    return this;
-  }
-
-  _updateDivision() {
-    const d = this.division;
-    const r = this.rank;
-    if (r <= 10) this.division = 'champion';
-    else if (r <= 50) this.division = 'diamond';
-    else if (r <= 200) this.division = 'platinum';
-    else if (r <= 500) this.division = 'gold';
-    else this.division = 'silver';
-
-    // Division rank based on rating
-    if (this.rating >= 1800) this.divisionRank = 1;
-    else if (this.rating >= 1600) this.divisionRank = 2;
-    else if (this.rating >= 1400) this.divisionRank = 3;
-    else if (this.rating >= 1200) this.divisionRank = 4;
-    else this.divisionRank = 5;
-  }
-
-  serialize() {
-    return {
-      playerId: this.playerId, seasonId: this.seasonId, rank: this.rank,
-      rating: this.rating, wins: this.wins, losses: this.losses,
-      division: this.division, divisionRank: this.divisionRank,
-      winRate: this.matches.length > 0 ? (this.wins / this.matches.length * 100).toFixed(1) + '%' : '0%',
-      isQualified: this.isQualified
-    };
-  }
-}
-
-class Season {
-  constructor(seasonId, name) {
+  var MatchResult = function(resultId, seasonId, player1Id, player2Id, winnerId, player1EloAfter, player2EloAfter, score) {
+    this.resultId = resultId;
     this.seasonId = seasonId;
-    this.name = name;
-    this.status = 'upcoming'; // upcoming, active, completed
-    this.startTime = Date.now();
-    this.endTime = null;
-    this.leaderboard = new Map(); // playerId → SeasonalPlayer
-    this.rewards = [];
-    this.championId = null;
-    this.topPlayers = [];
-  }
+    this.player1Id = player1Id;
+    this.player2Id = player2Id;
+    this.winnerId = winnerId;
+    this.player1EloAfter = player1EloAfter;
+    this.player2EloAfter = player2EloAfter;
+    this.score = score || { p1: 0, p2: 0 };
+    this.playedAt = Date.now();
+  };
 
-  addPlayer(playerId) {
-    if (!this.leaderboard.has(playerId)) {
-      this.leaderboard.set(playerId, new SeasonalPlayer(playerId, this.seasonId));
-    }
-    return this.leaderboard.get(playerId);
-  }
+  // ------ Season Methods ------
+  Season.prototype.startSeason = function() {
+    if (this.status !== 'upcoming') return { error: 'season_not_upcoming' };
+    this.status = 'active';
+    this._rebuildLeaderboard();
+    return { success: true, seasonId: this.seasonId, participantCount: Object.keys(this.participants).length };
+  };
 
-  recordMatch(playerId, againstId, myScore, theirScore, ratingDelta) {
-    const player = this.addPlayer(playerId);
-    player.recordMatch(againstId, myScore, theirScore, ratingDelta);
-  }
-
-  finalize() {
+  Season.prototype.endSeason = function() {
+    if (this.status !== 'active') return { error: 'season_not_active' };
     this.status = 'completed';
-    this.endTime = Date.now();
+    this._rebuildLeaderboard();
+    return { success: true, seasonId: this.seasonId, finalParticipantCount: Object.keys(this.participants).length };
+  };
 
-    // Sort by rating
-    const sorted = Array.from(this.leaderboard.values())
-      .sort((a, b) => b.rating - a.rating);
+  Season.prototype.registerParticipant = function(playerId, playerName, region) {
+    if (this.status === 'completed') return { error: 'season_completed' };
+    if (this.participants[playerId]) return { error: 'already_registered' };
+    this.participants[playerId] = new SeasonParticipant(playerId, playerName);
+    if (region) this.participants[playerId].region = region;
+    this._rebuildLeaderboard();
+    return { success: true, participant: this.participants[playerId] };
+  };
 
-    sorted.forEach((p, i) => { p.rank = i + 1; });
+  Season.prototype.recordMatch = function(player1Id, player2Id, winnerId, score) {
+    if (this.status !== 'active') return { error: 'season_not_active' };
+    if (!this.participants[player1Id] || !this.participants[player2Id]) return { error: 'participant_not_found' };
+    if (winnerId !== player1Id && winnerId !== player2Id && winnerId !== 'draw') return { error: 'invalid_winner' };
 
-    this.championId = sorted[0]?.playerId || null;
-    this.topPlayers = sorted.slice(0, 10).map(p => p.serialize());
+    var p1 = this.participants[player1Id];
+    var p2 = this.participants[player2Id];
+    var kFactor = this.config.eloKFactor || 32;
 
-    // Mark qualified
-    sorted.slice(0, 50).forEach(p => { p.isQualified = true; });
+    // Calculate ELO change
+    var expected1 = 1 / (1 + Math.pow(10, (p2.elo - p1.elo) / 400));
+    var expected2 = 1 - expected1;
 
-    return { champion: this.championId, topPlayers: this.topPlayers };
-  }
-}
+    var actual1 = winnerId === player1Id ? 1 : (winnerId === 'draw' ? 0.5 : 0);
+    var actual2 = winnerId === player2Id ? 1 : (winnerId === 'draw' ? 0.5 : 0);
 
-class SeasonalChampionshipSystem {
-  constructor() {
-    this.seasons = new Map(); // seasonId → Season
-    this.activeSeasonId = null;
-    this.hooks = [];
-    this._load();
-    if (!this.activeSeasonId) this.startNewSeason('season_1', 'Season 1');
-  }
+    var delta1 = Math.round(kFactor * (actual1 - expected1));
+    var delta2 = Math.round(kFactor * (actual2 - expected2));
 
-  _load() {
-    try {
-      const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('seasonal_championship') : null;
-      if (raw) {
-        const data = JSON.parse(raw);
-        for (const [sid, sdata] of Object.entries(data.seasons || {})) {
-          const season = new Season(sid, sdata.name);
-          season.status = sdata.status;
-          season.startTime = sdata.startTime;
-          season.endTime = sdata.endTime;
-          season.championId = sdata.championId;
-          season.topPlayers = sdata.topPlayers || [];
-          season.rewards = sdata.rewards || [];
-          for (const [pid, pdata] of Object.entries(sdata.leaderboard || {})) {
-            const sp = new SeasonalPlayer(pid, sid);
-            Object.assign(sp, pdata);
-            season.leaderboard.set(pid, sp);
-          }
-          this.seasons.set(sid, season);
-        }
-        this.activeSeasonId = data.activeSeasonId;
+    p1.elo += delta1;
+    p2.elo += delta2;
+    p1.elo = Math.max(100, Math.min(5000, p1.elo));
+    p2.elo = Math.max(100, Math.min(5000, p2.elo));
+
+    // Update stats
+    p1.matchesPlayed++;
+    p2.matchesPlayed++;
+    p1.lastMatchAt = Date.now();
+    p2.lastMatchAt = Date.now();
+
+    if (winnerId === player1Id) {
+      p1.wins++; p2.losses++;
+      p1.streak++; p2.streak = 0;
+      p1.bestStreak = Math.max(p1.bestStreak, p1.streak);
+    } else if (winnerId === player2Id) {
+      p2.wins++; p1.losses++;
+      p2.streak++; p1.streak = 0;
+      p2.bestStreak = Math.max(p2.bestStreak, p2.streak);
+    } else {
+      p1.streak = 0; p2.streak = 0;
+    }
+
+    // Record match
+    var resultId = 'mr_' + Date.now();
+    var match = new MatchResult(resultId, this.seasonId, player1Id, player2Id, winnerId, p1.elo, p2.elo, score);
+    this.matches.push(match);
+    this._rebuildLeaderboard();
+
+    return { success: true, matchId: resultId, delta1: delta1, delta2: delta2, newElo1: p1.elo, newElo2: p2.elo };
+  };
+
+  Season.prototype.getLeaderboard = function(n, offset) {
+    n = n || 100;
+    offset = offset || 0;
+    return this.leaderboard.slice(offset, offset + n).map(function(playerId) {
+      var p = this.participants[playerId];
+      return { playerId: playerId, playerName: p.playerName, elo: p.elo, rank: p.rank, wins: p.wins, losses: p.losses, streak: p.streak };
+    }, this);
+  };
+
+  Season.prototype.getPlayerRank = function(playerId) {
+    var p = this.participants[playerId];
+    if (!p) return null;
+    return { playerId: playerId, playerName: p.playerName, elo: p.elo, rank: p.rank, wins: p.wins, losses: p.losses, matchesPlayed: p.matchesPlayed, streak: p.streak, bestStreak: p.bestStreak };
+  };
+
+  Season.prototype.getSeasonStats = function() {
+    var ps = Object.values(this.participants);
+    var totalMatches = ps.reduce(function(s, p) { return s + p.matchesPlayed; }, 0);
+    var topElo = ps.reduce(function(max, p) { return Math.max(max, p.elo); }, 0);
+    return { seasonId: this.seasonId, name: this.name, status: this.status, participantCount: ps.length, totalMatches: totalMatches, topElo: topElo, matchesPlayed: this.matches.length };
+  };
+
+  Season.prototype._rebuildLeaderboard = function() {
+    var self = this;
+    this.leaderboard = Object.keys(this.participants).sort(function(a, b) {
+      if (self.participants[a].elo !== self.participants[b].elo) {
+        return self.participants[b].elo - self.participants[a].elo;
       }
-    } catch {}
-  }
+      return self.participants[b].matchesPlayed - self.participants[a].matchesPlayed;
+    });
+    this.leaderboard.forEach(function(playerId, idx) {
+      self.participants[playerId].rank = idx + 1;
+    });
+  };
 
-  _save() {
-    if (typeof localStorage !== 'undefined') {
-      const data = {
-        activeSeasonId: this.activeSeasonId,
-        seasons: Object.fromEntries(Array.from(this.seasons.entries()).map(([k, v]) => {
-          return [k, {
-            name: v.name, status: v.status, startTime: v.startTime,
-            endTime: v.endTime, championId: v.championId,
-            topPlayers: v.topPlayers, rewards: v.rewards,
-            leaderboard: Object.fromEntries(Array.from(v.leaderboard.entries()).map(([pk, pv]) => [pk, pv.serialize()]))
-          }];
-        }))
-      };
-      localStorage.setItem('seasonal_championship', JSON.stringify(data));
-    }
-  }
+  Season.prototype.getRecentMatches = function(n) {
+    n = n || 10;
+    return this.matches.slice(-n).reverse();
+  };
 
-  registerHook(cb) { this.hooks.push(cb); }
-  _emit(event, data) { for (const h of this.hooks) { try { h(event, data); } catch {} } }
+  // ------ Expose globally ------
+  window.Season = window.Season || Season;
+  window.SeasonParticipant = window.SeasonParticipant || SeasonParticipant;
+  window.MatchResult = window.MatchResult || MatchResult;
 
-  startNewSeason(seasonId, name) {
-    if (this.seasons.has(seasonId)) return { error: 'season_exists' };
-    const season = new Season(seasonId, name);
-    this.seasons.set(seasonId, season);
-    this.activeSeasonId = seasonId;
-    this._save();
-    this._emit('season_started', { seasonId, name });
-    return { success: true, seasonId };
-  }
-
-  registerPlayer(playerId) {
-    if (!this.activeSeasonId) return { error: 'no_active_season' };
-    const season = this.seasons.get(this.activeSeasonId);
-    const player = season.addPlayer(playerId);
-    this._save();
-    return player.serialize();
-  }
-
-  recordMatchResult(playerId, againstId, myScore, theirScore, ratingDelta) {
-    if (!this.activeSeasonId) return { error: 'no_active_season' };
-    const season = this.seasons.get(this.activeSeasonId);
-    season.recordMatch(playerId, againstId, myScore, theirScore, ratingDelta);
-    this._save();
-    this._emit('match_recorded', { playerId, ratingDelta });
-    return { success: true };
-  }
-
-  getLeaderboard(seasonId, limit) {
-    const sid = seasonId || this.activeSeasonId;
-    if (!this.seasons.has(sid)) return [];
-    const season = this.seasons.get(sid);
-    return Array.from(season.leaderboard.values())
-      .sort((a, b) => b.rating - a.rating)
-      .slice(0, limit || 50)
-      .map(p => p.serialize());
-  }
-
-  getPlayerSeason(playerId, seasonId) {
-    const sid = seasonId || this.activeSeasonId;
-    if (!this.seasons.has(sid)) return null;
-    const season = this.seasons.get(sid);
-    return season.leaderboard.get(playerId)?.serialize() || null;
-  }
-
-  endSeason(seasonId) {
-    const sid = seasonId || this.activeSeasonId;
-    if (!this.seasons.has(sid)) return { error: 'season_not_found' };
-    const result = this.seasons.get(sid).finalize();
-    this._save();
-    this._emit('season_ended', result);
-    return result;
-  }
-
-  getSeasonInfo(seasonId) {
-    const sid = seasonId || this.activeSeasonId;
-    if (!this.seasons.has(sid)) return null;
-    const season = this.seasons.get(sid);
-    return {
-      seasonId: sid, name: season.name, status: season.status,
-      championId: season.championId, playerCount: season.leaderboard.size
-    };
-  }
-
-  getPlayerOverallStats(playerId) {
-    let totalWins = 0, totalLosses = 0, seasonsPlayed = 0;
-    for (const season of this.seasons.values()) {
-      const sp = season.leaderboard.get(playerId);
-      if (sp) { totalWins += sp.wins; totalLosses += sp.losses; seasonsPlayed++; }
-    }
-    return { playerId, totalWins, totalLosses, seasonsPlayed, totalMatches: totalWins + totalLosses };
-  }
-}
-
-const SeasonalTools = {
-  'season.register': {
-    description: 'Register player for current season',
-    parameters: { type: 'object', properties: { playerId: { type: 'string' } }, required: ['playerId'] },
-    handler(args) {
-      if (!window._seasonalSystem) window._seasonalSystem = new SeasonalChampionshipSystem();
-      return window._seasonalSystem.registerPlayer(args.playerId);
-    }
-  },
-  'season.match': {
-    description: 'Record match result',
-    parameters: { type: 'object', properties: { playerId: { type: 'string' }, againstId: { type: 'string' }, myScore: { type: 'number' }, theirScore: { type: 'number' }, ratingDelta: { type: 'number' } }, required: ['playerId', 'againstId', 'myScore', 'theirScore', 'ratingDelta'] },
-    handler(args) {
-      if (!window._seasonalSystem) return { error: 'not_init' };
-      return window._seasonalSystem.recordMatchResult(args.playerId, args.againstId, args.myScore, args.theirScore, args.ratingDelta);
-    }
-  },
-  'season.leaderboard': {
-    description: 'Get season leaderboard',
-    parameters: { type: 'object', properties: { seasonId: { type: 'string' }, limit: { type: 'number' } } },
-    handler(args) {
-      if (!window._seasonalSystem) window._seasonalSystem = new SeasonalChampionshipSystem();
-      return window._seasonalSystem.getLeaderboard(args.seasonId, args.limit);
-    }
-  },
-  'season.info': {
-    description: 'Get season info',
-    parameters: { type: 'object', properties: { seasonId: { type: 'string' } } },
-    handler(args) {
-      if (!window._seasonalSystem) window._seasonalSystem = new SeasonalChampionshipSystem();
-      return window._seasonalSystem.getSeasonInfo(args.seasonId);
-    }
-  },
-  'season.stats': {
-    description: 'Get player overall stats',
-    parameters: { type: 'object', properties: { playerId: { type: 'string' } } },
-    handler(args) {
-      if (!window._seasonalSystem) window._seasonalSystem = new SeasonalChampionshipSystem();
-      return window._seasonalSystem.getPlayerOverallStats(args.playerId);
-    }
-  }
-};
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { SeasonalPlayer, Season, SeasonalChampionshipSystem, SeasonalTools };
-}
-if (typeof window !== 'undefined') {
-  window.SeasonalPlayer = SeasonalPlayer;
-  window.Season = Season;
-  window.SeasonalChampionshipSystem = SeasonalChampionshipSystem;
-  window.SeasonalTools = SeasonalTools;
-}
+})();
