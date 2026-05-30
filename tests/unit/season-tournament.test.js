@@ -730,6 +730,81 @@ describe('Integration Tests', () => {
   });
 });
 
+describe('branch coverage improvements', () => {
+  let bracket;
+  let eloRating;
+
+  beforeEach(() => {
+    bracket = new TournamentBracket();
+    eloRating = new ELORating();
+    localStorageMock._reset();
+    jest.clearAllMocks();
+  });
+
+  test('_nextPowerOfTwo calculates correctly', () => {
+    expect(bracket._nextPowerOfTwo(1)).toBe(1);
+    expect(bracket._nextPowerOfTwo(3)).toBe(4);
+    expect(bracket._nextPowerOfTwo(5)).toBe(8);
+    expect(bracket._nextPowerOfTwo(8)).toBe(8);
+  });
+
+  test('_seedPlayers sorts by seed and fills byes', () => {
+    const players = [
+      { id: 'p2', name: 'Player 2', seed: 2 },
+      { id: 'p1', name: 'Player 1', seed: 1 },
+      { id: 'p3', name: 'Player 3', seed: 3 }
+    ];
+
+    const seeded = bracket._seedPlayers(players, 4);
+
+    expect(seeded.length).toBe(4);
+    expect(seeded[0].id).toBe('p1');
+    expect(seeded[1].id).toBe('p2');
+    expect(seeded[2].id).toBe('p3');
+    expect(seeded[3].isBye).toBe(true);
+  });
+
+  test('_seedPlayers handles players with no seed', () => {
+    const players = [
+      { id: 'p1', name: 'Player 1' },
+      { id: 'p2', name: 'Player 2' }
+    ];
+
+    const seeded = bracket._seedPlayers(players, 4);
+
+    expect(seeded.length).toBe(4);
+    expect(seeded[0].id).toBe('p1');
+    expect(seeded[1].id).toBe('p2');
+    expect(seeded[2].isBye).toBe(true);
+    expect(seeded[3].isBye).toBe(true);
+  });
+
+  test('getTopPlayers handles empty storage', () => {
+    const top = eloRating.getTopPlayers(10);
+    expect(Array.isArray(top)).toBe(true);
+  });
+
+  test('getPlayerRank returns -1 for unknown player', () => {
+    const rank = eloRating.getPlayerRank('unknown_player');
+    expect(rank).toBe(-1);
+  });
+
+  test('getPlayerRank returns correct rank', () => {
+    eloRating.setPlayerRating('p1', 1600);
+    eloRating.setPlayerRating('p2', 1500);
+    eloRating.setPlayerRating('p3', 1400);
+
+    expect(eloRating.getPlayerRank('p1')).toBe(1);
+    expect(eloRating.getPlayerRank('p2')).toBe(2);
+    expect(eloRating.getPlayerRank('p3')).toBe(3);
+  });
+
+  test('getMatches returns empty array for unknown tournament', () => {
+    const matches = bracket.getMatches('nonexistent');
+    expect(matches).toEqual([]);
+  });
+});
+
 describe('Cross-System Integration - SeasonTournament with MetagameTracker', () => {
   let bracket;
   let eloRating;

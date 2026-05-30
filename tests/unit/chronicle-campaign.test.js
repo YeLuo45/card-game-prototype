@@ -1083,4 +1083,98 @@ describe('Integration Tests', () => {
     const progress = engine.getChapterProgress('player1');
     expect(progress.completedCount).toBe(1);
   });
+
+  describe('branch coverage improvements', () => {
+    let registry2;
+    let memory2;
+
+    beforeEach(() => {
+      registry2 = new ChronicleRegistry();
+      memory2 = new StoryMemory();
+      Object.keys(mockStorage).forEach(k => delete mockStorage[k]);
+      jest.clearAllMocks();
+    });
+
+    test('checkUnlockCondition handles card: condition', () => {
+      const context = { ownedCards: ['strike', 'defend'] };
+      const result = registry2._checkUnlockCondition('card:strike', context);
+      expect(result).toBe(true);
+    });
+
+    test('checkUnlockCondition handles story: condition', () => {
+      const context = { storyProgress: { completedChapters: ['ch1'] } };
+      const result = registry2._checkUnlockCondition('story:ch1', context);
+      expect(result).toBe(true);
+    });
+
+    test('checkUnlockCondition handles missing ownedCards', () => {
+      const context = {};
+      const result = registry2._checkUnlockCondition('card:strike', context);
+      expect(result).toBeFalsy();
+    });
+
+    test('checkUnlockCondition handles missing storyProgress', () => {
+      const context = {};
+      const result = registry2._checkUnlockCondition('story:ch1', context);
+      expect(result).toBeFalsy();
+    });
+
+    test('checkUnlockCondition handles object condition with requiresCard', () => {
+      const context = { ownedCards: ['strike'] };
+      const result = registry2._checkUnlockCondition({ requiresCard: 'strike' }, context);
+      expect(result).toBe(true);
+    });
+
+    test('checkUnlockCondition handles object condition with requiresChapter', () => {
+      const context = { storyProgress: { completedChapters: ['ch1'] } };
+      const result = registry2._checkUnlockCondition({ requiresChapter: 'ch1' }, context);
+      expect(result).toBe(true);
+    });
+
+    test('checkUnlockCondition handles object condition with requiresCards', () => {
+      const context = { ownedCards: ['strike', 'defend', 'bash'] };
+      const result = registry2._checkUnlockCondition({ requiresCards: ['strike', 'bash'] }, context);
+      expect(result).toBe(true);
+    });
+
+    test('checkUnlockCondition handles requiresCards when missing ownedCards', () => {
+      const context = { ownedCards: ['strike'] };
+      const result = registry2._checkUnlockCondition({ requiresCards: ['strike', 'fireball'] }, context);
+      expect(result).toBe(false);
+    });
+
+    test('resetPlayerProgress handles localStorage error gracefully', () => {
+      localStorage.removeItem.mockImplementationOnce(() => {
+        throw new Error('Storage error');
+      });
+
+      expect(() => memory2.resetPlayerProgress('player1')).not.toThrow();
+    });
+
+    test('archiveStoryEvent handles localStorage error gracefully', () => {
+      localStorage.setItem.mockImplementationOnce(() => {
+        throw new Error('Storage error');
+      });
+
+      const result = memory2.archiveStoryEvent('player1', { type: 'test' });
+      expect(result).toBe(false);
+    });
+
+    test('getStoryArchives handles localStorage error gracefully', () => {
+      localStorage.getItem.mockImplementationOnce(() => {
+        throw new Error('Storage error');
+      });
+
+      const archives = memory2.getStoryArchives('player1');
+      expect(archives).toEqual([]);
+    });
+
+    test('getMemoryStatus handles nonexistent player', () => {
+      const status = memory2.getMemoryStatus('nonexistent_player');
+      expect(status.unlockedCount).toBe(0);
+      expect(status.completedCount).toBe(0);
+      expect(status.totalChoices).toBe(0);
+      expect(status.recentEvents).toBe(0);
+    });
+  });
 });

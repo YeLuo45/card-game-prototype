@@ -1059,11 +1059,118 @@ describe('BalanceFeedback', () => {
 
     test('generateBuffSuggestion creates suggestion array', () => {
       const card = { winRate: 0.25, avgDamagePerGame: 5 };
-      
+
       const suggestion = feedback.generateBuffSuggestion(card);
-      
+
       expect(Array.isArray(suggestion)).toBe(true);
       expect(suggestion.length).toBeGreaterThan(0);
+    });
+
+    test('generateBuffSuggestion with cost_decrease only', () => {
+      const card = { winRate: 0.20, avgDamagePerGame: 10, energyEfficiency: 5 };
+      const suggestion = feedback.generateBuffSuggestion(card);
+
+      expect(suggestion.some(s => s.type === 'cost_decrease')).toBe(true);
+    });
+
+    test('generateNerfSuggestion with damage_reduction', () => {
+      const card = { winRate: 0.75, avgDamagePerGame: 20, avgDamage: 20 };
+      const suggestion = feedback.generateNerfSuggestion(card);
+
+      expect(suggestion.some(s => s.type === 'damage_reduction')).toBe(true);
+    });
+  });
+
+  describe('branch coverage improvements', () => {
+    test('calculateTuningModifier with high efficiency > 0.9 triggers maxBonus', () => {
+      const allocation = {
+        wastePercentage: 30,
+        efficiency: 0.95,
+        targetCost: 2,
+        currentEnergy: 3,
+        playableCount: 3
+      };
+
+      const modifier = tuner.calculateTuningModifier(allocation);
+
+      expect(modifier.bonusMaxEnergy).toBe(1);
+    });
+
+    test('calculateTuningModifier with unplayable cards and high targetCost triggers compensation', () => {
+      const allocation = {
+        wastePercentage: 20,
+        efficiency: 0.5,
+        targetCost: 5,
+        currentEnergy: 3,
+        playableCount: 0
+      };
+
+      const modifier = tuner.calculateTuningModifier(allocation);
+
+      expect(modifier.bonusEnergy).toBe(1);
+    });
+
+    test('estimateTargetCost calculates correctly for various turns', () => {
+      expect(tuner.estimateTargetCost(1)).toBe(2);
+      expect(tuner.estimateTargetCost(2)).toBe(3);
+      expect(tuner.estimateTargetCost(4)).toBe(4);
+    });
+
+    test('getTuningStats handles localStorage error gracefully', () => {
+      localStorage.getItem.mockImplementationOnce(() => {
+        throw new Error('Storage error');
+      });
+
+      const stats = tuner.getTuningStats();
+
+      expect(stats).toEqual(tuner.getDefaultTuningStats());
+    });
+
+    test('resetTuningStats handles localStorage error gracefully', () => {
+      localStorage.removeItem.mockImplementationOnce(() => {
+        throw new Error('Storage error');
+      });
+
+      tuner.resetTuningStats();
+      expect(() => tuner.resetTuningStats()).not.toThrow();
+    });
+
+    test('recordTuningStat handles localStorage error gracefully', () => {
+      localStorage.setItem.mockImplementationOnce(() => {
+        throw new Error('Storage error');
+      });
+
+      const modifier = { bonusEnergy: 1, bonusMaxEnergy: 0 };
+      tuner.recordTuningStat(1, modifier);
+      expect(() => tuner.recordTuningStat(1, modifier)).not.toThrow();
+    });
+
+    test('loadDeckCards handles localStorage error gracefully', () => {
+      localStorage.getItem.mockImplementationOnce(() => {
+        throw new Error('Storage error');
+      });
+
+      const cards = tuner.loadDeckCards('invalid_deck');
+      expect(cards).toEqual([]);
+    });
+
+    test('saveDeckProfile handles localStorage error gracefully', () => {
+      localStorage.setItem.mockImplementationOnce(() => {
+        throw new Error('Storage error');
+      });
+
+      const profile = { cardCount: 5 };
+      expect(() => tuner.saveDeckProfile('deck_1', profile)).not.toThrow();
+    });
+
+    test('calculateCurveAdjustment handles balanced curve shape', () => {
+      const tuner2 = new EnergyTuner();
+      const hook2 = new EnergyHook(tuner2);
+      const profile = { curveShape: 'balanced', avgCost: '2.5' };
+      const adjustment = hook2.calculateCurveAdjustment(profile, 5);
+
+      expect(adjustment.type).toBe('curve_adjustment');
+      expect(adjustment.bonus).toBe(0);
     });
   });
 });
