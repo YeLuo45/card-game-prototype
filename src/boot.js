@@ -176,6 +176,18 @@ var CARD_SYSTEMS = [
   'card-packs/ironclad.js'
 ];
 
+// ─── 限界上下文数组（从 DDD 目录结构填充，无依赖的直接留空）───────────────
+// 注意：所有 src/domain/*/services/*.js 通过 CARD_SYSTEMS 统一加载，
+// 此处仅补齐 boot.js concat 语法所需的占位数组。
+var GUILD = [];           // guild domain — 已通过 CARD_SYSTEMS 中的 guild.service.js 等加载
+var META = [];            // meta domain — 已通过 CARD_SYSTEMS 加载
+var PROGRESSION = [];     // progression domain — 已通过 CARD_SYSTEMS 加载
+var SOCIAL = [];          // social domain — 已通过 CARD_SYSTEMS 加载
+var BATTLE = [];          // battle domain — 已通过 CARD_SYSTEMS 加载
+var CARD_SERVICES_OTHER = []; // 其他服务 — 已通过 CARD_SYSTEMS 加载
+var UI = [];              // UI screens — 已通过 CARD_SYSTEMS 加载
+var USECASES = [];        // usecases — 已通过 CARD_SYSTEMS 加载
+
 // ─── 合并全部 + 去重 ────────────────────────────────────────────────────────
 var ALL = [].concat(SHARED, INFRA, CARD_SYSTEMS, GUILD, META, PROGRESSION, SOCIAL, BATTLE, CARD_SERVICES_OTHER, UI, USECASES, PACKS);
 
