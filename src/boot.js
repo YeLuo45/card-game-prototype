@@ -29,6 +29,7 @@ var SHARED = [
 // ─── 主加载序列（与 index.html 原有顺序一致）────────────────────────────────
 // infrastructure
 var INFRA = [
+  'src/infrastructure/loader/global-shim.js',
   'src/infrastructure/plugin/plugin-api.js',
   'src/infrastructure/plugin/plugin-loader.js',
   'src/infrastructure/loader/market-loader.js',
