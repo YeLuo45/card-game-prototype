@@ -15,7 +15,8 @@ module.exports = {
     'deck-archetype-evolution.js',
     'adaptive-difficulty.js',
     'card-portfolio-system.js',
-    'src/matchmaking-system.js'
+    'src/matchmaking-system.js',
+    'src/talent-forge-system.js'
   ],
   coverageThreshold: {
     global: {

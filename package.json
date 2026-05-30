@@ -1,6 +1,6 @@
 {
   "name": "card-game-prototype",
-  "version": "2.5.9",
+  "version": "2.6.3",
   "description": "Card game prototype with multiple system modules",
   "main": "src/main.js",
   "scripts": {
