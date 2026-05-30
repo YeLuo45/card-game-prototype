@@ -1347,4 +1347,114 @@ describe('Cross-System Integration - SeasonTournament with MetagameTracker', () 
       localStorage.setItem = originalSetItem;
     });
   });
+
+  describe('TournamentRanking and Reward branches', () => {
+    let bracket;
+    let eloRating;
+    let seasonTournament;
+
+    beforeEach(() => {
+      eloRating = new ELORating();
+      bracket = new TournamentBracket();
+      seasonTournament = new SeasonTournamentWithSeasonManager(null, eloRating, bracket);
+      localStorageMock._reset();
+    });
+
+    test('_getBaseRewardForRank returns correct rewards for all ranks', () => {
+      expect(seasonTournament._getBaseRewardForRank(1)).toBe(1000); // champion
+      expect(seasonTournament._getBaseRewardForRank(2)).toBe(500);  // runner-up
+      expect(seasonTournament._getBaseRewardForRank(3)).toBe(250);  // third place
+      expect(seasonTournament._getBaseRewardForRank(4)).toBe(100);  // fourth place
+      expect(seasonTournament._getBaseRewardForRank(5)).toBe(50);   // default
+    });
+
+    test('_playerInTournament returns true when player exists in tournament', () => {
+      seasonTournament.registerForTournament('t_player_check', 'p_check', { name: 'Check Player' });
+      
+      const exists = seasonTournament._playerInTournament('t_player_check', 'p_check');
+      expect(exists).toBe(true);
+    });
+
+    test('_playerInTournament returns false when player not in tournament', () => {
+      const exists = seasonTournament._playerInTournament('t_no_player', 'p_no_one');
+      expect(exists).toBe(false);
+    });
+
+    test('_calculateTournamentRanking returns empty for non-existent tournament', () => {
+      const ranking = seasonTournament._calculateTournamentRanking('t_does_not_exist');
+      expect(ranking).toEqual([]);
+    });
+
+    test('getRegisteredPlayers handles localStorage error gracefully', () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      const players = seasonTournament.getRegisteredPlayers('t_error');
+      expect(players).toEqual([]);
+      
+      localStorage.getItem = originalGetItem;
+    });
+
+    test('getTournamentHistory handles localStorage error gracefully', () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      const history = seasonTournament.getTournamentHistory();
+      expect(history).toEqual([]);
+      
+      localStorage.getItem = originalGetItem;
+    });
+
+    test('getPlayerRatingHistory handles JSON parse error', () => {
+      localStorage.setItem('elo_rating_p1_history', 'invalid json{{{');
+      
+      const history = seasonTournament.getPlayerRatingHistory('p1');
+      expect(history).toEqual([]);
+    });
+
+    test('getPlayerMatchHistory handles localStorage error gracefully', () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      const history = seasonTournament.getPlayerMatchHistory('p1');
+      expect(history).toEqual([]);
+      
+      localStorage.getItem = originalGetItem;
+    });
+
+    test('distributeTournamentRewards calculates rewards when tournament has champion', () => {
+      // Register players first so _calculateTournamentRanking can find them
+      seasonTournament.registerForTournament('t_rewards', 'p1', { name: 'Player 1', playerId: 'p1' });
+      seasonTournament.registerForTournament('t_rewards', 'p2', { name: 'Player 2', playerId: 'p2' });
+      
+      // Create a complete tournament with champion
+      const players = [
+        { id: 'p1', name: 'Player 1' },
+        { id: 'p2', name: 'Player 2' }
+      ];
+      bracket.createBracket('t_rewards', players);
+      
+      // Simulate the final match to create champion
+      const match = bracket.getMatches('t_rewards')[0];
+      bracket.simulateMatch('t_rewards', match.id, { winnerId: 'p1' });
+      
+      const bracketData = bracket.getBracket('t_rewards');
+      bracketData.playerRecords = { p1: { wins: 1, losses: 0 }, p2: { wins: 0, losses: 1 } };
+      seasonTournament.bracket.brackets.set('t_rewards', bracketData);
+      
+      const rewards = seasonTournament.distributeTournamentRewards('t_rewards');
+      // Rewards should be calculated since bracket has champion
+      expect(rewards).not.toEqual([]);
+      expect(rewards[0].rank).toBeDefined();
+    });
+
+    test('recordTournamentParticipation handles localStorage error gracefully', () => {
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      expect(() => seasonTournament.recordTournamentParticipation('t1', 'p1', { placement: 1 })).not.toThrow();
+      
+      localStorage.setItem = originalSetItem;
+    });
+  });
 });
