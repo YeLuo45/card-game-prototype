@@ -5,6 +5,7 @@ module.exports = {
     'src/battle-simulator.js',
     'src/combat-strategy-optimizer.js',
     'src/combat-feedback-analyzer.js',
+    'src/card-draft-advisor.js',
     'metagame-evolution.js',
     'season-tournament.js',
     'synergy-cascade.js',
@@ -38,6 +39,12 @@ module.exports = {
       functions: 95,
       lines: 95,
       statements: 95
+    },
+    './src/card-draft-advisor.js': {
+      branches: 80,
+      functions: 95,
+      lines: 98,
+      statements: 98
     }
   },
   modulePathIgnorePatterns: ['<rootDir>/node_modules/']
