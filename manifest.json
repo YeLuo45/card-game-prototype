@@ -15,6 +15,11 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["games", "entertainment"],
-  "lang": "zh-CN"
+  "categories": [
+    "games",
+    "entertainment"
+  ],
+  "lang": "zh-CN",
+  "version": "V254",
+  "version_name": "V254 — 多Agent协作"
 }
