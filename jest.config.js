@@ -7,7 +7,8 @@ module.exports = {
     'synergy-cascade.js',
     'replay-analysis.js',
     'chronicle-campaign.js',
-    'energy-tuning.js'
+    'energy-tuning.js',
+    'deck-archetype-evolution.js'
   ],
   coverageThreshold: {
     global: {
