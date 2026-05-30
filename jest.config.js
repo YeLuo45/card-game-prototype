@@ -13,7 +13,8 @@ module.exports = {
     'chronicle-campaign.js',
     'energy-tuning.js',
     'deck-archetype-evolution.js',
-    'adaptive-difficulty.js'
+    'adaptive-difficulty.js',
+    'card-portfolio-system.js'
   ],
   coverageThreshold: {
     global: {
