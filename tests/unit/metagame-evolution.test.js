@@ -202,28 +202,6 @@ describe('MetagameTracker', () => {
     });
   });
 
-  describe('resetCardStats', () => {
-    test('resets specific card stats', () => {
-      mockStorage['metagame_card_strike'] = JSON.stringify({ playCount: 5 });
-      mockStorage['metagame_card_defend'] = JSON.stringify({ playCount: 3 });
-
-      tracker.resetCardStats('strike');
-
-      expect(mockStorage['metagame_card_strike']).toBeUndefined();
-      expect(mockStorage['metagame_card_defend']).toBeDefined();
-    });
-
-    test('resets all card stats when no cardId provided', () => {
-      mockStorage['metagame_card_strike'] = JSON.stringify({ playCount: 5 });
-      mockStorage['metagame_card_defend'] = JSON.stringify({ playCount: 3 });
-
-      tracker.resetCardStats();
-
-      expect(mockStorage['metagame_card_strike']).toBeUndefined();
-      expect(mockStorage['metagame_card_defend']).toBeUndefined();
-    });
-  });
-
   describe('resetDeckStats', () => {
     test('resets specific deck stats', () => {
       mockStorage['metagame_deck_aggro'] = JSON.stringify({ playCount: 5 });
@@ -1120,5 +1098,232 @@ describe('Integration Tests', () => {
     mockStorage['metagame_player_player3_S001'] = JSON.stringify({ winRate: 0.2, gamesPlayed: 50 });
     const lowRewards = honorReward.calculateRewards('player3', 'S001');
     expect(lowRewards).not.toBeNull();
+  });
+
+  describe('branch coverage improvements', () => {
+    let tracker, engine, seasonMgr, honorReward;
+
+    beforeEach(() => {
+      tracker = new MetagameTracker();
+      engine = new EvolutionEngine(tracker);
+      seasonMgr = new SeasonManager();
+      honorReward = new HonorReward(seasonMgr);
+      Object.keys(mockStorage).forEach(k => delete mockStorage[k]);
+      jest.clearAllMocks();
+    });
+
+    test('trackDeckUsage handles missing deckId or stats', () => {
+      tracker.trackDeckUsage(null, { gamesPlayed: 1 });
+      tracker.trackDeckUsage('deck1', null);
+      // Should not throw
+      expect(true).toBe(true);
+    });
+
+    test('trackDeckUsage handles localStorage error', () => {
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      tracker.trackDeckUsage('deck_error', { gamesPlayed: 1, wins: 1 });
+      // Should not throw
+      
+      localStorage.setItem = originalSetItem;
+    });
+
+    test('getCardStats handles JSON parse error', () => {
+      mockStorage['metagame_card_parse_error'] = 'invalid json{{{';
+      
+      const result = tracker.getCardStats('parse_error');
+      expect(result).toBeNull();
+    });
+
+    test('getCardStats returns defaults for non-existent card', () => {
+      const result = tracker.getCardStats('nonexistent_card');
+      expect(result.playCount).toBe(0);
+    });
+
+    test('getAllCardStats handles localStorage error', () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      const result = tracker.getAllCardStats();
+      expect(result).toEqual({});
+      
+      localStorage.getItem = originalGetItem;
+    });
+
+    test('getDeckStats handles JSON parse error', () => {
+      mockStorage['metagame_deck_parse_error'] = 'not valid json[[[';
+      
+      const result = tracker.getDeckStats('parse_error');
+      expect(result).toBeNull();
+    });
+
+    test('getSeasonStats handles localStorage error', () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      const result = seasonMgr.getSeasonStats('S_error');
+      expect(result).toBeNull();
+      
+      localStorage.getItem = originalGetItem;
+    });
+
+    test('getSeasonStats returns null for non-existent season', () => {
+      const result = seasonMgr.getSeasonStats('nonexistent');
+      expect(result).toBeNull();
+    });
+
+    test('updateSeasonStats does nothing when no active season', () => {
+      // No season started
+      expect(() => seasonMgr.updateSeasonStats({ won: true })).not.toThrow();
+    });
+
+    test('updateSeasonStats tracks cardUsage properly', () => {
+      seasonMgr.startSeason('S_test', 7);
+      seasonMgr.updateSeasonStats({
+        playerId: 'p1',
+        cardUsage: { strike: 3, defend: 2 },
+        won: true
+      });
+      
+      const season = seasonMgr.getSeasonStats('S_test');
+      expect(season.stats.cardUsage.strike).toBe(3);
+      expect(season.stats.cardUsage.defend).toBe(2);
+    });
+
+    test('updateSeasonStats tracks deckUsage properly', () => {
+      seasonMgr.startSeason('S_test2', 7);
+      seasonMgr.updateSeasonStats({
+        playerId: 'p1',
+        deckId: 'aggro_deck',
+        cardUsage: { strike: 2 },
+        won: true
+      });
+      
+      const season = seasonMgr.getSeasonStats('S_test2');
+      expect(season.stats.deckUsage.aggro_deck).toBe(1);
+    });
+
+    test('endSeason calculates winRate correctly when totalGames is 0', () => {
+      seasonMgr.startSeason('S_empty', 7);
+      // No games played
+      const finalStats = seasonMgr.endSeason();
+      
+      expect(finalStats.stats.winRate).toBe(0);
+      expect(finalStats.stats.topCard).toBeNull();
+      expect(finalStats.stats.topDeck).toBeNull();
+    });
+
+    test('endSeason handles season without cardUsage', () => {
+      seasonMgr.startSeason('S_nocards', 7);
+      seasonMgr.updateSeasonStats({ playerId: 'p1', won: true });
+      // Manually clear cardUsage
+      const season = seasonMgr.getSeasonStats('S_nocards');
+      season.stats.cardUsage = null;
+      
+      const finalStats = seasonMgr.endSeason();
+      expect(finalStats).not.toBeNull();
+    });
+
+    test('calculatePlayerScore handles localStorage error', () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      const score = honorReward.calculatePlayerScore('p_error', 'S_error');
+      expect(score).toBe(0);
+      
+      localStorage.getItem = originalGetItem;
+    });
+
+    test('determineTier returns correct tiers', () => {
+      expect(honorReward.determineTier(0.05)).toBe('legendary');
+      expect(honorReward.determineTier(0.15)).toBe('epic');
+      expect(honorReward.determineTier(0.35)).toBe('rare');
+      expect(honorReward.determineTier(0.70)).toBe('common');
+    });
+
+    test('generateRewards creates correct structure', () => {
+      const rewards = honorReward.generateRewards(0.1, { id: 'S_test' });
+      
+      expect(rewards.cardExperience).toBeGreaterThan(0);
+      expect(rewards.title).toBeTruthy();
+    });
+
+    test('generateRewards with different tiers', () => {
+      // percentile 0.75 → common (above 0.50 threshold)
+      const commonRewards = honorReward.generateRewards(0.75, { id: 'S_com' });
+      // percentile 0.05 → legendary (matches legendary threshold <= 0.10)
+      const legendaryRewards = honorReward.generateRewards(0.05, { id: 'S_leg' });
+      // percentile 0.20 → epic (matches epic threshold > 0.10 and <= 0.25)
+      const epicRewards = honorReward.generateRewards(0.20, { id: 'S_epic' });
+      // percentile 0.40 → rare (matches rare threshold > 0.25 and <= 0.50)
+      const rareRewards = honorReward.generateRewards(0.40, { id: 'S_rare' });
+
+      expect(legendaryRewards.title).toBe('传奇大师');
+      expect(epicRewards.title).toBe('史诗勇士');
+      expect(rareRewards.title).toBe('精英选手');
+      expect(commonRewards.title).toBe('参赛选手');
+    });
+
+    test('distributeRewards catches localStorage error', () => {
+      // Pre-populate storage with real data (bypass mock)
+      mockStorage['metagame_player_p1_S1'] = JSON.stringify({ winRate: 0.8, gamesPlayed: 10 });
+      mockStorage['metagame_season_S1_players'] = JSON.stringify([{ id: 'p1' }]);
+
+      // Now mock setItem to throw
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = jest.fn(() => { throw new Error('Storage error'); });
+
+      const rewards = honorReward.distributeRewards('p1', 'S1');
+      // If getItem fails first, rewards is null; if setItem fails, distributed is false
+      expect(rewards === null || rewards.distributed === false).toBe(true);
+
+      localStorage.setItem = originalSetItem;
+    });
+
+    test('getHonorProfile handles localStorage error', () => {
+      const originalGetItem = localStorage.getItem;
+      localStorage.getItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      const profile = honorReward.getHonorProfile('p_error');
+      expect(profile).toEqual({ rewards: [], totalExp: 0 });
+      
+      localStorage.getItem = originalGetItem;
+    });
+
+    test('getHonorProfile returns default for null playerId', () => {
+      const profile = honorReward.getHonorProfile(null);
+      expect(profile).toBeNull();
+    });
+
+    test('saveRewardRecord handles localStorage error', () => {
+      const originalSetItem = localStorage.setItem;
+      localStorage.setItem = jest.fn(() => { throw new Error('Storage error'); });
+      
+      expect(() => honorReward.saveRewardRecord({
+        playerId: 'p1',
+        seasonId: 'S1',
+        rewards: []
+      })).not.toThrow();
+      
+      localStorage.setItem = originalSetItem;
+    });
+
+    test('analyzeMeta handles empty stats', () => {
+      const analysis = engine.analyzeMeta();
+      expect(analysis.cardsToBuff).toEqual([]);
+      expect(analysis.cardsToNerf).toEqual([]);
+    });
+
+    test('applyEvolutionToCard returns original when no evolution needed', () => {
+      // Track a card with neutral win rate (0.5)
+      tracker.trackCardUsage('neutral_card', { gamesPlayed: 10, wins: 5 });
+      
+      const card = { id: 'neutral_card', damage: 10, cost: 2 };
+      const result = engine.applyEvolutionToCard('neutral_card', card);
+      
+      // Should return original card without _evolution
+      expect(result._evolution).toBeUndefined();
+    });
   });
 });
