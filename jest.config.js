@@ -4,6 +4,7 @@ module.exports = {
   collectCoverageFrom: [
     'src/battle-simulator.js',
     'src/combat-strategy-optimizer.js',
+    'src/combat-feedback-analyzer.js',
     'metagame-evolution.js',
     'season-tournament.js',
     'synergy-cascade.js',
@@ -27,6 +28,12 @@ module.exports = {
       statements: 95
     },
     './src/combat-strategy-optimizer.js': {
+      branches: 78,
+      functions: 95,
+      lines: 95,
+      statements: 95
+    },
+    './src/combat-feedback-analyzer.js': {
       branches: 78,
       functions: 95,
       lines: 95,
