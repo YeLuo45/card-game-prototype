@@ -3,6 +3,10 @@ module.exports = {
   testMatch: ['**/tests/**/*.test.js'],
   collectCoverageFrom: [
     'src/battle-simulator.js',
+    'src/battle-replay.js',
+    'src/key-turn-marker.js',
+    'src/tactical-analyzer.js',
+    'src/replay-ui.js',
     'metagame-evolution.js',
     'season-tournament.js',
     'synergy-cascade.js',
