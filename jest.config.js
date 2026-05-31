@@ -26,7 +26,11 @@ module.exports = {
     'src/card-material-registry.js',
     'src/card-upgrader.js',
     'src/material-exchange.js',
-    'src/crafting-ui.js'
+    'src/crafting-ui.js',
+    'src/duel-room-manager.js',
+    'src/duel-rules-engine.js',
+    'src/duel-score-tracker.js',
+    'src/duel-ui.js'
   ],
   coverageThreshold: {
     global: {
