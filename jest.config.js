@@ -34,7 +34,11 @@ module.exports = {
     'src/card-lore-database.js',
     'src/card-gallery.js',
     'src/lore-unlock-system.js',
-    'src/gallery-ui.js'
+    'src/gallery-ui.js',
+    'src/championship-manager.js',
+    'src/champion-title-system.js',
+    'src/tournament-bracket-generator.js',
+    'src/championship-ui.js'
   ],
   coverageThreshold: {
     global: {
