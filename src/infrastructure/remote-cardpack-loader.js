@@ -21,7 +21,8 @@
     refreshCardsFromRegistry();
   }
 
-  // 填充卡牌数据（延迟到 CARDS 填充后）
+  // V68 Fix: 填充卡牌数据（延迟到 CARDS 填充后）
+  // 注意：这里需要用 IIFE 延迟求值，避免 const REWARD_CARD_POOL 等在 CARDS 填充前被求值
   const _poolCard = function(id) {
     const c = CARDS[id];
     if (!c) console.warn('[remote-cardpack] CARDS missing:', id);
@@ -624,82 +625,82 @@ const REWARD_CARD_POOL = [
   CARD_REWARDS.demonContract,
   CARD_REWARDS.lightningReflex,
   CARD_REWARDS.vampiricTouch,
-  // V15 新增稀有/精英卡牌
-  CARDS.executionerBlade,
-  CARDS.piercingStrike,
-  CARDS.flameSlash,
-  CARDS.bloodSword,
-  CARDS.voidStrike,
-  CARDS.doubleEdge,
-  CARDS.savageBlow,
-  CARDS.deathMark,
-  CARDS.ironGuard,
-  CARDS.bloodPact,
-  CARDS.battleCry,
-  CARDS.shieldWall,
-  CARDS.healingWave,
-  CARDS.comboFinisher,
-  CARDS.emergencyShield,
-  CARDS.blazingAura,
-  CARDS.bloodRage,
-  CARDS.armoredSoul,
-  CARDS.quickening,
-  CARDS.vampiricAura,
+  // V15 新增稀有/精英卡牌（使用 _poolCard 延迟求值，避免 CARDS TDZ）
+  _poolCard('executionerBlade'),
+  _poolCard('piercingStrike'),
+  _poolCard('flameSlash'),
+  _poolCard('bloodSword'),
+  _poolCard('voidStrike'),
+  _poolCard('doubleEdge'),
+  _poolCard('savageBlow'),
+  _poolCard('deathMark'),
+  _poolCard('ironGuard'),
+  _poolCard('bloodPact'),
+  _poolCard('battleCry'),
+  _poolCard('shieldWall'),
+  _poolCard('healingWave'),
+  _poolCard('comboFinisher'),
+  _poolCard('emergencyShield'),
+  _poolCard('blazingAura'),
+  _poolCard('bloodRage'),
+  _poolCard('armoredSoul'),
+  _poolCard('quickening'),
+  _poolCard('vampiricAura'),
   // V26 新增卡牌
-  CARDS.executeStrike,
-  CARDS.enrageStrike,
-  CARDS.reflectStrike,
-  CARDS.chainStrike,
-  CARDS.lastStandStrike,
-  CARDS.fortifyDefense,
-  CARDS.evasionStance,
-  CARDS.weakenTouch,
-  CARDS.silenceMark,
-  CARDS.burningShield,
-  CARDS.enrageAura,
-  CARDS.reflectAura,
-  CARDS.fortifyAura,
-  CARDS.evasionAura,
-  CARDS.weakenAura,
+  _poolCard('executeStrike'),
+  _poolCard('enrageStrike'),
+  _poolCard('reflectStrike'),
+  _poolCard('chainStrike'),
+  _poolCard('lastStandStrike'),
+  _poolCard('fortifyDefense'),
+  _poolCard('evasionStance'),
+  _poolCard('weakenTouch'),
+  _poolCard('silenceMark'),
+  _poolCard('burningShield'),
+  _poolCard('enrageAura'),
+  _poolCard('reflectAura'),
+  _poolCard('fortifyAura'),
+  _poolCard('evasionAura'),
+  _poolCard('weakenAura'),
 ];
 
 // ===== V5 奖励池数据 =====
 // 普通奖励池
 const COMMON_REWARD_POOL = [
-  CARDS.consecutiveStrike,
-  CARDS.ironWall,
-  CARDS.firstAid,
+  _poolCard('consecutiveStrike'),
+  _poolCard('ironWall'),
+  _poolCard('firstAid'),
 ];
 
 // 稀有奖励池
 const RARE_REWARD_POOL = [
-  CARDS.painfulStrike,
-  CARDS.behead,
-  CARDS.warCry,
-  CARDS.counterStance,
-  CARDS.spikeShell,
-  CARDS.burningFist,
-  CARDS.demonContract,
-  CARDS.lightningReflex,
-  CARDS.meditation,
-  CARDS.deadlyPrecision,
-  CARDS.vampiricTouch,
+  _poolCard('painfulStrike'),
+  _poolCard('behead'),
+  _poolCard('warCry'),
+  _poolCard('counterStance'),
+  _poolCard('spikeShell'),
+  _poolCard('burningFist'),
+  _poolCard('demonContract'),
+  _poolCard('lightningReflex'),
+  _poolCard('meditation'),
+  _poolCard('deadlyPrecision'),
+  _poolCard('vampiricTouch'),
   // V26 新增稀有卡牌
-  CARDS.executeStrike,
-  CARDS.enrageStrike,
-  CARDS.reflectStrike,
-  CARDS.chainStrike,
-  CARDS.lastStandStrike,
-  CARDS.fortifyDefense,
-  CARDS.evasionStance,
-  CARDS.weakenTouch,
-  CARDS.silenceMark,
-  CARDS.burningShield,
-  CARDS.enrageAura,
-  CARDS.reflectAura,
-  CARDS.fortifyAura,
-  CARDS.evasionAura,
-  CARDS.weakenAura,
+  _poolCard('executeStrike'),
+  _poolCard('enrageStrike'),
+  _poolCard('reflectStrike'),
+  _poolCard('chainStrike'),
+  _poolCard('lastStandStrike'),
+  _poolCard('fortifyDefense'),
+  _poolCard('evasionStance'),
+  _poolCard('weakenTouch'),
+  _poolCard('silenceMark'),
+  _poolCard('burningShield'),
+  _poolCard('enrageAura'),
+  _poolCard('reflectAura'),
+  _poolCard('fortifyAura'),
+  _poolCard('evasionAura'),
+  _poolCard('weakenAura'),
 ];
 
 // 完整奖励池（普通+稀有）
@@ -710,10 +711,10 @@ const REWARD_POOLS = {
 };
 
 const CURSE_CARDS_POOL = [
-  CARDS.painCurse,
-  CARDS.weakCurse,
-  CARDS.darkCurse,
-  CARDS.deathCurse,
+  _poolCard('painCurse'),
+  _poolCard('weakCurse'),
+  _poolCard('darkCurse'),
+  _poolCard('deathCurse'),
 ];
 // ===== V8 卡牌升级数据 =====
 // V17 扩展升级覆盖所有卡牌
