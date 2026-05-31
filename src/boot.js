@@ -186,7 +186,10 @@ var PROGRESSION = [];     // progression domain — 已通过 CARD_SYSTEMS 加�
 var SOCIAL = [];          // social domain — 已通过 CARD_SYSTEMS 加载
 var BATTLE = [];          // battle domain — 已通过 CARD_SYSTEMS 加载
 var CARD_SERVICES_OTHER = []; // 其他服务 — 已通过 CARD_SYSTEMS 加载
-var UI = [];              // UI screens — 已通过 CARD_SYSTEMS 加载
+var UI = [
+  'src/ui/version-info.js',
+  'src/ui/version-modal.js'
+];              // UI screens — 已通过 CARD_SYSTEMS 加载
 var USECASES = [];        // usecases — 已通过 CARD_SYSTEMS 加载
 var PACKS = [];           // card-packs — 已通过 CARD_SYSTEMS 加载（card-packs/*.js 自注册 window.CARD_PACKS）
 
@@ -225,3 +228,11 @@ return loadAll(unique).then(function() {
     return window._loadScript(src);
   }
 };
+
+// ─── 全局快捷键：Shift+Ctrl+V 弹出版本信息 ───────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  if (e.shiftKey && e.ctrlKey && e.key.toLowerCase() === 'v') {
+    e.preventDefault();
+    if (window.__showVersionModal) window.__showVersionModal();
+  }
+});
