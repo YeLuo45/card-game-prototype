@@ -30,7 +30,11 @@ module.exports = {
     'src/duel-room-manager.js',
     'src/duel-rules-engine.js',
     'src/duel-score-tracker.js',
-    'src/duel-ui.js'
+    'src/duel-ui.js',
+    'src/card-lore-database.js',
+    'src/card-gallery.js',
+    'src/lore-unlock-system.js',
+    'src/gallery-ui.js'
   ],
   coverageThreshold: {
     global: {
