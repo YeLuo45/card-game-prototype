@@ -7,6 +7,10 @@ module.exports = {
     'src/key-turn-marker.js',
     'src/tactical-analyzer.js',
     'src/replay-ui.js',
+    'src/deck-evolution-tracker.js',
+    'src/card-synergy-mapper.js',
+    'src/meta-adaptation-engine.js',
+    'src/deck-optimizer.js',
     'metagame-evolution.js',
     'season-tournament.js',
     'synergy-cascade.js',
@@ -14,7 +18,11 @@ module.exports = {
     'chronicle-campaign.js',
     'energy-tuning.js',
     'deck-archetype-evolution.js',
-    'adaptive-difficulty.js'
+    'adaptive-difficulty.js',
+    'src/card-material-registry.js',
+    'src/card-upgrader.js',
+    'src/material-exchange.js',
+    'src/crafting-ui.js'
   ],
   coverageThreshold: {
     global: {
