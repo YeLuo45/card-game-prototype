@@ -1,7 +1,7 @@
 {
-  "version": "V254",
-  "commit": "e0fdfdd0542c03083ff4d9b61a1f678a6f70f0b4",
-  "deployed_at": "2026-05-30T17:53:40+08:00",
+  "version": "V255",
+  "commit": "PENDING",
+  "deployed_at": "2026-06-03T01:24:00+08:00",
   "build": "production",
   "changelog_url": "https://github.com/YeLuo45/card-game-prototype/commits/gh-pages"
 }
