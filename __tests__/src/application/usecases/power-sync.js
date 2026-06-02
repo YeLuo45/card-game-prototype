@@ -1,0 +1,1 @@
+../../../../src/application/usecases/power-sync.usecase.js

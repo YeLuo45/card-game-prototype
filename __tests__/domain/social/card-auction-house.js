@@ -1,0 +1,1 @@
+../../../src/domain/social/services/auction-house.service.js

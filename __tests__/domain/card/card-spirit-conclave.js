@@ -1,0 +1,1 @@
+../../../src/domain/card/systems/sanctum/spirit-conclave.js

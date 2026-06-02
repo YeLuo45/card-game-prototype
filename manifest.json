@@ -1,0 +1,25 @@
+{
+  "name": "DBG卡牌游戏",
+  "short_name": "DBG卡牌",
+  "description": "一款DBG（牌库构建）卡牌游戏，支持离线游玩",
+  "start_url": "/card-game-prototype/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#1a1a2e",
+  "theme_color": "#1a1a2e",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%231a1a2e' width='512' height='512' rx='64'/><text x='256' y='320' font-size='280' text-anchor='middle' fill='%23ffd700'>🎴</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "games",
+    "entertainment"
+  ],
+  "lang": "zh-CN",
+  "version": "V254",
+  "version_name": "V254 — 多Agent协作"
+}

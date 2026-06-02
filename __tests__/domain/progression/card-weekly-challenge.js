@@ -1,0 +1,1 @@
+../../../src/domain/progression/services/weekly-challenge.service.js

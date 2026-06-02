@@ -1,0 +1,1 @@
+../../../src/domain/meta/services/deck-pro.service.js

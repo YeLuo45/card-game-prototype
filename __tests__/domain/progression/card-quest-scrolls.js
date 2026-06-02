@@ -1,0 +1,1 @@
+../../../src/domain/progression/services/quest-scrolls.service.js
