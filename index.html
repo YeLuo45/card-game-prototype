@@ -4138,6 +4138,33 @@
 <div id="achievement-popup-container"></div>
 
   <script src="src/ui/battle-reward-modal.js"></script>
+  <script>
+  (function() {
+    function setStartButtonLoading(loading) {
+      var btn = document.getElementById('start-btn');
+      if (!btn) return;
+      btn.disabled = loading;
+      btn.style.opacity = loading ? '0.65' : '';
+      btn.title = loading ? '正在加载游戏模块...' : '';
+    }
+
+    setStartButtonLoading(true);
+
+    function onBootReady() {
+      setStartButtonLoading(false);
+      console.log('[app] Boot complete, game ready');
+    }
+
+    if (window.Boot && window.Boot.start) {
+      window.Boot.start().then(onBootReady).catch(function(err) {
+        console.error('[app] Boot failed:', err);
+        onBootReady();
+      });
+    } else {
+      onBootReady();
+    }
+  })();
+  </script>
 </body>
 
 </html>

@@ -63,10 +63,59 @@ https://yeluo45.github.io/card-game-prototype/
 - Debuff系统：易伤、虚弱、中毒、灼热、流血
 
 ## 技术栈
-- 单文件 HTML
+- 单文件 HTML + 模块化 JS（`src/`）
 - Vanilla JS（无框架）
 - Canvas 绘制地图
 - CSS3 动画
+- Vitest（单元测试）
 
 ## 本地运行
-直接用浏览器打开 `index.html` 即可。
+
+项目通过 `boot.js` 动态加载多个 JS 模块，需使用本地 HTTP 服务器（直接打开 `index.html` 可能因浏览器 CORS 限制无法正常加载）。
+
+启动后访问 [http://localhost:8080](http://localhost:8080)
+
+### 方式一：npm 脚本（推荐）
+
+**WSL / Linux：**
+
+```bash
+cd /home/hermes/projects/card-game-prototype
+npm install
+npm run dev
+```
+
+**Windows PowerShell（项目在 WSL 内）：**
+
+```powershell
+wsl -d Ubuntu -- bash -lc "cd /home/hermes/projects/card-game-prototype && npm install && npm run dev"
+```
+
+### 方式二：PowerShell 一键启动
+
+在项目根目录执行，脚本会自动识别 WSL 路径并安装依赖：
+
+```powershell
+cd \\wsl$\Ubuntu\home\hermes\projects\card-game-prototype
+.\scripts\start.ps1
+```
+
+### 方式三：Python 简易服务器
+
+已安装 Python 时可用：
+
+```powershell
+cd /home/hermes/projects/card-game-prototype   # WSL 内
+python3 -m http.server 8080
+```
+
+然后访问 [http://localhost:8080](http://localhost:8080)
+
+### 可用 npm 命令
+
+| 命令 | 说明 |
+|------|------|
+| `npm run dev` / `npm start` | 启动本地开发服务器（端口 8080） |
+| `npm test` | 运行全部单元测试 |
+| `npm run test:watch` | 测试监听模式 |
+| `npm run test:coverage` | 生成覆盖率报告 |

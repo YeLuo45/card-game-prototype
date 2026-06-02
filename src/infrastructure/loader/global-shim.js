@@ -16,3 +16,17 @@ window.USECASES           = window.USECASES           || {};
 window.CARD_SERVICES_OTHER = window.CARD_SERVICES_OTHER || {};
 window.PACKS              = window.PACKS              || [];
 window.CARD_PACKS         = window.CARD_PACKS         || {};
+
+// 浏览器环境下兼容 CommonJS 导出写法
+if (typeof window.module === 'undefined') {
+  window.module = { exports: {} };
+}
+if (typeof window.exports === 'undefined') {
+  window.exports = window.module.exports;
+}
+if (typeof window.require === 'undefined') {
+  window.require = function() { return window.module.exports; };
+}
+var module = window.module;
+var exports = window.exports;
+var require = window.require;

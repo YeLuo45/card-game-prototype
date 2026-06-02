@@ -2,7 +2,16 @@
   "name": "card-game-prototype",
   "version": "85.0.0",
   "type": "commonjs",
+  "scripts": {
+    "start": "serve . -l 8080",
+    "dev": "serve . -l 8080",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
   "devDependencies": {
+    "playwright": "^1.60.0",
+    "serve": "^14.2.4",
     "vitest": "^4.1.7"
   }
 }

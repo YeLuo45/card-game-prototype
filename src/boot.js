@@ -38,7 +38,11 @@ var INFRA = [
   'src/infrastructure/loader/elite-loader.js',
   'src/infrastructure/sw.js',
   'src/infrastructure/api/game-mcp.js',
-  'src/infrastructure/test/coverage-collector.js'
+  'src/infrastructure/test/coverage-collector.js',
+  'src/domain/meta/services/ai-memory.service.js',
+  'src/infrastructure/loader/skill-crystallizer.js',
+  'src/application/usecases/strategy-guide.usecase.js',
+  'src/router.js'
 ];
 
 // domain/card/systems — 按类别顺序（与原 index.html 一致）
@@ -159,7 +163,7 @@ var CARD_SYSTEMS = [
   'src/domain/meta/services/memory-system.service.js',  // card-memory-system.js
   'src/domain/battle/services/gauntlet-system.js',
   'src/domain/progression/services/seasonal-league.service.js',
-  'src/domain/progression/services/dream-journey-system.service.js',  // dream-journey-system.js
+  'src/domain/progression/services/dream-journey/dream-journey.service.js',
   'src/domain/social/services/trading-post.service.js',
   'src/domain/social/services/friend-v2.service.js',
   'src/domain/progression/services/quest.service.js',

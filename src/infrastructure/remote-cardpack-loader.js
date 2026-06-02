@@ -94,6 +94,17 @@
   window.SHOP_CARD_POOL = SHOP_CARD_POOL;
 })();
 
+// 供 REWARD_CARD_POOL 等模块级常量延迟读取卡牌数据
+function _poolCard(id) {
+  if (typeof CARD_REWARDS !== 'undefined' && CARD_REWARDS[id]) {
+    return CARD_REWARDS[id];
+  }
+  var cards = window.CARDS || {};
+  var c = cards[id];
+  if (!c) console.warn('[remote-cardpack] CARDS missing:', id);
+  return c;
+}
+
 // ===== V32 流派协同系统 =====
 const ARCHETYPES = {
   toxic: {
@@ -13022,57 +13033,68 @@ function updatePetsDisplay() {
 function startNewGame() {
   // V63 Meta: 重置当前统计数据
   try { window.metaManager && window.metaManager.onGameStart(); } catch(e) {}
-  // V79 AI Memory: 初始化AI记忆系统
-  if (!window.aiMemory) {
-    window.aiMemory = new AIMemory();
-  }
-  // V86 DreamManager: 初始化梦境记忆系统
-  if (!window.dreamManager) {
-    window.dreamManager = new DreamManager(window.aiMemory);
-  }
-  // V85 SkillCrystallizer: 初始化技能结晶系统
-  if (!window.skillCrystallizer) {
-    window.skillCrystallizer = new SkillCrystallizer(window.aiMemory);
-    window.skillCrystallizer.loadSkills();
-    window.skillCrystallizer.crystallizeAllFromL3(); // 启动时从L3模式自动结晶
-  }
-  // V100 CardFusion: 初始化卡牌融合系统
-  if (!window.fusionInventory) {
-    window.fusionInventory = new FusionInventory();
-  }
-  if (!window.evolutionInventory) {
-    window.evolutionInventory = new CardEvolutionInventory();
-  }
-  if (!window.gachaInventory) {
-    window.gachaInventory = new GachaInventory();
-  }
-  if (!window.runeInventory) {
-    window.runeInventory = new RuneInventory();
-  }
-  if (!window.auctionHouse) {
-    window.auctionHouse = new AuctionHouse();
-  }
-  if (!window._sharedGuilds) window._sharedGuilds = {};
-  if (!window._sharedTournaments) window._sharedTournaments = {};
-  if (!window._achSystem) window._achSystem = new AchievementSystem();
-  window._achSystem.registerDefaultAchievements();
-  if (!window._cosmeticShop) window._cosmeticShop = new CosmeticShop();
-  window._cosmeticShop.registerDefaultCosmetics();
-  if (!window._rankedLadder) window._rankedLadder = new RankedLadder();
-  if (!window._battlePassSystem) window._battlePassSystem = new BattlePassSystem();
-  // V99 StrategyGuide: 初始化AI策略导航系统
-  if (!window.strategyGuide) {
-    window.strategyGuide = new StrategyGuidePanel(window.PluginBus, window.aiMemory);
-    // 注册游戏钩子（如果可用）
-    if (window.gameHookHub) {
-      window.gameHookHub.registerHook('combat:start', () => window.strategyGuide.updateSuggestions());
-      window.gameHookHub.registerHook('player:turn-start', () => window.strategyGuide.updateSuggestions());
-      window.gameHookHub.registerHook('card:played', () => window.strategyGuide.updateSuggestions());
+  try {
+    // V79 AI Memory: 初始化AI记忆系统
+    if (!window.aiMemory && typeof AIMemory !== 'undefined') {
+      window.aiMemory = new AIMemory();
     }
-  }
-  // V85 CardStudio: 初始化卡牌工作室
-  if (!window.cardStudio) {
-    window.cardStudio = new CardStudio();
+    // V86 DreamManager: 初始化梦境记忆系统
+    if (!window.dreamManager && typeof DreamManager !== 'undefined' && window.aiMemory) {
+      window.dreamManager = new DreamManager(window.aiMemory);
+    }
+    // V85 SkillCrystallizer: 初始化技能结晶系统
+    if (!window.skillCrystallizer && typeof SkillCrystallizer !== 'undefined' && window.aiMemory) {
+      window.skillCrystallizer = new SkillCrystallizer(window.aiMemory);
+      window.skillCrystallizer.loadSkills();
+      window.skillCrystallizer.crystallizeAllFromL3(); // 启动时从L3模式自动结晶
+    }
+    // V100 CardFusion: 初始化卡牌融合系统
+    if (!window.fusionInventory && typeof FusionInventory !== 'undefined') {
+      window.fusionInventory = new FusionInventory();
+    }
+    if (!window.evolutionInventory && typeof CardEvolutionInventory !== 'undefined') {
+      window.evolutionInventory = new CardEvolutionInventory();
+    }
+    if (!window.gachaInventory && typeof GachaInventory !== 'undefined') {
+      window.gachaInventory = new GachaInventory();
+    }
+    if (!window.runeInventory && typeof RuneInventory !== 'undefined') {
+      window.runeInventory = new RuneInventory();
+    }
+    if (!window.auctionHouse && typeof AuctionHouse !== 'undefined') {
+      window.auctionHouse = new AuctionHouse();
+    }
+    if (!window._sharedGuilds) window._sharedGuilds = {};
+    if (!window._sharedTournaments) window._sharedTournaments = {};
+    if (typeof AchievementSystem !== 'undefined' && !window._achSystem) {
+      window._achSystem = new AchievementSystem();
+      window._achSystem.registerDefaultAchievements();
+    }
+    if (typeof CosmeticShop !== 'undefined' && !window._cosmeticShop) {
+      window._cosmeticShop = new CosmeticShop();
+      window._cosmeticShop.registerDefaultCosmetics();
+    }
+    if (typeof RankedLadder !== 'undefined' && !window._rankedLadder) {
+      window._rankedLadder = new RankedLadder();
+    }
+    if (typeof BattlePassSystem !== 'undefined' && !window._battlePassSystem) {
+      window._battlePassSystem = new BattlePassSystem();
+    }
+    // V99 StrategyGuide: 初始化AI策略导航系统（可选）
+    if (!window.strategyGuide && typeof StrategyGuidePanel !== 'undefined' && window.PluginBus && window.aiMemory) {
+      window.strategyGuide = new StrategyGuidePanel(window.PluginBus, window.aiMemory);
+      if (window.gameHookHub) {
+        window.gameHookHub.registerHook('combat:start', () => window.strategyGuide.updateSuggestions());
+        window.gameHookHub.registerHook('player:turn-start', () => window.strategyGuide.updateSuggestions());
+        window.gameHookHub.registerHook('card:played', () => window.strategyGuide.updateSuggestions());
+      }
+    }
+    // V85 CardStudio: 初始化卡牌工作室
+    if (!window.cardStudio && typeof CardStudio !== 'undefined') {
+      window.cardStudio = new CardStudio();
+    }
+  } catch (e) {
+    console.warn('[startNewGame] optional systems init skipped:', e);
   }
 
   // V63 Meta: 设置难度
@@ -14229,56 +14251,63 @@ function startRandomBattle() {
 }
 
 // ===== 事件绑定 =====
+function bindClick(id, handler) {
+  var el = document.getElementById(id);
+  if (el) el.onclick = handler;
+  else console.warn('[bind] missing element:', id);
+}
+
 // V46: 开始游戏按钮打开牌组选择（重新开始）
-document.getElementById('start-btn').onclick = startNewGame;
+bindClick('start-btn', startNewGame);
 // V46: 重玩和下一关直接重新开始（不重新选牌组）
-document.getElementById('start-btn-retry').onclick = initGame;
-document.getElementById('start-btn-next').onclick = initGame;
-document.getElementById('end-turn').onclick = endTurn;
-document.getElementById('mute-btn').onclick = toggleMute;
-document.getElementById('landing-enter-map').onclick = enterMapFromLanding;
-document.getElementById('landing-return-title').onclick = returnToTitle;
-document.getElementById('map-canvas').onclick = handleMapClick;
-document.getElementById('node-preview-btn').onclick = enterNode;
-document.getElementById('shop-leave').onclick = leaveShop;
+bindClick('start-btn-retry', initGame);
+bindClick('start-btn-next', initGame);
+bindClick('end-turn', endTurn);
+bindClick('mute-btn', toggleMute);
+bindClick('landing-enter-map', enterMapFromLanding);
+bindClick('landing-return-title', returnToTitle);
+bindClick('map-canvas', handleMapClick);
+bindClick('node-preview-btn', enterNode);
+bindClick('shop-leave', leaveShop);
 // V9 成就按钮
-document.getElementById('achievements-btn').onclick = showAchievements;
-document.getElementById('close-achievements-btn').onclick = () => {
+bindClick('achievements-btn', showAchievements);
+bindClick('close-achievements-btn', () => {
   document.getElementById('achievements-overlay').classList.remove('show');
-};
+});
 // V43 进度按钮
-document.getElementById('progress-btn').onclick = openProgressPanel;
+bindClick('progress-btn', openProgressPanel);
 // V29 每日挑战按钮
-document.getElementById('daily-btn').onclick = showDailyChallenge;
+bindClick('daily-btn', showDailyChallenge);
 // BossRush按钮
-document.getElementById('boss-rush-btn').onclick = showBossRushInfo;
+bindClick('boss-rush-btn', showBossRushInfo);
 // V40 牌组选择按钮
-document.getElementById('select-deck-btn').onclick = openDeckSelectModal;
-document.getElementById('deck-select-confirm-btn').onclick = onlySelectDeck;
-document.getElementById('deck-select-start-btn').onclick = confirmDeckSelection;
-document.getElementById('deck-select-cancel-btn').onclick = closeDeckSelectModal;
-document.getElementById('deck-select-start-btn').style.display = 'none';
-document.getElementById('close-daily-btn').onclick = () => {
+bindClick('select-deck-btn', openDeckSelectModal);
+bindClick('deck-select-confirm-btn', onlySelectDeck);
+bindClick('deck-select-start-btn', confirmDeckSelection);
+bindClick('deck-select-cancel-btn', closeDeckSelectModal);
+var deckSelectStartBtn = document.getElementById('deck-select-start-btn');
+if (deckSelectStartBtn) deckSelectStartBtn.style.display = 'none';
+bindClick('close-daily-btn', () => {
   document.getElementById('daily-overlay').classList.remove('show');
-};
-// V29 排行榜按钮
-document.getElementById('leaderboard-btn').onclick = showLeaderboard;
+});
+// V29 排行榜按钮（UI 可能未挂载）
+bindClick('leaderboard-btn', showLeaderboard);
 // V28 终局结算按钮
-document.getElementById('ngplus-btn').onclick = startNGPlus;
-document.getElementById('difficulty-btn').onclick = showDifficultySelection;
-document.getElementById('stats-btn').onclick = showStatisticsPanel;
-document.getElementById('menu-btn').onclick = () => {
+bindClick('ngplus-btn', startNGPlus);
+bindClick('difficulty-btn', showDifficultySelection);
+bindClick('stats-btn', showStatisticsPanel);
+bindClick('menu-btn', () => {
   document.getElementById('endgame-screen').classList.remove('show');
   document.getElementById('start-screen').style.display = 'flex';
-};
+});
 // V19 存档系统按钮
-document.getElementById('load-save-btn').onclick = showSaveSlots;
+bindClick('load-save-btn', showSaveSlots);
 
-document.getElementById('close-save-btn').onclick = hideSaveSlots;
-document.getElementById('quick-save-btn').onclick = showQuickSave;
+bindClick('close-save-btn', hideSaveSlots);
+bindClick('quick-save-btn', showQuickSave);
 // V16 卡组预览按钮
-document.getElementById('deck-preview-btn').onclick = showDeckPreview;
-document.getElementById('close-deck-preview-btn').onclick = closeDeckPreview;
+bindClick('deck-preview-btn', showDeckPreview);
+bindClick('close-deck-preview-btn', closeDeckPreview);
 // V16 筛选按钮事件
 document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.onclick = () => {
@@ -14296,8 +14325,8 @@ document.querySelectorAll('.sort-btn').forEach(btn => {
   };
 });
 // V17 确认对话框按钮事件
-document.getElementById('confirm-yes-btn').onclick = confirmRemoveCard;
-document.getElementById('confirm-no-btn').onclick = closeConfirmDialog;
+bindClick('confirm-yes-btn', confirmRemoveCard);
+bindClick('confirm-no-btn', closeConfirmDialog);
 
 // 初始化移动端支持
 document.addEventListener('DOMContentLoaded', () => {
