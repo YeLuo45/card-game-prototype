@@ -49,6 +49,7 @@
     this.energy = options.energy || 100;
     this.creationTime = Date.now();
     this.lastActionTime = null;
+    this.inbox = [];  // local message storage
     this.metrics = {
       actionsPlayed: 0,
       signalsSent: 0,
@@ -128,11 +129,24 @@
   BotAgent.prototype.signal = function (message, channel) {
     if (typeof message !== 'object' || message === null) return { error: 'invalid_message' };
     var ch = channel || 'default';
+    // store in local inbox
+    this.inbox.push({ channel: ch, message: message, ts: Date.now() });
+    if (this.inbox.length > 100) this.inbox = this.inbox.slice(-100);
     if (this.blackboard && typeof this.blackboard.write === 'function') {
       this.blackboard.write(ch, { from: this.id, message: message, ts: Date.now() });
     }
     this.metrics.signalsSent++;
     return { success: true, channel: ch, message: message };
+  };
+
+  BotAgent.prototype.readInbox = function (channel, since) {
+    if (typeof channel === 'string') {
+      return this.inbox.filter(function (m) { return m.channel === channel && m.ts >= (since || 0); });
+    }
+    if (typeof since === 'number') {
+      return this.inbox.filter(function (m) { return m.ts >= since; });
+    }
+    return this.inbox.slice();
   };
 
   BotAgent.prototype.readSignals = function (channel, since) {
